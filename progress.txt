@@ -80,30 +80,69 @@
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
 
-## 2026-02-19 - US-003
+## 2026-02-19 - US-005
 - What was implemented:
-  - `src/types/candidate.ts` — `Candidate` interface with `aiMaturityScore: number | null` (null = not evaluated, 0 = Level 0). `CandidatePipelineUpdate` = `Omit<Candidate, 'aiMaturityScore' | 'aiMaturityScoredAt' | 'aiMaturityScoredBy'>` — TypeScript-enforces pipeline cannot write ai maturity fields.
-  - `src/types/repository.ts` — `Repository` and `AiConfigFileSignal` interfaces.
-  - `src/types/scan-job.ts` — `ScanJob`, `ScanJobStatus`, `ScanJobType`, `DiscoverPayload`, `ScanRepoPayload`, `RescanPayload`.
-  - `src/types/taxonomy.ts` — `TaxonomyItem`, `TaxonomyCategory`.
-  - `src/types/admin.ts` — `AdminFlag`, `AdminFlagType`, `AdminFlagStatus`, `SearchQueryParams`.
-  - `src/core/db/firestore.ts` — Centralized Firestore wrapper: `getDoc`, `setDoc`, `updateDoc`, `deleteDoc`, `addDoc`, `queryDocs`, `collectionRef`, `docRef`, `serverTimestamp`, query builder re-exports. Auto-detects `VITE_USE_EMULATOR=true` and connects to emulator at localhost:8080.
-  - `tests/unit/us-003-types.test.ts` — 20 tests: CandidatePipelineUpdate exclusion, null/0 invariant, all type shape validations.
-  - `tests/unit/us-003-firestore-wrapper.test.ts` — 22 tests: all exports present, emulator detection, singleton getDb, serverTimestamp.
+  - `src/core/auth/firebase-auth.ts` — Firebase Auth singleton with emulator detection (VITE_USE_EMULATOR → localhost:9099). Exports `getAuthInstance`, `signInWithGoogle` (redirect, not popup — Chrome-only SPA), `handleRedirectResult`, `signOut`.
+  - `src/app/auth/AuthContext.tsx` — React context + `AuthProvider` + `useAuth` hook. Reads `admin: true` custom claim from `getIdTokenResult()` — never from Firestore. Exposes `user`, `isAdmin`, `loading`, `signInWithGoogle`, `signOut`. `loading: true` until `onAuthStateChanged` resolves.
+  - `src/app/auth/PrivateRoute.tsx` — Route guard: shows loading state while auth resolves, redirects unauthenticated to /login, renders `<Outlet>` for authenticated users.
+  - `src/app/auth/AdminRoute.tsx` — Route guard: loading state → unauthenticated → /login, authenticated non-admin → /search, admin → `<Outlet>`.
+  - `src/app/pages/LoginPage.tsx` — Sign-in page with Google OAuth button, loading state, auto-redirect if already authenticated.
+  - `src/app/pages/SearchPage.tsx` — Stub page (full impl US-012), shows nav with user name + sign-out.
+  - `src/app/pages/AdminPage.tsx` — Stub page (full impl US-016).
+  - `src/app/pages/CandidateProfilePage.tsx` — Stub page (full impl US-015).
+  - `src/app/main.tsx` — Full React Router v6 setup: BrowserRouter → AuthProvider → Routes. Public: /login. PrivateRoute: /search, /candidates/:id. AdminRoute: /admin/*. / → /login redirect.
+  - `functions/src/index.ts` — `verifyAdminClaim` Firebase Function (onCall v2). Returns { isAdmin: true } or throws `permission-denied` (403) / `unauthenticated` (401). Reads claim from token only, no Firestore.
+  - `functions/package.json` — Functions package with firebase-admin + firebase-functions deps.
+  - `scripts/admin-ops.ts` — Commander.js CLI with grant-admin, revoke-admin, check-admin commands. Uses firebase-admin SDK (not client SDK). Requires --uid option.
+  - `tests/unit/us-005-auth.test.ts` — 46 structural tests: firebase-auth singleton (emulator, redirect), AuthContext (claim reading, loading), PrivateRoute (login redirect, loading, no flash), AdminRoute (search redirect for non-admin), Firebase Function (permission-denied, unauthenticated), admin-ops CLI (commands, setCustomUserClaims), main.tsx routing.
 - Files changed:
-  - NEW: src/types/candidate.ts, src/types/repository.ts, src/types/scan-job.ts, src/types/taxonomy.ts, src/types/admin.ts
-  - NEW: src/core/db/firestore.ts
-  - NEW: tests/unit/us-003-types.test.ts, tests/unit/us-003-firestore-wrapper.test.ts
-  - UPDATED: prd.json (US-003 passes: true), progress.txt
+  - NEW: src/core/auth/firebase-auth.ts
+  - NEW: src/app/auth/AuthContext.tsx, PrivateRoute.tsx, AdminRoute.tsx
+  - NEW: src/app/pages/LoginPage.tsx, SearchPage.tsx, AdminPage.tsx, CandidateProfilePage.tsx
+  - UPDATED: src/app/main.tsx (full React Router + AuthProvider wiring)
+  - NEW: functions/src/index.ts, functions/package.json
+  - NEW: scripts/admin-ops.ts
+  - NEW: tests/unit/us-005-auth.test.ts
+  - UPDATED: prd.json (US-005 passes: true), progress.txt
 - **Learnings for future iterations:**
-  - `import.meta.env` in base tsconfig (no vite/client types) causes TS errors — cast `import.meta as unknown as { env?: Record<string, string> }` to safely access in dual-context code.
-  - `readEnvVar()` must check `process.env` BEFORE `import.meta.env` — Vitest's `vi.stubEnv()` sets `process.env` but NOT `import.meta.env`. If import.meta.env is checked first, `vi.stubEnv()` won't override .env.local values loaded into import.meta.env.
-  - `vi.resetModules()` must be in `beforeEach` (not `afterEach`) when tests need fresh module imports with different env vars.
-  - Firebase SDK v9 modular API: `Firestore` instance has `type: 'firestore'` internal field but no `.collection()` method on the instance (those are standalone functions). Structural test should check `db.type === 'firestore'`.
-  - `VITE_USE_EMULATOR=true` is in `.env.local` — emulator detection tests need `vi.stubEnv` to properly override this per-test.
+  - `signInWithRedirect` (not `signInWithPopup`) is the correct Google Auth method for Chrome-only SPA — popup may be blocked in some contexts.
+  - Admin claim is read via `firebaseUser.getIdTokenResult()` → `claims['admin'] === true`. This is the ONLY source of truth for admin status.
+  - `loading: true` on initial state + `setLoading(false)` inside `onAuthStateChanged` prevents flash-of-redirect on page load.
+  - Functions v2 (`firebase-functions/v2/https`) uses `onCall` with a `request` object — `request.auth` replaces the v1 `context.auth`.
+  - `firebase-admin` (not `firebase/auth`) is used in scripts/admin-ops.ts for custom claim management via `setCustomUserClaims`.
+  - `@testing-library/react` and jsdom are not installed — US-005 tests are structural (file content assertions) rather than DOM rendering tests. Add these in US-018 when full E2E tests are needed.
 - Quality gate results:
   - `pnpm typecheck`: PASS (0 errors)
-  - `pnpm test:unit`: PASS (73/73 tests, 4 files)
+  - `pnpm test:unit`: PASS (158/158 tests, 6 files)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+
+## 2026-02-19 - US-006
+- What was implemented:
+  - `src/pipeline/queue.ts` — ScanJob queue: `enqueueDiscoverJob`, `enqueueRescanJob`, `fetchNextPendingJob` (priority DESC + createdAt ASC, rate-limit skip), `markJobRunning`, `markJobCompleted`, `markJobFailed` (exponential backoff 2^attempts min, max 3 attempts), `markJobRateLimited`, `fetchJobsByStatus`, `fetchRecentJobs`. All Firestore access via wrapper.
+  - `src/pipeline/worker.ts` — Worker polling loop every 10s: `startWorker`, `stopWorker`, `pollOnce`. Error isolation: failed jobs never crash worker. Unregistered handler type → permanent fail. Retry logging with backoff minutes.
+  - `src/pipeline/commands/discover.ts` — `runDiscover`: validates query/limit/source, calls `enqueueDiscoverJob`, logs job ID.
+  - `src/pipeline/commands/rescan.ts` — `runRescan`: validates targetType/targetId, calls `enqueueRescanJob` (priority 1), logs job ID.
+  - `src/pipeline/commands/status.ts` — `runStatus`: summary (all status counts + recent 10) or filtered view. Uses `Promise.all` for parallel status fetches.
+  - `src/pipeline/index.ts` — Commander.js CLI: `scan discover`, `scan rescan`, `scan status`, `scan worker` sub-commands with correct options. `pnpm scan --help` shows all commands.
+  - `tests/unit/us-006-pipeline.test.ts` — 49 unit tests covering all modules: API surface, ScanJob shape, exponential backoff math, worker mock lifecycle (enqueue→running→completed, enqueue→running→failed, no-handler→failed, crash isolation), rate-limit skip logic, priority ordering, option validation.
+- Files changed:
+  - NEW: src/pipeline/queue.ts, src/pipeline/worker.ts
+  - NEW: src/pipeline/commands/discover.ts, src/pipeline/commands/rescan.ts, src/pipeline/commands/status.ts
+  - NEW: src/pipeline/index.ts
+  - NEW: tests/unit/us-006-pipeline.test.ts
+  - UPDATED: prd.json (US-006 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `vi.doMock` (not `vi.mock`) required inside describe blocks for per-test module mocking — `vi.mock` is hoisted to file top.
+  - Worker `pollOnce` must schedule next poll in `finally` block — ensures scheduling even if poll throws.
+  - `markJobFailed` uses `newAttempts < maxAttempts` (not `<=`) so attempt 3/3 permanently fails as expected.
+  - Rate-limit check in `fetchNextPendingJob` uses `Timestamp.toMillis()` — need to guard `rateLimitedUntil !== null` first.
+  - Rescan jobs get priority 1 vs discover priority 0 — enforced at enqueue time, not caller-controlled.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (207/207 tests, 7 files — 49 new for US-006)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
 
 ## 2026-02-19 - US-004

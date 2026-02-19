@@ -80,7 +80,7 @@
         "Firebase Auth emulator is used in test environment; Vitest test confirms AdminRoute blocks non-admin token"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Admin role grant is CLI-only — no web UI path must exist for role elevation. The AdminRoute guard must enforce server-side claims, not client-side state. All auth tests run against the Firebase Auth emulator."
     },
     {
@@ -96,7 +96,7 @@
         "Failed jobs do not crash the worker — subsequent jobs are processed; unit test verifies full job lifecycle: enqueue → pick up → complete"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "The worker is single-threaded in MVP — one job at a time. The Firestore-backed queue (no Redis/BullMQ) is intentional at this scale. All pipeline code runs via tsx and targets tsconfig.pipeline.json."
     },
     {
