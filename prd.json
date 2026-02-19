@@ -1,0 +1,74 @@
+{
+  "project": "my-poc",
+  "branchName": "ralph/build-my-poc",
+  "description": "Brief description of what this PoC does and why",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Project initialization",
+      "description": "Set up the project structure with the chosen tech stack, install dependencies, create the basic folder layout, and ensure the project builds and runs",
+      "acceptanceCriteria": [
+        "Project has package.json (or equivalent) with all needed dependencies",
+        "Project compiles/builds without errors",
+        "Basic folder structure exists (src/, tests/ or equivalent)",
+        "A simple health check or hello world endpoint/output works"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Choose the simplest tech stack that fits the PoC goals"
+    },
+    {
+      "id": "US-002",
+      "title": "Core data model",
+      "description": "Define and implement the core data structures/models needed for the PoC",
+      "acceptanceCriteria": [
+        "Data models are defined with proper types",
+        "Basic CRUD operations work (if applicable)",
+        "At least one test validates the data model"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Main feature implementation",
+      "description": "Implement the primary feature that demonstrates the PoC's value",
+      "acceptanceCriteria": [
+        "Feature works as described in the PRD description",
+        "Happy path is functional",
+        "At least one test covers the main flow"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Basic error handling and edge cases",
+      "description": "Add error handling for common failure scenarios and validate inputs",
+      "acceptanceCriteria": [
+        "Invalid inputs return clear error messages",
+        "Application doesn't crash on unexpected input",
+        "Error cases have test coverage"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Documentation and README",
+      "description": "Create a README with setup instructions, usage examples, and architecture overview",
+      "acceptanceCriteria": [
+        "README.md exists with project description",
+        "Setup/installation instructions are clear",
+        "At least one usage example is provided",
+        "All tests pass as final verification"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "This is the last story — do a final full test run"
+    }
+  ]
+}
