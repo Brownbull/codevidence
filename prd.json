@@ -32,7 +32,7 @@
         "GitHub Actions CI workflow at .github/workflows/ci.yml runs typecheck + test:unit + build on every push; deploy step gated on main branch"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Three tsconfigs must prevent DOM/Node cross-contamination. tsconfig.pipeline.json must NOT include DOM lib. The postbuild Classpresso hook is required by the starter kit."
     },
     {

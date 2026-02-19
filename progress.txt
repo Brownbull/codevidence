@@ -1,10 +1,14 @@
 ## Codebase Patterns
 
-- **Dual runtime context**: `src/app/` = browser/React (DOM types), `src/pipeline/` = Node.js (no DOM). Enforce with separate tsconfigs (US-002).
+- **Dual runtime context**: `src/app/` = browser/React (DOM types), `src/pipeline/` = Node.js (no DOM). Enforce with separate tsconfigs (done in US-002).
 - **Firestore wrapper**: ALL Firestore access via `src/core/db/firestore.ts`. Never import Firebase SDK directly in business logic.
 - **aiMaturityScore invariant**: `null` = not scored, `0` = scored Level 0. Pipeline scoring output type MUST TypeScript-exclude aiMaturity fields.
-- **Build check**: Use `pnpm vite build` (not `pnpm build`) to skip the `postbuild` classpresso step during scaffold verification.
-- **JSX in tsconfig**: Base `tsconfig.json` needs `"jsx": "react-jsx"` and `"lib": ["ES2022", "DOM", "DOM.Iterable"]` for typecheck to work across app + pipeline together.
+- **Build check**: `pnpm build` runs `tsc --noEmit && vite build && classpresso optimize` — all three must pass.
+- **classpresso**: Works with empty dist (0 patterns is fine exit 0). No special config needed.
+- **JSX in tsconfig**: Base `tsconfig.json` needs `"jsx": "react-jsx"` and `"lib": ["ES2022", "DOM", "DOM.Iterable"]` for typecheck (`tsc --noEmit`) to work across app + pipeline together.
+- **tsconfig.pipeline.json**: Has `"lib": ["ES2022"]` + `"types": ["node"]` — NO DOM lib. Child configs override lib from base.
+- **Firebase emulators**: `firebase.json` configures Firestore port 8080, Auth port 9099. `.env.local` (gitignored) sets `VITE_USE_EMULATOR=true`, `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`.
+- **CI gate**: `.github/workflows/ci.yml` — `ci` job runs on all branches; `deploy` job gates on `refs/heads/main` only.
 
 ---
 
@@ -41,4 +45,37 @@
   - Base tsconfig needs `jsx + DOM lib` — pipeline tsconfig (US-002) must override to exclude DOM
   - The nested `.git` repo uses `master` not `main` — branch `ralph/build-candidate-skill-scanner` created from `master`
   - `postbuild` runs classpresso which may need config — use `pnpm vite build` directly to skip it during quality checks pre-US-002
+---
+
+## 2026-02-19 - US-002
+- What was implemented:
+  - `tsconfig.json` — updated base: strict=true, @/* paths, ES2022+DOM lib (needed for `tsc --noEmit` across full src), jsx: react-jsx, excludes functions/
+  - `tsconfig.app.json` — NEW: extends base, lib: ES2022+DOM+DOM.Iterable, jsx: react-jsx, include: src/app, src/types, src/core
+  - `tsconfig.pipeline.json` — NEW: extends base, lib: ES2022 only (NO DOM), types: node, include: src/pipeline, src/core, src/types, src/adapters, src/handlers
+  - `tsconfig.functions.json` — NEW: extends base, lib: ES2022, types: node, module: commonjs, outDir: functions/lib, include: functions/src
+  - `functions/src/` — empty directory created for Firebase Functions source
+  - `firebase.json` — NEW: Hosting (public: dist, SPA rewrite /**→/index.html), Functions (nodejs20), Emulators (Firestore:8080, Auth:9099, UI:4000)
+  - `.firebaserc` — NEW: projects.default placeholder
+  - `.env.local` — created (gitignored) with VITE_USE_EMULATOR=true, FIRESTORE_EMULATOR_HOST=localhost:8080, FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
+  - `.env.example` — already correct from US-001, no changes needed
+  - `.github/workflows/ci.yml` — NEW: ci job (all branches): pnpm install + typecheck + test:unit + build; deploy job (main only): firebase deploy via FirebaseExtended/action-hosting-deploy
+  - `tests/unit/us-002-config.test.ts` — NEW: 29 tests verifying all config files (tsconfigs, firebase.json, .firebaserc, .env.example, ci.yml)
+- Files changed:
+  - UPDATED: tsconfig.json (added exclude: functions, cleaned includes for base-only role)
+  - NEW: tsconfig.app.json, tsconfig.pipeline.json, tsconfig.functions.json
+  - NEW: firebase.json, .firebaserc, .env.local (gitignored)
+  - NEW: .github/workflows/ci.yml
+  - NEW: functions/src/ (empty directory)
+  - NEW: tests/unit/us-002-config.test.ts
+  - UPDATED: prd.json (US-002 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `classpresso optimize` exits 0 even with 0 patterns — postbuild works without special config
+  - `tsconfig.pipeline.json` lib array in child config completely overrides parent lib — DOM is properly excluded
+  - `firebase.json` emulators.ui.port 4000 conflicts with playwright test port 4000 — if running emulator UI + e2e simultaneously, change emulator UI port
+  - `.env.local` stays gitignored per CLAUDE.md Rule 0 even though task said "committed" — security rule wins
+  - `tsconfig.functions.json` uses `module: commonjs` for Firebase Functions v2 compatibility
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (31/31 tests, 2 files)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
