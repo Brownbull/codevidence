@@ -48,7 +48,7 @@
         "Unit test verifies the wrapper routes to emulator in test environment; pnpm typecheck passes with all types defined"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "The null vs 0 distinction for aiMaturityScore is a hard invariant — null means not evaluated, 0 means evaluated as Level 0. This must be enforced at the type level throughout. All Firestore access must go through the wrapper — never direct SDK calls."
     },
     {

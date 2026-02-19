@@ -79,3 +79,29 @@
   - `pnpm test:unit`: PASS (31/31 tests, 2 files)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-19 - US-003
+- What was implemented:
+  - `src/types/candidate.ts` — `Candidate` interface with `aiMaturityScore: number | null` (null = not evaluated, 0 = Level 0). `CandidatePipelineUpdate` = `Omit<Candidate, 'aiMaturityScore' | 'aiMaturityScoredAt' | 'aiMaturityScoredBy'>` — TypeScript-enforces pipeline cannot write ai maturity fields.
+  - `src/types/repository.ts` — `Repository` and `AiConfigFileSignal` interfaces.
+  - `src/types/scan-job.ts` — `ScanJob`, `ScanJobStatus`, `ScanJobType`, `DiscoverPayload`, `ScanRepoPayload`, `RescanPayload`.
+  - `src/types/taxonomy.ts` — `TaxonomyItem`, `TaxonomyCategory`.
+  - `src/types/admin.ts` — `AdminFlag`, `AdminFlagType`, `AdminFlagStatus`, `SearchQueryParams`.
+  - `src/core/db/firestore.ts` — Centralized Firestore wrapper: `getDoc`, `setDoc`, `updateDoc`, `deleteDoc`, `addDoc`, `queryDocs`, `collectionRef`, `docRef`, `serverTimestamp`, query builder re-exports. Auto-detects `VITE_USE_EMULATOR=true` and connects to emulator at localhost:8080.
+  - `tests/unit/us-003-types.test.ts` — 20 tests: CandidatePipelineUpdate exclusion, null/0 invariant, all type shape validations.
+  - `tests/unit/us-003-firestore-wrapper.test.ts` — 22 tests: all exports present, emulator detection, singleton getDb, serverTimestamp.
+- Files changed:
+  - NEW: src/types/candidate.ts, src/types/repository.ts, src/types/scan-job.ts, src/types/taxonomy.ts, src/types/admin.ts
+  - NEW: src/core/db/firestore.ts
+  - NEW: tests/unit/us-003-types.test.ts, tests/unit/us-003-firestore-wrapper.test.ts
+  - UPDATED: prd.json (US-003 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `import.meta.env` in base tsconfig (no vite/client types) causes TS errors — cast `import.meta as unknown as { env?: Record<string, string> }` to safely access in dual-context code.
+  - `readEnvVar()` must check `process.env` BEFORE `import.meta.env` — Vitest's `vi.stubEnv()` sets `process.env` but NOT `import.meta.env`. If import.meta.env is checked first, `vi.stubEnv()` won't override .env.local values loaded into import.meta.env.
+  - `vi.resetModules()` must be in `beforeEach` (not `afterEach`) when tests need fresh module imports with different env vars.
+  - Firebase SDK v9 modular API: `Firestore` instance has `type: 'firestore'` internal field but no `.collection()` method on the instance (those are standalone functions). Structural test should check `db.type === 'firestore'`.
+  - `VITE_USE_EMULATOR=true` is in `.env.local` — emulator detection tests need `vi.stubEnv` to properly override this per-test.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (73/73 tests, 4 files)
+---
