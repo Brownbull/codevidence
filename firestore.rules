@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// ─── Firestore Security Rules — candidate-skill-scanner ───────────────────────
+//
+// Three-tier access model:
+//   Tier 1 — Unauthenticated: NO access to any collection
+//   Tier 2 — Authenticated non-admin: read-only on candidates, repositories, taxonomy
+//   Tier 3 — Authenticated admin (custom claim admin: true): read + write on ALL collections
+//
+// Admin status is determined solely by Firebase ID token custom claim `admin: true`.
+// It is NEVER read from Firestore or client-side state.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper functions ────────────────────────────────────────────────────
+
+    /** Returns true if the request comes from a signed-in user. */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the signed-in user has the admin custom claim.
+     * This is the sole admin gate — never use Firestore docs for this.
+     */
+    function isAdmin() {
+      return isAuthenticated()
+        && request.auth.token.admin == true;
+    }
+
+    // ─── candidates ─────────────────────────────────────────────────────────
+
+    match /candidates/{candidateId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── repositories ────────────────────────────────────────────────────────
+
+    match /repositories/{repoId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── taxonomy ────────────────────────────────────────────────────────────
+
+    match /taxonomy/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── scan_jobs ───────────────────────────────────────────────────────────
+    // Pipeline creates and updates jobs; admin UI reads and retries jobs.
+    // No authenticated non-admin access.
+
+    match /scan_jobs/{jobId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ─── admin_flags ─────────────────────────────────────────────────────────
+    // Admin-only. Non-admin users must never read admin_flags.
+
+    match /admin_flags/{flagId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

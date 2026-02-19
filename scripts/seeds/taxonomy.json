@@ -1,0 +1,380 @@
+{
+  "taxonomy": [
+    {
+      "id": "language:typescript",
+      "category": "language",
+      "displayName": "TypeScript",
+      "aliases": ["ts"],
+      "sortOrder": 10,
+      "isSearchable": true
+    },
+    {
+      "id": "language:javascript",
+      "category": "language",
+      "displayName": "JavaScript",
+      "aliases": ["js", "node", "nodejs"],
+      "sortOrder": 20,
+      "isSearchable": true
+    },
+    {
+      "id": "language:python",
+      "category": "language",
+      "displayName": "Python",
+      "aliases": ["py"],
+      "sortOrder": 30,
+      "isSearchable": true
+    },
+    {
+      "id": "language:rust",
+      "category": "language",
+      "displayName": "Rust",
+      "aliases": ["rs"],
+      "sortOrder": 40,
+      "isSearchable": true
+    },
+    {
+      "id": "language:go",
+      "category": "language",
+      "displayName": "Go",
+      "aliases": ["golang"],
+      "sortOrder": 50,
+      "isSearchable": true
+    },
+    {
+      "id": "language:java",
+      "category": "language",
+      "displayName": "Java",
+      "aliases": [],
+      "sortOrder": 60,
+      "isSearchable": true
+    },
+    {
+      "id": "language:kotlin",
+      "category": "language",
+      "displayName": "Kotlin",
+      "aliases": ["kt"],
+      "sortOrder": 70,
+      "isSearchable": true
+    },
+    {
+      "id": "language:swift",
+      "category": "language",
+      "displayName": "Swift",
+      "aliases": [],
+      "sortOrder": 80,
+      "isSearchable": true
+    },
+    {
+      "id": "language:c",
+      "category": "language",
+      "displayName": "C",
+      "aliases": [],
+      "sortOrder": 90,
+      "isSearchable": true
+    },
+    {
+      "id": "language:cpp",
+      "category": "language",
+      "displayName": "C++",
+      "aliases": ["c++", "cplusplus"],
+      "sortOrder": 100,
+      "isSearchable": true
+    },
+    {
+      "id": "language:ruby",
+      "category": "language",
+      "displayName": "Ruby",
+      "aliases": ["rb"],
+      "sortOrder": 110,
+      "isSearchable": true
+    },
+    {
+      "id": "language:elixir",
+      "category": "language",
+      "displayName": "Elixir",
+      "aliases": ["ex"],
+      "sortOrder": 120,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:react",
+      "category": "framework",
+      "displayName": "React",
+      "aliases": ["reactjs"],
+      "sortOrder": 10,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:nextjs",
+      "category": "framework",
+      "displayName": "Next.js",
+      "aliases": ["next"],
+      "sortOrder": 20,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:vue",
+      "category": "framework",
+      "displayName": "Vue.js",
+      "aliases": ["vuejs"],
+      "sortOrder": 30,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:fastapi",
+      "category": "framework",
+      "displayName": "FastAPI",
+      "aliases": [],
+      "sortOrder": 40,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:django",
+      "category": "framework",
+      "displayName": "Django",
+      "aliases": [],
+      "sortOrder": 50,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:flask",
+      "category": "framework",
+      "displayName": "Flask",
+      "aliases": [],
+      "sortOrder": 60,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:actix",
+      "category": "framework",
+      "displayName": "Actix Web",
+      "aliases": ["actix-web"],
+      "sortOrder": 70,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:axum",
+      "category": "framework",
+      "displayName": "Axum",
+      "aliases": [],
+      "sortOrder": 80,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:spring",
+      "category": "framework",
+      "displayName": "Spring Boot",
+      "aliases": ["spring-boot"],
+      "sortOrder": 90,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:rails",
+      "category": "framework",
+      "displayName": "Ruby on Rails",
+      "aliases": ["ror"],
+      "sortOrder": 100,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:phoenix",
+      "category": "framework",
+      "displayName": "Phoenix",
+      "aliases": ["phoenix-framework"],
+      "sortOrder": 110,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:express",
+      "category": "framework",
+      "displayName": "Express.js",
+      "aliases": ["expressjs"],
+      "sortOrder": 120,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:docker",
+      "category": "tool",
+      "displayName": "Docker",
+      "aliases": ["dockerfile"],
+      "sortOrder": 10,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:kubernetes",
+      "category": "tool",
+      "displayName": "Kubernetes",
+      "aliases": ["k8s"],
+      "sortOrder": 20,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:git",
+      "category": "tool",
+      "displayName": "Git",
+      "aliases": [],
+      "sortOrder": 30,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:terraform",
+      "category": "tool",
+      "displayName": "Terraform",
+      "aliases": ["tf"],
+      "sortOrder": 40,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:postgresql",
+      "category": "tool",
+      "displayName": "PostgreSQL",
+      "aliases": ["postgres", "pg"],
+      "sortOrder": 50,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:redis",
+      "category": "tool",
+      "displayName": "Redis",
+      "aliases": [],
+      "sortOrder": 60,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:graphql",
+      "category": "tool",
+      "displayName": "GraphQL",
+      "aliases": ["gql"],
+      "sortOrder": 70,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:github-actions",
+      "category": "tool",
+      "displayName": "GitHub Actions",
+      "aliases": ["gha"],
+      "sortOrder": 80,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:firebase",
+      "category": "tool",
+      "displayName": "Firebase",
+      "aliases": ["firestore", "gcp-firebase"],
+      "sortOrder": 90,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:aws",
+      "category": "tool",
+      "displayName": "AWS",
+      "aliases": ["amazon-web-services"],
+      "sortOrder": 100,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:vite",
+      "category": "tool",
+      "displayName": "Vite",
+      "aliases": [],
+      "sortOrder": 110,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:claude-md",
+      "category": "ai-agent-pattern",
+      "displayName": "CLAUDE.md / Agent Instructions",
+      "aliases": ["claude-md", "agent-instructions"],
+      "sortOrder": 10,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:cursor-rules",
+      "category": "ai-agent-pattern",
+      "displayName": "Cursor Rules",
+      "aliases": [".cursorrules", "cursor-rules"],
+      "sortOrder": 20,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:copilot-instructions",
+      "category": "ai-agent-pattern",
+      "displayName": "GitHub Copilot Instructions",
+      "aliases": ["copilot-instructions.md"],
+      "sortOrder": 30,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:aider-config",
+      "category": "ai-agent-pattern",
+      "displayName": "Aider Config",
+      "aliases": [".aider", ".aiderignore", ".aider.conf.yml"],
+      "sortOrder": 40,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:co-authored-by-ai",
+      "category": "ai-agent-pattern",
+      "displayName": "Co-Authored-By AI",
+      "aliases": ["co-authored-by", "ai-attribution"],
+      "sortOrder": 50,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:ai-context-file",
+      "category": "ai-agent-pattern",
+      "displayName": "AI Context File",
+      "aliases": ["ai-context.md", "ai-context"],
+      "sortOrder": 60,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-maturity-level:0",
+      "category": "ai-maturity-level",
+      "displayName": "Level 0 — No AI Signals",
+      "aliases": ["level-0", "no-ai"],
+      "sortOrder": 0,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-maturity-level:1",
+      "category": "ai-maturity-level",
+      "displayName": "Level 1 — AI Tool Present",
+      "aliases": ["level-1"],
+      "sortOrder": 10,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-maturity-level:2",
+      "category": "ai-maturity-level",
+      "displayName": "Level 2 — Active AI Usage",
+      "aliases": ["level-2"],
+      "sortOrder": 20,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-maturity-level:3",
+      "category": "ai-maturity-level",
+      "displayName": "Level 3 — AI-Integrated Workflow",
+      "aliases": ["level-3"],
+      "sortOrder": 30,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-maturity-level:4",
+      "category": "ai-maturity-level",
+      "displayName": "Level 4 — AI-Native Development",
+      "aliases": ["level-4"],
+      "sortOrder": 40,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-maturity-level:5",
+      "category": "ai-maturity-level",
+      "displayName": "Level 5 — AI-First Engineering",
+      "aliases": ["level-5", "ai-first"],
+      "sortOrder": 50,
+      "isSearchable": true
+    }
+  ]
+}

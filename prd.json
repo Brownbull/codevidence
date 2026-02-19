@@ -64,7 +64,7 @@
         "Integration test (Vitest + emulator) verifies a valid candidate composite index query returns results correctly"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Seed taxonomy is critical — the Search UI (Epic 5) depends on it for facet panel rendering. The composite indexes must match the query patterns in src/handlers/search.ts exactly."
     },
     {

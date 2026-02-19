@@ -105,3 +105,29 @@
   - `pnpm typecheck`: PASS (0 errors)
   - `pnpm test:unit`: PASS (73/73 tests, 4 files)
 ---
+
+## 2026-02-19 - US-004
+- What was implemented:
+  - `firestore.rules` — Three-tier Firestore security rules: unauthenticated = no access; authenticated = read on candidates/repositories/taxonomy; admin (custom claim `admin: true`) = read+write on all 5 collections. `admin_flags` and `scan_jobs` are admin-only (no non-admin read).
+  - `firestore.indexes.json` — 14 composite indexes covering all 5 collections: candidates (5 indexes: skillTags+skillScore, skillTags+aiMaturityScore, skillTags+lastScanned, aiMaturityScore+skillScore, isStale+lastScanned), repositories (2), scan_jobs (3), admin_flags (2), taxonomy (2).
+  - `scripts/seeds/taxonomy.json` — 47 seed items: 12 languages, 12 frameworks, 11 tools, 6 AI agent patterns, 6 AI maturity levels (0–5). All items have correct `id` (category:slug pattern), `isSearchable: true`, `sortOrder`, and `aliases`.
+  - `scripts/seed-taxonomy.ts` — Idempotent seed script using `setDoc` (not `addDoc`) for upsert semantics. Reads seed JSON via `readFileSync`, writes to `taxonomy` collection via the Firestore wrapper, sets `isSeeded: true`, `candidateCount: 0`, server timestamps.
+  - `tests/unit/us-004-security-rules.test.ts` — 39 tests covering: rules structure (isAuthenticated/isAdmin helpers, per-collection access), all 14 composite indexes verified by field paths, seed data coverage checks (category counts, field shapes, ID patterns, no duplicates), seed script structure (uses setDoc not addDoc, imports from wrapper not SDK directly).
+- Files changed:
+  - NEW: firestore.rules
+  - NEW: firestore.indexes.json
+  - NEW: scripts/seeds/taxonomy.json
+  - NEW: scripts/seed-taxonomy.ts
+  - NEW: tests/unit/us-004-security-rules.test.ts
+  - UPDATED: prd.json (US-004 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - JSON files cannot have JS-style comments (`//`) — taxonomy.json and firestore.indexes.json must be pure JSON without comments.
+  - `createRequire` is not needed to load JSON in tsx scripts — `readFileSync` + `JSON.parse` works and is simpler.
+  - `setDoc` (upsert by document ID) is the idempotency primitive — `addDoc` (auto-ID) must never be used for seeded data.
+  - The `firestore.rules` `extractBlock` helper in the test uses brace-counting to isolate per-collection rules blocks for targeted assertions.
+  - 14 indexes covers all architecture spec query patterns for all 5 collections.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (112/112 tests, 5 files)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
