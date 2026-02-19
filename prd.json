@@ -16,7 +16,7 @@
         "pnpm dev starts without errors and loads a blank index.html at localhost:3000"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Use setup/tools/claude-code-mastery-project-starter-kit as the base. This is the foundation for all subsequent stories — do not proceed until pnpm install is clean."
     },
     {

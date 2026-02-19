@@ -1,0 +1,44 @@
+## Codebase Patterns
+
+- **Dual runtime context**: `src/app/` = browser/React (DOM types), `src/pipeline/` = Node.js (no DOM). Enforce with separate tsconfigs (US-002).
+- **Firestore wrapper**: ALL Firestore access via `src/core/db/firestore.ts`. Never import Firebase SDK directly in business logic.
+- **aiMaturityScore invariant**: `null` = not scored, `0` = scored Level 0. Pipeline scoring output type MUST TypeScript-exclude aiMaturity fields.
+- **Build check**: Use `pnpm vite build` (not `pnpm build`) to skip the `postbuild` classpresso step during scaffold verification.
+- **JSX in tsconfig**: Base `tsconfig.json` needs `"jsx": "react-jsx"` and `"lib": ["ES2022", "DOM", "DOM.Iterable"]` for typecheck to work across app + pipeline together.
+
+---
+
+## 2026-02-19 - US-001
+- What was implemented:
+  - `package.json` — project name `candidate-skill-scanner`, all required dependencies (React 18, Vite 5, TypeScript 5.7, Tailwind 3, Radix UI, TanStack Query v5, Zustand v4, React Hook Form, Zod, Firebase SDK, firebase-admin, Octokit, simple-git, Commander.js, Vitest, Playwright, tsx, classpresso, @types/node, lucide-react, react-router-dom v6)
+  - `tsconfig.json` — base strict config with `jsx: react-jsx`, DOM lib, `@/*` path alias
+  - `vite.config.ts` — Vite 5 with @vitejs/plugin-react, port 3000, `@/*` alias
+  - `tailwind.config.ts` — Direction 2 tokens (slate-900, slate-50), Space Grotesk sans, JetBrains Mono mono
+  - `postcss.config.js` — Tailwind + autoprefixer
+  - `index.html` — Vite entry with Google Fonts preload (Space Grotesk, JetBrains Mono)
+  - `src/app/main.tsx` — minimal React 18 app (ReactDOM.createRoot)
+  - `src/app/styles.css` — Tailwind base/components/utilities + CSS custom properties
+  - `vitest.config.ts` — Vitest with `@/*` alias, node environment
+  - `playwright.config.ts` — Chromium only, port 4000 test port
+  - `.env.example` — all VITE_FIREBASE_*, GITHUB_PAT, FIREBASE_* vars documented
+  - `.gitignore` — updated with Firebase, .env.local, and all standard ignores
+  - `CLAUDE.md` — merged Ralph agent instructions + starter kit format + project-specific conventions
+  - `scripts/db-query.ts` — Test Query Master scaffold
+  - `tests/unit/scaffold.test.ts` — minimal passing unit test
+  - `src/` directory structure: app/, pipeline/, core/db/, handlers/, adapters/, types/
+  - `scripts/queries/` directory created
+- Files changed:
+  - NEW: package.json, tsconfig.json, vite.config.ts, tailwind.config.ts, postcss.config.js, index.html
+  - NEW: src/app/main.tsx, src/app/styles.css
+  - NEW: vitest.config.ts, playwright.config.ts, .env.example
+  - UPDATED: .gitignore, CLAUDE.md
+  - NEW: scripts/db-query.ts, tests/unit/scaffold.test.ts
+- **Learnings for future iterations:**
+  - pnpm install succeeded cleanly (473 packages, 1 deprecated subdep: glob@11.1.0 — benign)
+  - Build passes: `vite build` ✓ (143kb JS, 5.5kb CSS)
+  - Unit tests pass: 2/2 ✓
+  - `pnpm dev` starts on port 3000 in 317ms ✓
+  - Base tsconfig needs `jsx + DOM lib` — pipeline tsconfig (US-002) must override to exclude DOM
+  - The nested `.git` repo uses `master` not `main` — branch `ralph/build-candidate-skill-scanner` created from `master`
+  - `postbuild` runs classpresso which may need config — use `pnpm vite build` directly to skip it during quality checks pre-US-002
+---
