@@ -1,0 +1,137 @@
+# ECC-Enhanced Code Review Workflow
+name: ecc-code-review
+description: "Parallel multi-agent code review using ECC agents with adaptive classification"
+author: "BMad"
+
+# ECC Integration - Orchestrator Configuration
+ecc_orchestration:
+  enabled: true
+  orchestrator: "ECC Orchestrator"
+
+  # ECC agents used in this workflow (ALL RUN IN PARALLEL)
+  agents:
+    code-reviewer:
+      subagent_type: "everything-claude-code:code-reviewer"
+      model: "sonnet"
+      max_turns: 5
+      purpose: "Code quality, maintainability, best practices"
+    security-reviewer:
+      subagent_type: "everything-claude-code:security-reviewer"
+      model_standard: "sonnet"
+      model_complex: "opus"
+      max_turns: 5
+      purpose: "OWASP Top 10, secrets, vulnerabilities"
+    architect:
+      subagent_type: "everything-claude-code:architect"
+      model: "opus"
+      max_turns: 5
+      purpose: "Architecture compliance, patterns, design"
+    tdd-guide:
+      subagent_type: "everything-claude-code:tdd-guide"
+      model: "sonnet"
+      max_turns: 5
+      purpose: "Test coverage, TDD compliance, test quality"
+
+  # Parallel execution - ALL agents spawn simultaneously
+  parallel_execution: true
+  sequence: "[code-reviewer + security-reviewer + architect + tdd-guide] parallel → Review synthesis"
+
+# Project Knowledge Integration (replaces Atlas - migrated 2026-02-05)
+project_knowledge:
+  enabled: true
+  load_at_session_start: true
+  files:
+    required:
+      - "{project-root}/_ecc/knowledge/code-review-patterns.md"
+      - "{project-root}/.claude/rules/testing.md"
+      - "{project-root}/docs/architecture/<db-patterns>.md  # optional: your DB/architecture doc"
+    optional:
+      - "{project-root}/docs/architecture/state-management.md"
+      - "{project-root}/docs/architecture/component-patterns.md"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+user_skill_level: "{config_source}:user_skill_level"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+
+sprint_artifacts: "{project-root}/docs/sprint-artifacts"
+sprint_status: "{sprint_artifacts}/sprint-status.yaml"
+
+# Project knowledge paths (replaces Atlas memory - migrated 2026-02-05)
+project_knowledge_path: "{project-root}/_ecc/knowledge"
+project_architecture_path: "{project-root}/docs/architecture"
+
+# Workflow components
+installed_path: "{project-root}/_ecc/workflows/ecc-code-review"
+instructions: "{installed_path}/instructions.xml"
+
+# ECC Adaptive Review Configuration (see docs/architecture/plans/ECC-ADAPTIVE-REVIEW-PLAN.md)
+adaptive_review:
+  enabled: true
+
+  # Classification thresholds (loosened to reduce agent count for typical stories)
+  thresholds:
+    trivial:
+      max_tasks: 2
+      max_subtasks: 5
+      max_files: 3
+    simple:
+      max_tasks: 4
+      max_subtasks: 12
+      max_files: 6
+    standard:
+      max_tasks: 6
+      max_subtasks: 20
+      max_files: 10
+    complex:
+      # Anything exceeding standard thresholds
+
+  # Security-sensitive patterns (force-include security-reviewer)
+  security_patterns:
+    - "**/security/**"
+    - "**/functions/**"
+    - "**/auth/**"
+
+  # Architecture-sensitive patterns (force-include architect)
+  architecture_patterns:
+    - "**/stores/**"
+    - "**/contexts/**"
+    - "**/features/**/index.ts"
+    - "**/*.types.ts"
+
+  # Agent selection per classification
+  agent_selection:
+    trivial: ["code-reviewer"]
+    simple: ["code-reviewer", "tdd-guide"]
+    standard: ["code-reviewer", "security-reviewer"]
+    complex: ["code-reviewer", "security-reviewer", "architect", "tdd-guide"]
+
+  # Weighted scoring (base weights, redistributed for active agents)
+  scoring_weights:
+    code-reviewer: 40
+    security-reviewer: 30
+    architect: 20
+    tdd-guide: 10
+
+# Context budget settings
+context_budget:
+  # Read files ONCE in orchestrator, pass content to agents (avoids 4x duplication)
+  orchestrator_reads_files: true
+  # Agents receive file contents in prompt — do NOT read files independently
+  agent_reads_files: false
+  # Agents return compact findings only (no code snippets or full reasoning)
+  agent_compact_output: true
+  # Warn when file count exceeds story sizing limit
+  file_count_warning_threshold: 12
+
+# Auto-proceed — skip generic "Continue?" confirmations between steps
+# Only pause at Step 4 (triage choice) — all other steps auto-proceed
+auto_proceed:
+  enabled: true
+  pause_only_at: ["step-4-triage", "step-6e-e2e-gap"]
+
+standalone: true

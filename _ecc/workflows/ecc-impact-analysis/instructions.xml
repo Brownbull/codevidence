@@ -1,0 +1,140 @@
+<workflow id="ecc-impact-analysis" name="Impact Analysis" version="1.0">
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
+  <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
+  <critical>Communicate all responses in {communication_language}</critical>
+  <critical>This is a lightweight analysis workflow. No ECC agents are spawned.</critical>
+  <critical>It answers: "If I change these files, what else is affected?"</critical>
+
+  <!-- STEP 1: Resolve Input Files -->
+  <step n="1" goal="Determine which files to analyze" tag="resolve-input">
+    <action>Detect input mode from user argument:
+      1. Story key (e.g., "&lt;epic-id&gt;-&lt;story-num&gt;") -> load story from {sprint_artifacts}, extract File Specification
+      2. File path(s) -> use directly
+      3. Directory -> use all .ts/.tsx files in directory
+      4. No argument -> extract from `git diff develop...HEAD --name-only`</action>
+
+    <check if="story key provided">
+      <action>Search {sprint_artifacts} for story file matching the key</action>
+      <action>Parse "File Specification" table, extract all file paths -> {{input_files}}</action>
+      <action>Set {{story_key}} from input</action>
+    </check>
+    <check if="file paths provided">
+      <action>Set {{input_files}} = provided paths, {{story_key}} = "manual"</action>
+    </check>
+    <check if="directory provided">
+      <action>List all .ts/.tsx files in directory -> {{input_files}}, {{story_key}} = "directory: {directory}"</action>
+    </check>
+    <check if="no argument">
+      <action>Run `git diff develop...HEAD --name-only` -> filter to src/**/*.{ts,tsx} -> {{input_files}}</action>
+      <action>Extract story key from branch name if possible</action>
+    </check>
+    <check if="{{input_files}} is empty">
+      <output>No files to analyze. Provide a story key, file paths, or ensure you have changes on your branch.</output>
+      <action>Stop workflow</action>
+    </check>
+
+    <output>**Impact Analysis: {{story_key}}**
+      Analyzing {{input_file_count}} files:
+      {{#each input_files}}- {{file}}
+      {{/each}}</output>
+  </step>
+
+  <!-- STEP 2: Build Dependency Graph -->
+  <step n="2" goal="Generate full project dependency graph with madge" tag="build-graph">
+    <action>Run: `npx madge --json --ts-config tsconfig.json --extensions ts,tsx src/ > /tmp/dep-graph.json`</action>
+
+    <check if="madge fails or output is empty">
+      <output>Madge failed. Falling back to ast-grep structural analysis.</output>
+      <action>Use ast-grep MCP `find_code` to search for import statements referencing each input file</action>
+      <action>Set {{fallback_mode}} = true</action>
+    </check>
+    <check if="madge succeeds">
+      <action>Parse /tmp/dep-graph.json -> {{dep_graph}}, count total files -> {{graph_size}}</action>
+      <action>Set {{fallback_mode}} = false</action>
+    </check>
+
+    <output>Dependency graph: {{graph_size}} files indexed</output>
+
+    <action>If analyzing refactoring stories, use ast-grep for structural patterns that madge cannot detect
+      (duplicated code, missing safety patterns, hardcoded magic strings)</action>
+  </step>
+
+  <!-- STEP 3: Walk Graph for Dependents -->
+  <step n="3" goal="Find direct and transitive dependents" tag="walk-graph">
+    <action>Build {{reverse_index}} from {{dep_graph}}: for each (file -> [deps]), reverse_index[dep].add(file)</action>
+    <action>For each file in {{input_files}}:
+      - Hop 1 (direct): reverse_index[file] -> {{direct_dependents}}
+      - Hop 2: for each direct, lookup reverse_index -> {{transitive_2}}
+      - Hop 3: for each hop-2, lookup reverse_index -> {{transitive_3}}
+      - Deduplicate, exclude input files</action>
+    <action>For each dependent, extract feature module:
+      "features/{name}/*" -> {name}, "components/*" -> shared-components, etc.</action>
+    <action>Group dependents by feature -> {{affected_features}}</action>
+
+    <output>**Dependency Analysis**
+      **Direct (1 hop):** {{direct_count}} files
+      {{#each direct_dependents}}- {{file}} ({{feature}}){{/each}}
+      **Transitive (2 hops):** {{transitive_2_count}} files
+      {{#each transitive_2}}- {{file}} ({{feature}}){{/each}}
+      {{#if transitive_3}}**Deep (3 hops):** {{transitive_3_count}} files
+      {{#each transitive_3}}- {{file}} ({{feature}}){{/each}}{{/if}}
+      **Features affected:**
+      {{#each affected_features}}- {{feature}}: {{count}} files ({{role}}){{/each}}</output>
+  </step>
+
+  <!-- STEP 4: Sprint Conflict Check -->
+  <step n="4" goal="Cross-reference against sprint status" tag="sprint-check">
+    <check if="{sprint_status} file exists">
+      <action>Load {sprint_status}, collect stories with status "in-progress" or "ready-for-dev"</action>
+      <action>For each active story: load file, parse File Specification, check overlap with {{all_dependents}}</action>
+      <action>Search active stories for DEPENDS: tags referencing {{story_key}} and vice versa</action>
+    </check>
+    <check if="{sprint_status} file does NOT exist">
+      <action>Set {{conflicts}} = empty</action>
+      <output>Sprint status not found — skipping conflict check.</output>
+    </check>
+
+    <check if="{{conflicts}} is not empty">
+      <output>**Sprint Conflict Check**
+        {{#each conflicts}}- [{{severity}}] **{{story_id}}** ({{story_status}}) touches {{overlap_file}}{{/each}}</output>
+    </check>
+    <check if="{{conflicts}} is empty">
+      <output>**Sprint Conflict Check:** No conflicts with active stories.</output>
+    </check>
+  </step>
+
+  <!-- STEP 5: Generate Impact Report -->
+  <step n="5" goal="Produce structured impact report" tag="report">
+    <action>Calculate impact risk:
+      LOW: 0 conflicts, &lt;=1 feature, &lt;=5 direct | MEDIUM: 0-1 conflicts, 2 features, 6-15 direct | HIGH: &gt;=2 conflicts, &gt;=3 features, &gt;15 direct</action>
+    <action>Generate recommendations:
+      conflicts -> coordinate | multiple features -> add DEPENDS tags | deep chain -> integration tests | &gt;15 dependents -> consider splitting</action>
+
+    <output>## Impact Analysis Report: {{story_key}}
+      **Date:** {{date}} | **Risk Level:** {{impact_risk}}
+
+      ### Files Changed
+      {{#each input_files}}- {{file}}{{/each}}
+
+      ### Direct Dependents ({{direct_count}})
+      {{#each direct_dependents}}- {{file}} ({{feature}}){{/each}}
+
+      ### Transitive Dependents ({{transitive_total}}, max depth {{max_depth_reached}})
+      {{#each transitive_all}}- {{file}} ({{feature}}, hop {{depth}}){{/each}}
+
+      ### Feature Boundaries
+      | Feature | Files | Role |
+      |---------|-------|------|
+      {{#each affected_features}}| {{feature}} | {{count}} | {{role}} |{{/each}}
+
+      ### Sprint Conflicts
+      {{#if conflicts}}| Story | Status | Overlap | Action |
+      |-------|--------|---------|--------|
+      {{#each conflicts}}| {{story_id}} | {{story_status}} | {{overlap_file}} | {{suggestion}} |{{/each}}
+      {{else}}No conflicts with active stories.{{/if}}
+
+      ### Recommendations
+      {{#each recommendations}}- {{recommendation}}{{/each}}</output>
+  </step>
+
+</workflow>

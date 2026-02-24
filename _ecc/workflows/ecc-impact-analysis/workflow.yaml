@@ -1,0 +1,29 @@
+# ECC Impact Analysis Workflow
+name: ecc-impact-analysis
+description: "Cross-cutting impact analysis using madge dependency graphs and sprint-status metadata"
+author: "BMad"
+
+# No ECC agents — pure analysis workflow
+ecc_orchestration:
+  enabled: false
+
+# Madge configuration
+madge:
+  command: "npx madge --json --ts-config tsconfig.json --extensions ts,tsx"
+  source_root: "src/"
+  max_depth: 3                    # Max hops for transitive dependents
+  temp_graph: "/tmp/dep-graph.json"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+communication_language: "{config_source}:communication_language"
+date: system-generated
+
+sprint_artifacts: "{project-root}/docs/sprint-artifacts"
+sprint_status: "{sprint_artifacts}/sprint-status.yaml"
+
+# Workflow components
+installed_path: "{project-root}/_ecc/workflows/ecc-impact-analysis"
+instructions: "{installed_path}/instructions.xml"
+
+standalone: true

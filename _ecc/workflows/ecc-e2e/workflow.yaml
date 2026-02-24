@@ -1,0 +1,69 @@
+# ECC E2E Testing Workflow
+name: ecc-e2e
+description: "Standalone E2E testing with pre-flight enforcement, multi-user detection, and quality scoring"
+author: "BMad"
+
+# ECC Integration - Orchestrator Configuration
+ecc_orchestration:
+  enabled: true
+  orchestrator: "ECC Orchestrator"
+
+  # ECC agents used in this workflow
+  agents:
+    e2e_runner:
+      subagent_type: "everything-claude-code:e2e-runner"
+      model: "sonnet"
+      purpose: "Write and run E2E tests against staging"
+    code_reviewer:
+      subagent_type: "everything-claude-code:code-reviewer"
+      model: "sonnet"
+      purpose: "E2E test quality review with 5-dimension scoring"
+
+  # Sequential with post-test review
+  sequence: "e2e-runner → code-reviewer (post-test quality check)"
+
+# E2E Knowledge Sources (loaded at Step 0)
+e2e_knowledge:
+  enabled: true
+  load_at_session_start: true
+  files:
+    required:
+      - "{project-root}/tests/e2e/E2E-TEST-CONVENTIONS.md"
+      - "{project-root}/.claude/rules/testing.md"
+      - "{project-root}/tests/e2e/helpers/staging-helpers.ts"
+    optional:
+      - "{project-root}/tests/e2e/helpers/cooldown-reset.ts"
+    tea_knowledge:
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+date: system-generated
+sprint_artifacts: "{project-root}/docs/sprint-artifacts"
+sprint_status: "{sprint_artifacts}/sprint-status.yaml"
+
+# Staging configuration
+staging:
+  dev_server: "http://localhost:5174"
+  health_check_timeout: 15000   # 15s timeout for dev server health check
+  viewport: { width: 360, height: 780 }
+  test_users: ["alice", "bob", "charlie", "diana"]
+  test_dir: "tests/e2e/staging"
+  multi_user_dir: "tests/e2e/multi-user"
+  timeout_journey: 120000     # 120s for standard journeys
+  timeout_cleanup: 180000     # 180s for cleanup-heavy tests
+  max_retries: 2
+
+# Quality escalation thresholds (triggers follow-up suggestion)
+tea_escalation:
+  quality_score_threshold: 60   # Suggest follow-up review if score < 60
+  specs_created_threshold: 3    # Flag if >3 specs created in session
+  flaky_retry_flag: true        # Flag if retries were needed
+
+# Workflow components
+installed_path: "{project-root}/_ecc/workflows/ecc-e2e"
+instructions: "{installed_path}/instructions.xml"
+
+standalone: true

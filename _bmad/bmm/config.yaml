@@ -1,0 +1,5 @@
+user_name: Gabe
+communication_language: English
+document_output_language: English
+output_folder: "{project-root}/docs/sprint-artifacts"
+sprint_artifacts: "{project-root}/docs/sprint-artifacts"

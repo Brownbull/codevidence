@@ -1,0 +1,70 @@
+<workflow id="ecc-dev-story" name="Development Story">
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
+  <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
+  <critical>Communicate all responses in {communication_language} tailored to {user_skill_level}</critical>
+  <critical>Generate all documents in {document_output_language}</critical>
+  <critical>ECC-ORCHESTRATED STORY DEVELOPMENT — Sequence: planner -> tdd-guide -> build-error-resolver -> code-reviewer</critical>
+  <critical>Create handoff documents between sequential agent phases. Synthesize outputs after each agent completes.</critical>
+  <critical>AUTO-PROCEED MODE: Skip generic "Continue?" confirmations. Only pause at decision points inside step files.</critical>
+
+  <!--
+  STEP PROCESSING RULES (read before executing any step):
+  1. Load ONE step file at a time — read entirely before executing
+  2. Execute steps in checklist order — no skipping or reordering
+  3. HALT at every <ask> tag — wait for user response before continuing
+  4. Mark each step [x] in the checklist BEFORE loading the next step
+  5. After compaction: re-read THIS file to find your current position
+
+  AGENTS: planner(sonnet/opus) | tdd-guide(sonnet/opus) | build-resolver(sonnet) | code-reviewer(sonnet)
+  Complex stories (>3 tasks OR >10 subtasks OR >4 files): planner + tdd-guide escalate to opus
+
+  PROGRESS CHECKLIST — update [x] as each step completes:
+  - [ ] Step 0: Knowledge Init     → steps/step-00-knowledge.md
+  - [ ] Step 1: Story Discovery    → steps/step-01-story-discovery.md
+  - [ ] Step 2: Branch Guard       → steps/step-02-branch-guard.md
+  - [ ] Step 3: Planning           → steps/step-03-planning.md
+  - [ ] Step 4: TDD Development    → steps/step-04a-tdd-setup.md + steps/step-04b-tdd-loop.md
+  - [ ] Step 5: Validation         → steps/step-05-validation.md
+  - [ ] Step 6: Test Health        → steps/step-06-test-health.md
+  - [ ] Step 7: Self-Review        → steps/step-07-review.md
+  - [ ] Step 8: Completion         → steps/step-08-completion.md
+  -->
+
+  <step n="0" goal="Load project knowledge" tag="knowledge-init">
+    <action>Load, read completely, and execute steps/step-00-knowledge.md</action>
+  </step>
+
+  <step n="1" goal="Find and load story" tag="story-discovery">
+    <action>Load, read completely, and execute steps/step-01-story-discovery.md</action>
+  </step>
+
+  <step n="2" goal="Branch verification" tag="branch-guard">
+    <action>Load, read completely, and execute steps/step-02-branch-guard.md</action>
+  </step>
+
+  <step n="3" goal="Implementation planning + sizing + mark in-progress" tag="ecc-planner">
+    <action>Load, read completely, and execute steps/step-03-planning.md</action>
+  </step>
+
+  <step n="4" goal="TDD development cycle" tag="ecc-tdd">
+    <action>Load, read completely, and execute steps/step-04a-tdd-setup.md</action>
+    <action>Load, read completely, and execute steps/step-04b-tdd-loop.md</action>
+  </step>
+
+  <step n="5" goal="Consolidated validation" tag="validation">
+    <action>Load, read completely, and execute steps/step-05-validation.md</action>
+  </step>
+
+  <step n="6" goal="Test health interpretation" tag="test-health">
+    <action>Load, read completely, and execute steps/step-06-test-health.md</action>
+  </step>
+
+  <step n="7" goal="Self-review" tag="ecc-self-review">
+    <action>Load, read completely, and execute steps/step-07-review.md</action>
+  </step>
+
+  <step n="8" goal="Story completion" tag="completion">
+    <action>Load, read completely, and execute steps/step-08-completion.md</action>
+  </step>
+
+</workflow>

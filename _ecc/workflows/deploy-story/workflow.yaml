@@ -1,0 +1,58 @@
+# Deploy Story Workflow
+name: deploy-story
+description: "Deploy a completed story through the 2-branch PR-based pipeline (feature → develop via squash PR → main via merge PR). Uses gh CLI for all PR operations. Includes CI gates at each step."
+author: "Boletapp Team"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+user_skill_level: "{config_source}:user_skill_level"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+sprint_artifacts: "{config_source}:sprint_artifacts"
+sprint_status: "{sprint_artifacts}/sprint-status.yaml || {output_folder}/sprint-status.yaml"
+
+# Workflow components
+installed_path: "{project-root}/_ecc/workflows/deploy-story"
+instructions: "{installed_path}/instructions.xml"
+validation: "{installed_path}/checklist.md"
+template: false
+
+# Project-specific branching configuration
+branching:
+  strategy: "feature → develop (squash PR) → main (merge PR)"
+  feature_prefix: "feature/"
+  develop_branch: "develop"
+  production_branch: "main"
+  merge_to_develop: "squash"
+  merge_to_main: "merge-commit"
+  auto_delete_feature: true
+  require_confirmation: true
+
+# Deployment URLs (update for your project)
+deployment_urls:
+  develop: "CI validates on push to develop"
+  production: "https://<your-project-id>.web.app"
+
+variables:
+  # Project context
+  project_context: "**/project-context.md"
+  story_dir: "{sprint_artifacts}"
+  # Project knowledge paths (replaces Atlas memory - migrated 2026-02-05)
+  project_knowledge_path: "{project-root}/_ecc/knowledge"
+  project_architecture_path: "{project-root}/docs/architecture"
+
+# Input file patterns
+input_file_patterns:
+  architecture:
+    description: "System architecture for deployment validation"
+    whole: "{output_folder}/*architecture*.md"
+    load_strategy: "SELECTIVE_LOAD"
+  project_knowledge:
+    description: "Project patterns for deployment context"
+    whole: "{project-root}/_ecc/knowledge/code-review-patterns.md"
+    load_strategy: "SELECTIVE_LOAD"
+
+standalone: true
