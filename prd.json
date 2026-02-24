@@ -176,7 +176,7 @@
         "Unit test verifies computeSkillScore returns the correct score for a known input set; end-to-end: pnpm scan discover + worker processes jobs + candidate appears in Firestore"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "The aiMaturityScore protection is the most critical invariant in the codebase — a pipeline rescan must never overwrite a manually assigned score. TypeScript type exclusion is the enforcement mechanism, not runtime checks."
     },
     {

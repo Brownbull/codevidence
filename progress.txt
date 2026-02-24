@@ -266,3 +266,26 @@
   - `pnpm test:unit`: PASS (372/372 tests, 11 files — 35 new for US-010)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-011
+- What was implemented:
+  - `src/pipeline/scoring/skill-score.ts` — Skill Score computation and candidate profile builder. Exports: `computeSkillScore(input)` (pure deterministic formula), `computeAiSignalPoints(repos)` (AI signal aggregation, 2 pts per unique pattern + 3 for coAuthored, cap 10), `mapConfigFileToPattern(fileName)` (maps AI config files to taxonomy ai-agent-pattern IDs), `updateCandidateProfile(owner)` (orchestrator: queries all repos by owner, aggregates data, computes score, creates/updates Candidate doc). Implements exact formula: primaryLanguage (20) + frameworks (6 each, cap 30) + tools (5 each, cap 15) + commitSpan (cap 10) + ownership (10) + testCoverage (0/3/8/15) + AI signals (cap 10), clamped 0-100. `PipelineScoringOutput` type uses `Omit<Candidate, 'aiMaturityScore' | 'aiMaturityScoredAt' | 'aiMaturityScoredBy'>` to TypeScript-enforce absence of admin fields. New candidates get `aiMaturityScore: null`, existing candidates updated with `updateDoc` (never touching aiMaturity fields). `isStale = false` at write time (just scanned). Candidate doc ID = GitHub username.
+  - `src/pipeline/handlers/scan-repo.ts` — Updated: imports `updateCandidateProfile`, calls it after Layer 2 repo update completes (inside try block, before clone cleanup). This triggers candidate score recalculation after every Layer 2 scan.
+  - `tests/unit/us-011-skill-score.test.ts` — 51 tests: module structure (8), pipeline scoring type safety (4), computeSkillScore formula (10 — known input verification, zero case, max clamping, each component in isolation), computeAiSignalPoints (5 — empty, per-pattern, coAuthored, capping, deduplication across repos), mapConfigFileToPattern (6 — all known patterns + null for unknown), candidate building structural (6), score formula constants (7), scan-repo handler integration (4).
+- Files changed:
+  - NEW: src/pipeline/scoring/skill-score.ts
+  - UPDATED: src/pipeline/handlers/scan-repo.ts (updateCandidateProfile call after Layer 2)
+  - NEW: tests/unit/us-011-skill-score.test.ts
+  - UPDATED: prd.json (US-011 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `PipelineScoringOutput = Omit<Candidate, aiMaturity fields>` is the TypeScript enforcement mechanism — pipeline code uses this type, never the full Candidate type for writes.
+  - For existing candidates, use `updateDoc` (not `setDoc`) to avoid overwriting admin-assigned aiMaturity fields. For new candidates, use `setDoc` with explicit `aiMaturityScore: null`.
+  - AI signal scoring: 2 points per unique ai-agent-pattern taxonomy ID + 3 for coAuthoredByAI, capped at 10. Patterns deduplicated via Set across repos.
+  - `mapConfigFileToPattern` handles both exact matches (CLAUDE.md → claude-md) and prefix matches (.aider* → aider-config). Returns null for non-AI files.
+  - `aggregateRepoData` picks best coverage level and max commit span across repos, merges all taxonomy IDs into a flat skillTags array.
+  - `isStale = false` at write time because candidate was just scanned. Staleness detection for old candidates requires a separate periodic process.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (423/423 tests, 12 files — 51 new for US-011)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---

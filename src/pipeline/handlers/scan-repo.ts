@@ -19,6 +19,7 @@ import type { TaxonomyItem } from '../../types/taxonomy.js';
 import { analyzeLayer1 } from '../analysis/layer1.js';
 import { analyzeLayer2 } from '../analysis/layer2.js';
 import { analyzeAiSignals } from '../analysis/ai-signals.js';
+import { updateCandidateProfile } from '../scoring/skill-score.js';
 import {
   getDoc,
   updateDoc,
@@ -191,6 +192,9 @@ async function runLayer2(
     await updateDoc<Repository>(REPOSITORIES_COLLECTION, repo.fullName, updateData);
 
     console.log(`[scan-repo] Repository ${repo.fullName} updated to scanStatus: layer2.`);
+
+    // Build/update candidate profile for this repo's owner
+    await updateCandidateProfile(repo.owner);
   } finally {
     // ALWAYS delete clone directory — success or failure
     deleteCloneDir(cloneDir);
