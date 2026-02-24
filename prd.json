@@ -256,7 +256,7 @@
         "Repos-of-interest sub-section on Flags tab shows admin_flags of type repo-of-interest with detected signals and Mark as actioned button"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "The Admin UI is an operational dashboard for a solo power user — information density is important. The Pipeline and Queue tabs provide the feedback loop Gabe needs to monitor and manage the scan pipeline day-to-day."
     },
     {

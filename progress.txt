@@ -398,3 +398,32 @@
   - `pnpm test:unit`: PASS (640/640 tests, 16 files — 59 new for US-015)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-016
+- What was implemented:
+  - `src/app/pages/AdminPage.tsx` — Updated: four-tab admin shell (Pipeline / Queue / Flags / Candidates). Deep-linking via ?tab= URL param. Sticky nav + tab bar. Candidates tab stubs to US-017.
+  - `src/app/hooks/useAdmin.ts` — New: TanStack Query hooks for admin operations. useJobs (30s auto-refresh), useAdminFlags, useRetryJob, useDismissJob, useQueueDiscover, useActionFlag. All mutations invalidate relevant query caches.
+  - `src/app/components/admin/PipelineTab.tsx` — New: discovery run form with React Hook Form + Zod validation. Query (required), Source (select, default github), Limit (1-1000, default 100). Queues discover job via useQueueDiscover. Form disabled during submission. Success toast.
+  - `src/app/components/admin/QueueTab.tsx` — New: job queue monitor. Status filter tabs (All/Pending/Running/Completed/Failed). 30s auto-refresh. Loading skeleton. Empty state. Renders AdminQueueRow per job.
+  - `src/app/components/admin/AdminQueueRow.tsx` — New: single job row. Type, status badge (color-coded), created date, attempts/maxAttempts, truncated error (expandable), Retry + Dismiss buttons for failed jobs.
+  - `src/app/components/admin/FlagsTab.tsx` — New: admin flags tab. Underserved queries sorted by resultCount ASC. Facet param chips, result count, flagged date, status badge. Trigger Discovery button opens inline form with pre-filled CLI command. Queues discover job and marks flag actioned. Repos-of-interest with detected signals and Mark as actioned button.
+  - `tests/unit/us-016-admin-ui.test.ts` — 60 tests: AdminPage shell (10), PipelineTab (9), QueueTab (8), AdminQueueRow (9), FlagsTab (13), useAdmin hooks (9), routing integration (2).
+  - Added `@hookform/resolvers` dependency for Zod integration.
+- Files changed:
+  - UPDATED: src/app/pages/AdminPage.tsx (full four-tab implementation)
+  - NEW: src/app/hooks/useAdmin.ts
+  - NEW: src/app/components/admin/PipelineTab.tsx, QueueTab.tsx, AdminQueueRow.tsx, FlagsTab.tsx
+  - NEW: tests/unit/us-016-admin-ui.test.ts
+  - UPDATED: package.json, pnpm-lock.yaml (@hookform/resolvers)
+  - UPDATED: prd.json (US-016 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `@hookform/resolvers` is a separate package from `react-hook-form` — must be installed explicitly for Zod integration.
+  - pnpm store location can change between VS Code snap versions — use `CI=true pnpm install` to handle store migration non-interactively.
+  - Admin hooks use `useMutation` from TanStack Query for actions (retry, dismiss, queue) with `onSuccess` cache invalidation.
+  - `refetchInterval: 30_000` on useJobs provides auto-refresh without manual polling.
+  - FlagsTab sorts underserved queries by resultCount ascending — lowest results first for priority review.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (700/700 tests, 17 files — 60 new for US-016)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
