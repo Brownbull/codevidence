@@ -192,7 +192,7 @@
         "JetBrains Mono applied globally to all technical identifier elements; FacetPanel implemented at src/app/components/search/FacetPanel.tsx"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "URL is the single source of truth for filter values — this is an MVP requirement, not a future enhancement. Zustand must only hold UI state (panel open/closed, hover). Back-navigation must preserve filter state via URL."
     },
     {

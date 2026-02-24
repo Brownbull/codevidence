@@ -289,3 +289,33 @@
   - `pnpm test:unit`: PASS (423/423 tests, 12 files — 51 new for US-011)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-012
+- What was implemented:
+  - `src/app/hooks/useSearchQuery.ts` — URL ↔ SearchQueryParams bidirectional hook. URL is single source of truth. Parses: ?lang → languages[], ?framework → frameworks[], ?tool → tools[], ?aiPattern → aiAgentPatterns[], ?aiMin → aiMaturityMin, ?sort → sortBy. Short IDs in URL (e.g. `?lang=python`) auto-prefixed to taxonomy IDs (e.g. `language:python`). Exports: setFilter, setSort, setAiMaturityMin, clearAll, toggleTaxonomyId, hasAnyFilter.
+  - `src/app/hooks/useTaxonomy.ts` — TanStack Query hook for taxonomy data. Queries Firestore `where('isSearchable', '==', true)` ordered by category + sortOrder. Exports `groupByCategory()` to organize into 5 sections. 5-minute staleTime.
+  - `src/app/store/ui-store.ts` — Zustand store for UI-only state. Holds openSections (panel collapse state). All 5 sections default open. No filter values in Zustand — URL only.
+  - `src/app/components/search/FacetPanel.tsx` — Five collapsible sections: Languages, Frameworks, Tools, AI Agent Patterns, AI Maturity Level. Uses <fieldset>/<legend> for WCAG 2.1 AA. Checkboxes sorted by sortOrder. candidateCount shown as muted badge. Loading skeleton while taxonomy fetches. AI Maturity Level uses single-select (sets aiMaturityMin). w-64 sidebar width.
+  - `src/app/components/layout/AppShell.tsx` — Three-zone layout: sticky top nav (h-12, bg-slate-900, Space Grotesk branding) + left sidebar + main content. User avatar, display name, sign-out. Admin link for admin users. Minimum viewport 1280px.
+  - `src/app/pages/SearchPage.tsx` — Updated: uses AppShell + FacetPanel. Passes FacetPanel as sidebar. Shows placeholder for search results (US-013).
+  - `src/app/main.tsx` — Updated: added QueryClientProvider wrapping the entire app. QueryClient with 5-minute default staleTime, retry: 1.
+  - `tests/unit/us-012-app-shell.test.ts` — 61 tests: AppShell layout (10), FacetPanel (16), useSearchQuery hook (13), useTaxonomy hook (8), Zustand UI store (4), SearchPage integration (4), main.tsx QueryClientProvider (4), JetBrains Mono (3).
+- Files changed:
+  - NEW: src/app/hooks/useSearchQuery.ts, src/app/hooks/useTaxonomy.ts
+  - NEW: src/app/store/ui-store.ts
+  - NEW: src/app/components/search/FacetPanel.tsx, src/app/components/layout/AppShell.tsx
+  - UPDATED: src/app/pages/SearchPage.tsx (full layout)
+  - UPDATED: src/app/main.tsx (QueryClientProvider)
+  - NEW: tests/unit/us-012-app-shell.test.ts
+  - UPDATED: prd.json (US-012 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - URL param encoding: use short IDs (no category prefix) for readability, reconstruct full taxonomy IDs in the hook.
+  - `groups[item.category].push(item)` fails TS strict because indexing Record<string, T[]> returns `T[] | undefined`. Fix: assign to local `const group = ...`, then check before push.
+  - Zustand store should be minimal — only UI state. Filter state lives in URL params. This prevents stale state and ensures back-button works correctly.
+  - FacetPanel AI Maturity Level section differs from others: single-select (sets aiMaturityMin) rather than multi-select checkbox array.
+  - Build chunk size grows with TanStack Query + Firebase SDK + Zustand — 668kb JS. Code splitting (dynamic imports) will help in US-018.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (484/484 tests, 13 files — 61 new for US-012)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
