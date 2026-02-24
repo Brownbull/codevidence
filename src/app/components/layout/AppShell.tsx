@@ -8,6 +8,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/auth/AuthContext';
+import { SettingsPopover } from './SettingsPopover';
 
 interface AppShellProps {
   sidebar?: React.ReactNode;
@@ -44,6 +45,7 @@ export function AppShell({ sidebar, children }: AppShellProps) {
           <span className="text-slate-300 text-xs">
             {user?.displayName ?? user?.email}
           </span>
+          <SettingsPopover />
           <button
             onClick={() => void signOut()}
             className="text-slate-400 text-xs hover:text-white transition-colors"

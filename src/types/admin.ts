@@ -1,6 +1,6 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type AdminFlagType = 'underserved-query' | 'repo-of-interest';
+export type AdminFlagType = 'underserved-query' | 'repo-of-interest' | 'pat-expired';
 export type AdminFlagStatus = 'active' | 'actioned' | 'dismissed';
 
 /**

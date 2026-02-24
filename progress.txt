@@ -453,3 +453,37 @@
   - `pnpm test:unit`: PASS (737/737 tests, 18 files — 37 new for US-017)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-018
+- What was implemented:
+  - `src/app/components/layout/SettingsPopover.tsx` — New: theme and font settings popover. Gear icon in top nav. Three themes (Light/Dark/Dim) applied as Tailwind class on `<html>`. Five font families (Space Grotesk/Inter/Outfit/IBM Plex Sans/Geist) applied via CSS variable `--font-sans`. Both persisted to localStorage. JetBrains Mono stays as monospace for code.
+  - `index.html` — Updated: added inline `<script>` before React mount that reads `css-theme` and `css-font-family` from localStorage and applies immediately to prevent flash. Added Google Fonts imports for Inter, Outfit, IBM Plex Sans.
+  - `src/app/styles.css` — Updated: added dark and dim theme base styles (color-scheme: dark, background color, text color).
+  - `src/app/components/layout/AppShell.tsx` — Updated: imports and renders SettingsPopover in the top nav.
+  - `src/handlers/pat-expiry.ts` — New: PAT expiry detection handler. `flagPatExpiry()` writes admin_flags doc of type `pat-expired` if no active flag exists. `clearPatExpiryFlag()` marks existing flags as actioned. `hasActivePatExpiryFlag()` returns boolean for banner display.
+  - `src/types/admin.ts` — Updated: AdminFlagType union now includes `'pat-expired'`.
+  - `src/app/components/admin/PipelineTab.tsx` — Updated: queries for active pat-expiry flag. Renders red banner when flag is active: "GitHub API authentication error — PAT may have expired. Check your GITHUB_PAT env var."
+  - `tests/e2e/app.spec.ts` — New: Playwright E2E test suite. Covers: unauthenticated redirect, login page, non-admin /admin redirect, candidate 404, theme flash prevention, root/unknown route redirects.
+  - `tests/unit/us-018-theme-e2e.test.ts` — 51 tests: SettingsPopover (13), flash prevention (7), AppShell integration (2), CSS themes (4), PAT expiry handler (7), PipelineTab banner (4), AdminFlagType (1), E2E test structure (7), CI deploy (6).
+  - `.github/workflows/ci.yml` — Already had Firebase Hosting deploy gated on main branch. No changes needed.
+- Files changed:
+  - NEW: src/app/components/layout/SettingsPopover.tsx
+  - UPDATED: index.html (flash prevention script + fonts)
+  - UPDATED: src/app/styles.css (dark/dim themes)
+  - UPDATED: src/app/components/layout/AppShell.tsx (SettingsPopover)
+  - NEW: src/handlers/pat-expiry.ts
+  - UPDATED: src/types/admin.ts (pat-expired type)
+  - UPDATED: src/app/components/admin/PipelineTab.tsx (PAT banner)
+  - NEW: tests/e2e/app.spec.ts
+  - NEW: tests/unit/us-018-theme-e2e.test.ts
+  - UPDATED: prd.json (US-018 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Flash prevention: inline `<script>` in `index.html` before React mount reads localStorage and applies theme class/CSS variable immediately. This runs before the React bundle loads.
+  - `darkMode: 'class'` in Tailwind config was already set (US-002), so dark variant utilities work with the class-based theme switching.
+  - Avoid dynamic imports when the module is already statically imported — Vite warns about it.
+  - PAT expiry flag uses a separate AdminFlagType ('pat-expired') distinct from underserved-query/repo-of-interest.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (788/788 tests, 19 files — 51 new for US-018)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---

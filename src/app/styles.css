@@ -12,6 +12,20 @@
     font-family: var(--font-sans);
   }
 
+  /* Dark theme */
+  html.dark {
+    color-scheme: dark;
+    background-color: rgb(15 23 42); /* slate-900 */
+    color: rgb(226 232 240); /* slate-200 */
+  }
+
+  /* Dim theme */
+  html.dim {
+    color-scheme: dark;
+    background-color: rgb(30 41 59); /* slate-800 */
+    color: rgb(203 213 225); /* slate-300 */
+  }
+
   code,
   pre,
   .font-mono {

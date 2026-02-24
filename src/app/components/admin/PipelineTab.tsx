@@ -6,9 +6,11 @@
 
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueueDiscover } from '@/app/hooks/useAdmin';
+import { hasActivePatExpiryFlag } from '@/handlers/pat-expiry';
 
 const discoverSchema = z.object({
   query: z.string().min(1, 'Query is required'),
@@ -35,8 +37,26 @@ export function PipelineTab() {
     reset();
   };
 
+  const { data: patExpired } = useQuery({
+    queryKey: ['pat-expiry-flag'],
+    queryFn: hasActivePatExpiryFlag,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
   return (
     <div>
+      {patExpired && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-800 font-medium">
+            GitHub API authentication error — PAT may have expired.
+          </p>
+          <p className="text-xs text-red-600 mt-1">
+            Check your GITHUB_PAT env var.
+          </p>
+        </div>
+      )}
+
       <h2 className="text-sm font-semibold text-slate-900 mb-4">Discovery Run</h2>
 
       <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="max-w-lg space-y-4">

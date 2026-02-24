@@ -288,7 +288,7 @@
         "GitHub Actions CI workflow: on merge to main, runs build then firebase deploy --only hosting; deploy uses Firebase service account secret; failed build/tests block deploy; deployment URL output in CI log"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Theme switching without flash requires reading localStorage before first render — implement in a <script> tag in index.html before React mounts. The E2E suite is the quality gate before the Firebase Hosting deploy."
     },
     {
