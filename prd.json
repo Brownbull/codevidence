@@ -272,7 +272,7 @@
         "updateAiMaturityScore writes aiMaturityScore, aiMaturityScoredAt (serverTimestamp), aiMaturityScoredBy (admin UID) to Firestore; toast confirms; TanStack Query cache ['candidate', id] invalidated; row reflects new score immediately"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "updateAiMaturityScore must only write the three aiMaturity fields — never touch skillScore or other pipeline-owned fields. The inline stepper is the primary ground-truth accumulation mechanism for the AI Maturity Model."
     },
     {

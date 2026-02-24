@@ -51,9 +51,9 @@ describe('US-016: AdminPage Shell', () => {
     expect(src).toContain("activeTab === 'flags'");
   });
 
-  it('renders Candidates stub for US-017', () => {
+  it('renders CandidatesTab for candidates tab', () => {
     expect(src).toContain("activeTab === 'candidates'");
-    expect(src).toContain('US-017');
+    expect(src).toContain('CandidatesTab');
   });
 
   it('has sticky nav and tab bar', () => {

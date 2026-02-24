@@ -427,3 +427,29 @@
   - `pnpm test:unit`: PASS (700/700 tests, 17 files — 60 new for US-016)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-017
+- What was implemented:
+  - `src/handlers/candidates.ts` — Updated: added `getAllCandidates()` (ordered by skillScore desc, limit 500), `getLanguageTaxonomy()` (language items ordered by candidateCount desc), and `updateAiMaturityScore(candidateId, score, adminUid)` which writes ONLY aiMaturityScore/aiMaturityScoredAt/aiMaturityScoredBy via updateDoc (never touches pipeline-owned fields).
+  - `src/app/components/admin/CandidatesTab.tsx` — New: admin candidates tab. Summary row (total count, scored count, stale count). Language coverage breakdown (taxonomy items with candidateCount). Candidates table (username, SkillScoreBadge, AIMaturityBadge, lastScanned, StalenessTag, Rescan button). Stale rows highlighted with bg-amber-50. Expandable rows with InlineScoreStepper.
+  - `src/app/components/admin/CandidatesTab.tsx > InlineScoreStepper` — Segmented stepper [0][1][2][3][4][5]. Current score highlighted in violet. Clicking a level calls updateAiMaturityScore with admin UID. Invalidates both admin-candidates and candidate query caches. Shows "Score saved" confirmation.
+  - `src/app/pages/AdminPage.tsx` — Updated: imports and renders CandidatesTab, replacing US-017 stub.
+  - `tests/unit/us-017-admin-candidates.test.ts` — 37 tests: candidates handler (8), CandidatesTab component (11), rescan trigger (4), inline score stepper (7), AdminPage integration (3), admin data queries (5).
+  - Updated `tests/unit/us-016-admin-ui.test.ts` — Fixed broken US-016 test: changed "renders Candidates stub for US-017" → "renders CandidatesTab for candidates tab" since stub was replaced.
+- Files changed:
+  - UPDATED: src/handlers/candidates.ts (getAllCandidates, getLanguageTaxonomy, updateAiMaturityScore)
+  - NEW: src/app/components/admin/CandidatesTab.tsx
+  - UPDATED: src/app/pages/AdminPage.tsx (CandidatesTab instead of stub)
+  - NEW: tests/unit/us-017-admin-candidates.test.ts
+  - UPDATED: tests/unit/us-016-admin-ui.test.ts (stub test fix)
+  - UPDATED: prd.json (US-017 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `updateAiMaturityScore` uses `updateDoc` (not `setDoc`) to ensure it only writes the three aiMaturity fields. This preserves all pipeline-owned fields.
+  - When a later story modifies code tested by an earlier story's tests, the earlier tests may need updating (e.g., US-016 stub test).
+  - InlineScoreStepper invalidates both `['admin-candidates']` and `['candidate', id]` to keep both the table and profile page in sync.
+  - Rescan creates a job with `priority: 1` (high priority) via `enqueueRescanJob`.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (737/737 tests, 18 files — 37 new for US-017)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---

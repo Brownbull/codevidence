@@ -10,6 +10,7 @@ import { useAuth } from '@/app/auth/AuthContext';
 import { PipelineTab } from '@/app/components/admin/PipelineTab';
 import { QueueTab } from '@/app/components/admin/QueueTab';
 import { FlagsTab } from '@/app/components/admin/FlagsTab';
+import { CandidatesTab } from '@/app/components/admin/CandidatesTab';
 
 type AdminTabId = 'pipeline' | 'queue' | 'flags' | 'candidates';
 
@@ -89,11 +90,7 @@ export function AdminPage() {
         {activeTab === 'pipeline' && <PipelineTab />}
         {activeTab === 'queue' && <QueueTab />}
         {activeTab === 'flags' && <FlagsTab />}
-        {activeTab === 'candidates' && (
-          <p className="text-slate-500 font-mono text-sm text-center mt-8">
-            Candidates tab — US-017
-          </p>
-        )}
+        {activeTab === 'candidates' && <CandidatesTab />}
       </main>
     </div>
   );
