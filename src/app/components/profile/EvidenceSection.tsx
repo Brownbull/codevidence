@@ -17,8 +17,8 @@ interface SkillsSectionProps {
 
 export function SkillsSection({ candidate }: SkillsSectionProps) {
   return (
-    <section className="bg-white rounded-lg border border-slate-200 p-5">
-      <h3 className="text-sm font-semibold text-slate-900 mb-3">Skills</h3>
+    <section className="bg-surface-raised rounded-lg border border-border p-5">
+      <h3 className="text-sm font-semibold text-th-text-primary mb-3">Skills</h3>
 
       <SkillGroup label="Languages" tags={candidate.detectedLanguages} />
       <SkillGroup label="Frameworks" tags={candidate.detectedFrameworks} />
@@ -31,12 +31,12 @@ function SkillGroup({ label, tags }: { label: string; tags: string[] }) {
   if (tags.length === 0) return null;
   return (
     <div className="mb-3 last:mb-0">
-      <p className="text-xs text-slate-500 mb-1.5">{label}</p>
+      <p className="text-xs text-th-text-secondary mb-1.5">{label}</p>
       <div className="flex flex-wrap gap-1.5">
         {tags.map((tag) => (
           <span
             key={tag}
-            className="inline-flex px-2 py-0.5 rounded-full bg-slate-100 text-xs font-mono text-slate-700"
+            className="inline-flex px-2 py-0.5 rounded-full bg-surface-inset text-xs font-mono text-th-text-primary"
           >
             {tag.split(':')[1] ?? tag}
           </span>
@@ -55,16 +55,16 @@ interface RepositoriesSectionProps {
 export function RepositoriesSection({ repos }: RepositoriesSectionProps) {
   if (repos.length === 0) {
     return (
-      <section className="bg-white rounded-lg border border-slate-200 p-5">
-        <h3 className="text-sm font-semibold text-slate-900 mb-3">Repositories</h3>
-        <p className="text-xs text-slate-400 italic">No repositories scanned yet.</p>
+      <section className="bg-surface-raised rounded-lg border border-border p-5">
+        <h3 className="text-sm font-semibold text-th-text-primary mb-3">Repositories</h3>
+        <p className="text-xs text-th-text-muted italic">No repositories scanned yet.</p>
       </section>
     );
   }
 
   return (
-    <section className="bg-white rounded-lg border border-slate-200 p-5">
-      <h3 className="text-sm font-semibold text-slate-900 mb-3">
+    <section className="bg-surface-raised rounded-lg border border-border p-5">
+      <h3 className="text-sm font-semibold text-th-text-primary mb-3">
         Repositories ({repos.length})
       </h3>
       <div className="space-y-3">
@@ -82,7 +82,7 @@ function RepoRow({ repo }: { repo: Repository & { id: string } }) {
     : null;
 
   return (
-    <div className="flex items-start justify-between border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+    <div className="flex items-start justify-between border-b border-border pb-2 last:border-0 last:pb-0">
       <div>
         <a
           href={repo.githubUrl}
@@ -94,11 +94,11 @@ function RepoRow({ repo }: { repo: Repository & { id: string } }) {
         </a>
         <div className="flex items-center gap-2 mt-0.5">
           {repo.primaryLanguage && (
-            <span className="text-xs text-slate-500">{repo.primaryLanguage}</span>
+            <span className="text-xs text-th-text-secondary">{repo.primaryLanguage}</span>
           )}
-          <span className="text-xs text-slate-400">{'\u2605'} {repo.starCount}</span>
+          <span className="text-xs text-th-text-muted">{'\u2605'} {repo.starCount}</span>
           {commitSpan && (
-            <span className="text-xs text-slate-400">{commitSpan}</span>
+            <span className="text-xs text-th-text-muted">{commitSpan}</span>
           )}
         </div>
       </div>
@@ -109,12 +109,12 @@ function RepoRow({ repo }: { repo: Repository & { id: string } }) {
 
 function ScanStatusBadge({ status }: { status: Repository['scanStatus'] }) {
   const colors: Record<string, string> = {
-    surface: 'bg-slate-100 text-slate-500',
+    surface: 'bg-surface-inset text-th-text-secondary',
     layer1: 'bg-blue-100 text-blue-700',
     layer2: 'bg-green-100 text-green-700',
   };
   return (
-    <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${colors[status] ?? 'bg-slate-100 text-slate-500'}`}>
+    <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${colors[status] ?? 'bg-surface-inset text-th-text-secondary'}`}>
       {status}
     </span>
   );
@@ -135,21 +135,21 @@ export function AiSignalsSection({ candidate, repos }: AiSignalsSectionProps) {
 
   if (isEmpty) {
     return (
-      <section className="bg-white rounded-lg border border-slate-200 p-5">
-        <h3 className="text-sm font-semibold text-slate-900 mb-3">AI Signals</h3>
-        <p className="text-xs text-slate-400 italic">No AI tooling signals detected.</p>
+      <section className="bg-surface-raised rounded-lg border border-border p-5">
+        <h3 className="text-sm font-semibold text-th-text-primary mb-3">AI Signals</h3>
+        <p className="text-xs text-th-text-muted italic">No AI tooling signals detected.</p>
       </section>
     );
   }
 
   return (
-    <section className="bg-white rounded-lg border border-slate-200 p-5">
-      <h3 className="text-sm font-semibold text-slate-900 mb-3">AI Signals</h3>
+    <section className="bg-surface-raised rounded-lg border border-border p-5">
+      <h3 className="text-sm font-semibold text-th-text-primary mb-3">AI Signals</h3>
 
       {/* Config files */}
       {allConfigFiles.length > 0 && (
         <div className="mb-3">
-          <p className="text-xs text-slate-500 mb-1.5">AI Config Files</p>
+          <p className="text-xs text-th-text-secondary mb-1.5">AI Config Files</p>
           <div className="space-y-2">
             {allConfigFiles.map((signal, i) => (
               <AiConfigFileRow key={`${signal.fileName}-${i}`} signal={signal} />
@@ -170,7 +170,7 @@ export function AiSignalsSection({ candidate, repos }: AiSignalsSectionProps) {
       {/* AI Agent Patterns */}
       {hasPatterns && (
         <div>
-          <p className="text-xs text-slate-500 mb-1.5">AI Agent Patterns</p>
+          <p className="text-xs text-th-text-secondary mb-1.5">AI Agent Patterns</p>
           <div className="flex flex-wrap gap-1.5">
             {candidate.aiAgentPatterns.map((pattern) => (
               <span
@@ -191,14 +191,14 @@ function AiConfigFileRow({ signal }: { signal: AiConfigFileSignal }) {
   return (
     <div className="flex items-center justify-between text-xs">
       <div className="flex items-center gap-2">
-        <span className="font-mono text-slate-700">{signal.fileName}</span>
+        <span className="font-mono text-th-text-primary">{signal.fileName}</span>
         {signal.isEvolved && (
           <span className="px-1 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-medium">
             Evolved
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2 text-slate-400">
+      <div className="flex items-center gap-2 text-th-text-muted">
         <span>{signal.modificationCount} modifications</span>
         <span className="text-slate-300">|</span>
         <span>{signal.diffComplexity}</span>
@@ -225,16 +225,16 @@ export function EvolutionSection({ repos }: EvolutionSectionProps) {
 
   if (allConfigFiles.length === 0) {
     return (
-      <section className="bg-white rounded-lg border border-slate-200 p-5">
-        <h3 className="text-sm font-semibold text-slate-900 mb-3">AI Evolution Timeline</h3>
-        <p className="text-xs text-slate-400 italic">No AI config file history available.</p>
+      <section className="bg-surface-raised rounded-lg border border-border p-5">
+        <h3 className="text-sm font-semibold text-th-text-primary mb-3">AI Evolution Timeline</h3>
+        <p className="text-xs text-th-text-muted italic">No AI config file history available.</p>
       </section>
     );
   }
 
   return (
-    <section className="bg-white rounded-lg border border-slate-200 p-5">
-      <h3 className="text-sm font-semibold text-slate-900 mb-3">AI Evolution Timeline</h3>
+    <section className="bg-surface-raised rounded-lg border border-border p-5">
+      <h3 className="text-sm font-semibold text-th-text-primary mb-3">AI Evolution Timeline</h3>
       <div className="space-y-4">
         {allConfigFiles.map((signal, i) => (
           <EvolutionTimelineItem key={`${signal.repoName}-${signal.fileName}-${i}`} signal={signal} />
@@ -258,30 +258,30 @@ function EvolutionTimelineItem({
     : 'Unknown';
 
   return (
-    <div className="border-l-2 border-slate-200 pl-3">
+    <div className="border-l-2 border-border pl-3">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-2 text-left w-full"
       >
-        <span className="font-mono text-sm text-slate-700">{signal.fileName}</span>
-        <span className="text-xs text-slate-400">in {signal.repoName}</span>
+        <span className="font-mono text-sm text-th-text-primary">{signal.fileName}</span>
+        <span className="text-xs text-th-text-muted">in {signal.repoName}</span>
         <span className="text-xs text-slate-300 ml-auto">{expanded ? '\u25B2' : '\u25BC'}</span>
       </button>
 
       {expanded && (
-        <div className="mt-2 ml-2 space-y-1 text-xs text-slate-500">
-          <p>First seen: <span className="text-slate-700">{firstSeen}</span></p>
-          <p>Modifications: <span className="text-slate-700">{signal.modificationCount}</span></p>
-          <p>Last modified: <span className="text-slate-700">{lastMod}</span></p>
+        <div className="mt-2 ml-2 space-y-1 text-xs text-th-text-secondary">
+          <p>First seen: <span className="text-th-text-primary">{firstSeen}</span></p>
+          <p>Modifications: <span className="text-th-text-primary">{signal.modificationCount}</span></p>
+          <p>Last modified: <span className="text-th-text-primary">{lastMod}</span></p>
           <p>
             Classification:{' '}
-            <span className={signal.isEvolved ? 'text-green-700 font-medium' : 'text-slate-700'}>
+            <span className={signal.isEvolved ? 'text-green-700 font-medium' : 'text-th-text-primary'}>
               {signal.isEvolved ? 'Evolved' : 'Static'}
             </span>
           </p>
-          <p>Origin: <span className="text-slate-700">{signal.originSignal}</span></p>
-          <p>Complexity: <span className="text-slate-700">{signal.diffComplexity}</span></p>
+          <p>Origin: <span className="text-th-text-primary">{signal.originSignal}</span></p>
+          <p>Complexity: <span className="text-th-text-primary">{signal.diffComplexity}</span></p>
         </div>
       )}
     </div>

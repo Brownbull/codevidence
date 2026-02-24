@@ -53,7 +53,7 @@ describe('US-012: AppShell Layout', () => {
   });
 
   it('uses slate-50 body background', () => {
-    expect(src).toContain('bg-slate-50');
+    expect(src).toContain('bg-surface');
   });
 
   it('accepts sidebar and children props', () => {
@@ -97,7 +97,7 @@ describe('US-012: FacetPanel', () => {
 
   it('shows candidateCount as muted badge', () => {
     expect(src).toContain('item.candidateCount');
-    expect(src).toContain('text-slate-400');
+    expect(src).toContain('text-th-text-muted');
   });
 
   it('sections are collapsible with aria-expanded', () => {

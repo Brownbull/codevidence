@@ -83,7 +83,7 @@ describe('US-018: SettingsPopover Component', () => {
 
   it('highlights active theme', () => {
     expect(src).toContain('theme === t.id');
-    expect(src).toContain('bg-slate-900 text-white');
+    expect(src).toContain('bg-indigo-600 text-white');
   });
 });
 

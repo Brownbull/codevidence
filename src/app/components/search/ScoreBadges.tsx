@@ -46,7 +46,7 @@ export function AIMaturityBadge({ score }: AIMaturityBadgeProps) {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs">
         <span className="font-mono text-slate-300">{'\u2591\u2591\u2591\u2591\u2591'}</span>
-        <span className="text-slate-400 italic">Not evaluated</span>
+        <span className="text-th-text-muted italic">Not evaluated</span>
       </span>
     );
   }

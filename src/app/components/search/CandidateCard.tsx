@@ -24,7 +24,7 @@ export function CandidateCard({ candidate, matchedTags = [] }: CandidateCardProp
   return (
     <Link
       to={`/candidates/${candidate.githubUsername}`}
-      className="block bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all"
+      className="block bg-surface-raised rounded-lg border border-border p-4 hover:border-slate-300 hover:shadow-sm transition-all"
     >
       <div className="flex items-start gap-3">
         {/* Avatar */}
@@ -40,7 +40,7 @@ export function CandidateCard({ candidate, matchedTags = [] }: CandidateCardProp
         <div className="flex-1 min-w-0">
           {/* Top row: username + badges */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="font-semibold text-sm text-slate-900">
+            <span className="font-semibold text-sm text-th-text-primary">
               {candidate.githubUsername}
             </span>
             <SkillScoreBadge score={candidate.skillScore} />
@@ -54,7 +54,7 @@ export function CandidateCard({ candidate, matchedTags = [] }: CandidateCardProp
               {topTags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex px-2 py-0.5 rounded-full bg-slate-100 text-xs font-mono text-slate-600"
+                  className="inline-flex px-2 py-0.5 rounded-full bg-surface-inset text-xs font-mono text-th-text-secondary"
                 >
                   {tag.split(':')[1] ?? tag}
                 </span>
@@ -63,7 +63,7 @@ export function CandidateCard({ candidate, matchedTags = [] }: CandidateCardProp
           )}
 
           {/* Last scanned */}
-          <p className="text-xs text-slate-400 mt-1.5">
+          <p className="text-xs text-th-text-muted mt-1.5">
             Last scanned: {lastScannedDate}
           </p>
         </div>

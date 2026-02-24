@@ -131,8 +131,8 @@ export function PipelineTab() {
 
       {/* ── Scan Developer ── */}
       <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-1">Scan Developer</h2>
-        <p className="text-xs text-slate-500 mb-3">
+        <h2 className="text-sm font-semibold text-th-text-primary mb-1">Scan Developer</h2>
+        <p className="text-xs text-th-text-secondary mb-3">
           Enter a GitHub username to scan all their public repositories.
         </p>
 
@@ -170,12 +170,12 @@ export function PipelineTab() {
         )}
       </section>
 
-      <hr className="border-slate-200" />
+      <hr className="border-border" />
 
       {/* ── Discovery Run ── */}
       <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-1">Discovery Run</h2>
-        <p className="text-xs text-slate-500 mb-3">
+        <h2 className="text-sm font-semibold text-th-text-primary mb-1">Discovery Run</h2>
+        <p className="text-xs text-th-text-secondary mb-3">
           Search GitHub repositories with a query. Use presets or write your own&nbsp;
           <a
             href="https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories"
@@ -194,7 +194,7 @@ export function PipelineTab() {
           {/* Query with preset toggle */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label htmlFor="discover-query" className="text-xs font-medium text-slate-700">
+              <label htmlFor="discover-query" className="text-xs font-medium text-th-text-primary">
                 Query <span className="text-red-500">*</span>
               </label>
               <button
@@ -207,10 +207,10 @@ export function PipelineTab() {
             </div>
 
             {showPresets && (
-              <div className="mb-2 p-3 bg-slate-50 border border-slate-200 rounded-md space-y-2">
+              <div className="mb-2 p-3 bg-surface border border-border rounded-md space-y-2">
                 {PRESET_CATEGORIES.map(({ key, label }) => (
                   <div key={key}>
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                    <span className="text-[10px] uppercase tracking-wider text-th-text-muted font-semibold">
                       {label}
                     </span>
                     <div className="flex flex-wrap gap-1 mt-0.5">
@@ -219,7 +219,7 @@ export function PipelineTab() {
                           key={preset.label}
                           type="button"
                           onClick={() => applyPreset(preset)}
-                          className="px-2 py-0.5 text-xs bg-white border border-slate-300 rounded hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
+                          className="px-2 py-0.5 text-xs bg-surface-raised border border-slate-300 rounded hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
                         >
                           {preset.label}
                         </button>
@@ -247,7 +247,7 @@ export function PipelineTab() {
 
           {/* Source */}
           <div>
-            <label htmlFor="discover-source" className="block text-xs font-medium text-slate-700 mb-1">
+            <label htmlFor="discover-source" className="block text-xs font-medium text-th-text-primary mb-1">
               Source
             </label>
             <select
@@ -262,7 +262,7 @@ export function PipelineTab() {
 
           {/* Limit */}
           <div>
-            <label htmlFor="discover-limit" className="block text-xs font-medium text-slate-700 mb-1">
+            <label htmlFor="discover-limit" className="block text-xs font-medium text-th-text-primary mb-1">
               Limit
             </label>
             <input

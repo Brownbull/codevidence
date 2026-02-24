@@ -47,25 +47,25 @@ export function LoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-400 font-mono text-sm">Checking authentication…</div>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="text-th-text-muted font-mono text-sm">Checking authentication…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-8 w-full max-w-sm">
-        <h1 className="text-xl font-semibold text-slate-900 mb-1 text-center">
+    <div className="min-h-screen bg-surface flex items-center justify-center">
+      <div className="bg-surface-raised border border-border rounded-lg shadow-sm p-8 w-full max-w-sm">
+        <h1 className="text-xl font-semibold text-th-text-primary mb-1 text-center">
           Candidate Skill Scanner
         </h1>
-        <p className="text-slate-500 text-sm mb-6 text-center">
+        <p className="text-th-text-secondary text-sm mb-6 text-center">
           Sign in to explore developer talent
         </p>
 
         <button
           onClick={() => void signInWithGoogle()}
-          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-surface-raised border border-border rounded-md shadow-sm text-sm font-medium text-th-text-primary hover:bg-th-hover transition-colors"
           type="button"
           aria-label="Sign in with Google"
         >
@@ -79,14 +79,14 @@ export function LoginPage() {
         </button>
 
         <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-slate-200" />
-          <span className="text-xs text-slate-400 uppercase">or</span>
-          <div className="flex-1 h-px bg-slate-200" />
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-th-text-muted uppercase">or</span>
+          <div className="flex-1 h-px bg-border" />
         </div>
 
         <form onSubmit={(e) => void handleEmailLogin(e)} className="space-y-3">
           <div>
-            <label htmlFor="email" className="block text-xs font-medium text-slate-600 mb-1">Email</label>
+            <label htmlFor="email" className="block text-xs font-medium text-th-text-secondary mb-1">Email</label>
             <input
               id="email"
               type="email"
@@ -94,13 +94,13 @@ export function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm text-th-text-primary bg-surface placeholder-th-text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="test@example.com"
               data-testid="email-input"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-xs font-medium text-slate-600 mb-1">Password</label>
+            <label htmlFor="password" className="block text-xs font-medium text-th-text-secondary mb-1">Password</label>
             <input
               id="password"
               type="password"
@@ -108,7 +108,7 @@ export function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm text-th-text-primary bg-surface placeholder-th-text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Password"
               data-testid="password-input"
             />
@@ -121,7 +121,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full px-4 py-2.5 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             data-testid="email-login-button"
           >
             {submitting ? 'Signing in…' : 'Sign in with Email'}

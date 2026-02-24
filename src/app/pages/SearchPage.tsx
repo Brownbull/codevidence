@@ -56,7 +56,7 @@ export function SearchPage() {
       </div>
 
       {!hasAnyFilter && (
-        <p className="text-slate-500 font-mono text-sm text-center mt-12">
+        <p className="text-th-text-secondary font-mono text-sm text-center mt-12">
           Select filters in the panel to search candidates.
         </p>
       )}
@@ -64,7 +64,7 @@ export function SearchPage() {
       {isLoading && hasAnyFilter && (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 bg-slate-100 rounded-lg animate-pulse" />
+            <div key={i} className="h-20 bg-surface-inset rounded-lg animate-pulse" />
           ))}
         </div>
       )}
@@ -78,7 +78,7 @@ export function SearchPage() {
               matchedTags={allTags}
             />
           ))}
-          <p className="text-xs text-slate-400 text-center mt-4">
+          <p className="text-xs text-th-text-muted text-center mt-4">
             {candidates.length} result{candidates.length !== 1 ? 's' : ''}
           </p>
         </div>

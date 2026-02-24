@@ -62,7 +62,7 @@ describe('US-016: AdminPage Shell', () => {
   });
 
   it('highlights active tab with border', () => {
-    expect(src).toContain('border-slate-900');
+    expect(src).toContain('border-indigo-500');
     expect(src).toContain('border-transparent');
   });
 

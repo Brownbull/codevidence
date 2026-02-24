@@ -34,7 +34,7 @@ export function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-surface">
       {/* Top nav */}
       <nav className="h-12 bg-slate-900 flex items-center justify-between px-3 md:px-4 sticky top-0 z-50">
         <div className="flex items-center gap-2 sm:gap-4">
@@ -67,7 +67,7 @@ export function AdminPage() {
       </nav>
 
       {/* Tab bar */}
-      <div className="border-b border-slate-200 bg-white sticky top-12 z-40 overflow-x-auto">
+      <div className="border-b border-border bg-surface-raised sticky top-12 z-40 overflow-x-auto">
         <div className="flex gap-0 px-2 md:px-4">
           {TABS.map((tab) => (
             <button
@@ -76,8 +76,8 @@ export function AdminPage() {
               onClick={() => handleTabChange(tab.id)}
               className={`px-3 md:px-4 py-3 text-xs md:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'border-slate-900 text-slate-900'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                  ? 'border-indigo-500 text-th-text-primary'
+                  : 'border-transparent text-th-text-secondary hover:text-th-text-primary'
               }`}
             >
               {tab.label}

@@ -25,7 +25,7 @@ export function ThinResultsState({ resultCount, params }: ThinResultsStateProps)
       <p className="text-xs text-amber-700 mt-1">
         Expand your candidate pool by running a discovery scan:
       </p>
-      <pre className="mt-2 p-2 bg-white border border-amber-200 rounded text-xs font-mono text-slate-700 overflow-x-auto">
+      <pre className="mt-2 p-2 bg-surface-raised border border-amber-200 rounded text-xs font-mono text-th-text-primary overflow-x-auto">
         {command}
       </pre>
       <p className="text-xs text-amber-600 mt-2 italic">
@@ -44,14 +44,14 @@ export function ZeroResultsState({ params }: ZeroResultsStateProps) {
 
   return (
     <div className="mt-12 text-center">
-      <p className="text-slate-500 font-medium">No candidates match the selected filters</p>
-      <p className="text-sm text-slate-400 mt-2">
+      <p className="text-th-text-secondary font-medium">No candidates match the selected filters</p>
+      <p className="text-sm text-th-text-muted mt-2">
         Try adjusting your filters, or expand the candidate pool:
       </p>
-      <pre className="mt-3 mx-auto max-w-lg p-3 bg-slate-100 border border-slate-200 rounded text-xs font-mono text-slate-700 text-left overflow-x-auto">
+      <pre className="mt-3 mx-auto max-w-lg p-3 bg-surface-inset border border-border rounded text-xs font-mono text-th-text-primary text-left overflow-x-auto">
         {command}
       </pre>
-      <p className="text-xs text-slate-400 mt-2 italic">
+      <p className="text-xs text-th-text-muted mt-2 italic">
         This query has been flagged for admin review.
       </p>
     </div>

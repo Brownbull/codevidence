@@ -27,9 +27,9 @@ export function CandidateProfilePage() {
     return (
       <AppShell>
         <div className="max-w-4xl mx-auto space-y-4">
-          <div className="h-24 bg-slate-100 rounded-lg animate-pulse" />
-          <div className="h-48 bg-slate-100 rounded-lg animate-pulse" />
-          <div className="h-36 bg-slate-100 rounded-lg animate-pulse" />
+          <div className="h-24 bg-surface-inset rounded-lg animate-pulse" />
+          <div className="h-48 bg-surface-inset rounded-lg animate-pulse" />
+          <div className="h-36 bg-surface-inset rounded-lg animate-pulse" />
         </div>
       </AppShell>
     );
@@ -39,8 +39,8 @@ export function CandidateProfilePage() {
     return (
       <AppShell>
         <div className="max-w-4xl mx-auto text-center mt-16">
-          <p className="text-slate-500 font-medium">Candidate not found</p>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-th-text-secondary font-medium">Candidate not found</p>
+          <p className="text-sm text-th-text-muted mt-1">
             No candidate with username &ldquo;{username}&rdquo; exists.
           </p>
           <Link
@@ -64,13 +64,13 @@ export function CandidateProfilePage() {
         {/* Back link */}
         <Link
           to="/search"
-          className="text-sm text-slate-400 hover:text-slate-600 mb-4 inline-block"
+          className="text-sm text-th-text-muted hover:text-th-text-secondary mb-4 inline-block"
         >
           &larr; Back to search
         </Link>
 
         {/* Header */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4 md:p-5 mb-4">
+        <div className="bg-surface-raised rounded-lg border border-border p-4 md:p-5 mb-4">
           <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
             {candidate.avatarUrl && (
               <img
@@ -82,14 +82,14 @@ export function CandidateProfilePage() {
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h1 className="text-base sm:text-lg font-semibold text-slate-900">
+                <h1 className="text-base sm:text-lg font-semibold text-th-text-primary">
                   {candidate.githubUsername}
                 </h1>
                 <a
                   href={candidate.githubProfileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-slate-400 hover:text-indigo-600"
+                  className="text-xs text-th-text-muted hover:text-indigo-600"
                 >
                   GitHub Profile &rarr;
                 </a>
@@ -101,7 +101,7 @@ export function CandidateProfilePage() {
                 <StalenessTag isStale={candidate.isStale} />
               </div>
 
-              <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-slate-400 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-th-text-muted flex-wrap">
                 <span>Last scanned: {lastScannedDate}</span>
                 <span>{candidate.commitSpanMonths}mo commit span</span>
                 <span>{candidate.repoCount} repo{candidate.repoCount !== 1 ? 's' : ''}</span>

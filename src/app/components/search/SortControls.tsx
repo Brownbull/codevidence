@@ -22,7 +22,7 @@ const SORT_OPTIONS: Array<{ value: SearchQueryParams['sortBy']; label: string }>
 export function SortControls({ currentSort, onSort }: SortControlsProps) {
   return (
     <div className="flex items-center gap-1" role="group" aria-label="Sort by">
-      <span className="text-xs text-slate-500 mr-1">Sort:</span>
+      <span className="text-xs text-th-text-secondary mr-1">Sort:</span>
       {SORT_OPTIONS.map(({ value, label }) => (
         <button
           key={value}
@@ -31,7 +31,7 @@ export function SortControls({ currentSort, onSort }: SortControlsProps) {
           className={`px-2.5 py-1 text-xs rounded transition-colors ${
             currentSort === value
               ? 'bg-slate-900 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              : 'bg-surface-inset text-th-text-secondary hover:bg-th-hover'
           }`}
         >
           {label}

@@ -19,12 +19,12 @@ export function FlagsTab() {
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-slate-900 mb-4">Admin Flags</h2>
+      <h2 className="text-sm font-semibold text-th-text-primary mb-4">Admin Flags</h2>
 
       {isLoading && (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-slate-100 rounded animate-pulse" />
+            <div key={i} className="h-16 bg-surface-inset rounded animate-pulse" />
           ))}
         </div>
       )}
@@ -32,7 +32,7 @@ export function FlagsTab() {
       {/* Underserved queries */}
       {underservedFlags.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">
+          <h3 className="text-xs font-medium text-th-text-secondary uppercase tracking-wide mb-3">
             Underserved Queries
           </h3>
           <div className="space-y-2">
@@ -48,7 +48,7 @@ export function FlagsTab() {
       {/* Repos of interest */}
       {repoFlags.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">
+          <h3 className="text-xs font-medium text-th-text-secondary uppercase tracking-wide mb-3">
             Repos of Interest
           </h3>
           <div className="space-y-2">
@@ -60,7 +60,7 @@ export function FlagsTab() {
       )}
 
       {!isLoading && underservedFlags.length === 0 && repoFlags.length === 0 && (
-        <p className="text-sm text-slate-400 text-center py-8">No active flags.</p>
+        <p className="text-sm text-th-text-muted text-center py-8">No active flags.</p>
       )}
     </div>
   );
@@ -92,11 +92,11 @@ function UnderservedFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg p-3">
+    <div className="border border-border rounded-lg p-3">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-slate-700">
+            <span className="text-xs font-mono text-th-text-primary">
               {flag.resultCount ?? 0} result{(flag.resultCount ?? 0) !== 1 ? 's' : ''}
             </span>
             <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -106,7 +106,7 @@ function UnderservedFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
             }`}>
               {flag.status}
             </span>
-            <span className="text-xs text-slate-400">{flagDate}</span>
+            <span className="text-xs text-th-text-muted">{flagDate}</span>
           </div>
           {flag.queryParams && (
             <div className="flex flex-wrap gap-1 mt-1">
@@ -118,7 +118,7 @@ function UnderservedFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
               ].map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-[10px] font-mono text-slate-600"
+                  className="inline-flex px-1.5 py-0.5 rounded-full bg-surface-inset text-[10px] font-mono text-th-text-secondary"
                 >
                   {tag.split(':')[1] ?? tag}
                 </span>
@@ -134,16 +134,16 @@ function UnderservedFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
-          className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs hover:bg-slate-200 transition-colors flex-shrink-0"
+          className="px-2 py-1 bg-surface-inset text-th-text-secondary rounded text-xs hover:bg-th-hover transition-colors flex-shrink-0"
         >
           Trigger Discovery
         </button>
       </div>
 
       {showForm && (
-        <div className="mt-3 p-3 bg-slate-50 rounded">
+        <div className="mt-3 p-3 bg-surface rounded">
           {flag.queryParams && (
-            <pre className="text-xs font-mono text-slate-600 mb-2">
+            <pre className="text-xs font-mono text-th-text-secondary mb-2">
               {buildSuggestedCommand(flag.queryParams)}
             </pre>
           )}
@@ -171,9 +171,9 @@ function RepoFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg p-3 flex items-start justify-between">
+    <div className="border border-border rounded-lg p-3 flex items-start justify-between">
       <div>
-        <span className="text-sm font-mono text-slate-700">{flag.repoFullName ?? flag.repoId}</span>
+        <span className="text-sm font-mono text-th-text-primary">{flag.repoFullName ?? flag.repoId}</span>
         {flag.detectedSignals && flag.detectedSignals.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {flag.detectedSignals.map((signal) => (
@@ -191,7 +191,7 @@ function RepoFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
         type="button"
         onClick={() => void handleAction()}
         disabled={actionFlag.isPending}
-        className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs hover:bg-slate-200 disabled:opacity-50 transition-colors flex-shrink-0"
+        className="px-2 py-1 bg-surface-inset text-th-text-secondary rounded text-xs hover:bg-th-hover disabled:opacity-50 transition-colors flex-shrink-0"
       >
         Mark as actioned
       </button>

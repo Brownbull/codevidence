@@ -27,7 +27,7 @@ export function QueueTab() {
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-slate-900 mb-4">Job Queue</h2>
+      <h2 className="text-sm font-semibold text-th-text-primary mb-4">Job Queue</h2>
 
       {/* Status filter tabs */}
       <div className="flex gap-1 mb-4 flex-wrap">
@@ -39,7 +39,7 @@ export function QueueTab() {
             className={`px-3 py-1 text-xs rounded-md transition-colors ${
               statusFilter === tab.value
                 ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                : 'bg-surface-inset text-th-text-secondary hover:bg-th-hover'
             }`}
           >
             {tab.label}
@@ -48,24 +48,24 @@ export function QueueTab() {
       </div>
 
       {/* Auto-refresh indicator */}
-      <p className="text-xs text-slate-400 mb-3">Auto-refreshes every 30s</p>
+      <p className="text-xs text-th-text-muted mb-3">Auto-refreshes every 30s</p>
 
       {isLoading && (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-10 bg-slate-100 rounded animate-pulse" />
+            <div key={i} className="h-10 bg-surface-inset rounded animate-pulse" />
           ))}
         </div>
       )}
 
       {jobs && jobs.length === 0 && (
-        <p className="text-sm text-slate-400 text-center py-8">No jobs found.</p>
+        <p className="text-sm text-th-text-muted text-center py-8">No jobs found.</p>
       )}
 
       {jobs && jobs.length > 0 && (
-        <div className="border border-slate-200 rounded-lg overflow-x-auto">
+        <div className="border border-border rounded-lg overflow-x-auto">
           {/* Table header */}
-          <div className="grid grid-cols-7 gap-2 px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 border-b border-slate-200 min-w-[700px]">
+          <div className="grid grid-cols-7 gap-2 px-4 py-2 bg-surface text-xs font-medium text-th-text-secondary border-b border-border min-w-[700px]">
             <span>Type</span>
             <span>Target</span>
             <span>Status</span>

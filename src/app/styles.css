@@ -6,24 +6,48 @@
   :root {
     --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  }
 
-  html {
-    font-family: var(--font-sans);
+    /* Theme tokens — Light (default) */
+    --color-surface: 248 250 252;       /* slate-50 */
+    --color-surface-raised: 255 255 255; /* white */
+    --color-surface-inset: 241 245 249;  /* slate-100 */
+    --color-border: 226 232 240;         /* slate-200 */
+    --color-text-primary: 15 23 42;      /* slate-900 */
+    --color-text-secondary: 100 116 139; /* slate-500 */
+    --color-text-muted: 148 163 184;     /* slate-400 */
+    --color-hover: 241 245 249;          /* slate-100 */
   }
 
   /* Dark theme */
   html.dark {
     color-scheme: dark;
-    background-color: rgb(15 23 42); /* slate-900 */
-    color: rgb(226 232 240); /* slate-200 */
+    --color-surface: 15 23 42;           /* slate-900 */
+    --color-surface-raised: 30 41 59;    /* slate-800 */
+    --color-surface-inset: 51 65 85;     /* slate-600 */
+    --color-border: 51 65 85;            /* slate-600 */
+    --color-text-primary: 226 232 240;   /* slate-200 */
+    --color-text-secondary: 148 163 184; /* slate-400 */
+    --color-text-muted: 100 116 139;     /* slate-500 */
+    --color-hover: 51 65 85;             /* slate-600 */
   }
 
   /* Dim theme */
   html.dim {
     color-scheme: dark;
-    background-color: rgb(30 41 59); /* slate-800 */
-    color: rgb(203 213 225); /* slate-300 */
+    --color-surface: 30 41 59;           /* slate-800 */
+    --color-surface-raised: 51 65 85;    /* slate-600 */
+    --color-surface-inset: 71 85 105;    /* slate-500 */
+    --color-border: 71 85 105;           /* slate-500 */
+    --color-text-primary: 203 213 225;   /* slate-300 */
+    --color-text-secondary: 148 163 184; /* slate-400 */
+    --color-text-muted: 100 116 139;     /* slate-500 */
+    --color-hover: 71 85 105;            /* slate-500 */
+  }
+
+  html {
+    font-family: var(--font-sans);
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-text-primary));
   }
 
   code,

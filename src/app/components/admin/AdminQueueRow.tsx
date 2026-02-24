@@ -76,8 +76,8 @@ export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueR
 
   return (
     <>
-      <div className="grid grid-cols-7 gap-2 px-4 py-2 border-b border-slate-100 text-xs items-center min-w-[700px]">
-        <span className="font-mono text-slate-700">{job.type}</span>
+      <div className="grid grid-cols-7 gap-2 px-4 py-2 border-b border-border text-xs items-center min-w-[700px]">
+        <span className="font-mono text-th-text-primary">{job.type}</span>
         <span className="truncate" title={target.label}>
           {target.href ? (
             <a
@@ -89,21 +89,21 @@ export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueR
               {target.label}
             </a>
           ) : (
-            <span className="text-slate-500">{target.label}</span>
+            <span className="text-th-text-secondary">{target.label}</span>
           )}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[job.status] ?? 'bg-slate-100 text-slate-500'}`}>
+          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[job.status] ?? 'bg-surface-inset text-th-text-secondary'}`}>
             {job.status}
           </span>
           {(job.status === 'pending' || job.status === 'running') && (
-            <span className="text-[10px] text-slate-400 italic">{getStatusDuration(job)}</span>
+            <span className="text-[10px] text-th-text-muted italic">{getStatusDuration(job)}</span>
           )}
         </span>
-        <span className="text-slate-500">{createdDate}</span>
-        <span className="text-slate-500">{job.attempts}/{job.maxAttempts}</span>
+        <span className="text-th-text-secondary">{createdDate}</span>
+        <span className="text-th-text-secondary">{job.attempts}/{job.maxAttempts}</span>
         <span
-          className="text-slate-500 cursor-pointer hover:text-slate-700"
+          className="text-th-text-secondary cursor-pointer hover:text-th-text-primary"
           title={job.errorMessage ?? undefined}
           onClick={() => job.errorMessage && setShowError(!showError)}
         >
@@ -124,14 +124,14 @@ export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueR
               <button
                 type="button"
                 onClick={onRetry}
-                className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 text-[10px] transition-colors"
+                className="px-2 py-0.5 bg-surface-inset text-th-text-secondary rounded hover:bg-th-hover text-[10px] transition-colors"
               >
                 Retry
               </button>
               <button
                 type="button"
                 onClick={onDismiss}
-                className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 text-[10px] transition-colors"
+                className="px-2 py-0.5 bg-surface-inset text-th-text-secondary rounded hover:bg-th-hover text-[10px] transition-colors"
               >
                 Dismiss
               </button>
@@ -142,7 +142,7 @@ export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueR
 
       {/* Expanded error message */}
       {showError && job.errorMessage && (
-        <div className="px-4 py-2 bg-red-50 border-b border-slate-100">
+        <div className="px-4 py-2 bg-red-50 border-b border-border">
           <pre className="text-xs font-mono text-red-700 whitespace-pre-wrap break-all">
             {job.errorMessage}
           </pre>

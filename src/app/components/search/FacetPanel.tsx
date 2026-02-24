@@ -38,10 +38,10 @@ export function FacetPanel() {
 
   if (isLoading) {
     return (
-      <aside className="w-full md:w-64 md:border-r border-slate-200 bg-white p-4 overflow-y-auto">
+      <aside className="w-full md:w-64 md:border-r border-border bg-surface-raised p-4 overflow-y-auto">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-6 bg-slate-100 rounded animate-pulse" />
+            <div key={i} className="h-6 bg-surface-inset rounded animate-pulse" />
           ))}
         </div>
       </aside>
@@ -51,7 +51,7 @@ export function FacetPanel() {
   const grouped = groupByCategory(taxonomy ?? []);
 
   return (
-    <aside className="w-full md:w-64 md:border-r border-slate-200 bg-white p-4 overflow-y-auto">
+    <aside className="w-full md:w-64 md:border-r border-border bg-surface-raised p-4 overflow-y-auto">
       {SECTION_CONFIG.map(({ category, label, urlKey }) => {
         const items = grouped[category] ?? [];
         const selectedField = SELECTED_FIELDS[category];
@@ -104,11 +104,11 @@ function FacetSection({
       <button
         type="button"
         onClick={onToggleSection}
-        className="flex items-center justify-between w-full text-left text-sm font-medium text-slate-700 py-1.5 hover:text-slate-900"
+        className="flex items-center justify-between w-full text-left text-sm font-medium text-th-text-primary py-1.5 hover:text-th-text-primary"
         aria-expanded={isOpen}
       >
         <span>{label}</span>
-        <span className="text-xs text-slate-400">{isOpen ? '\u25B2' : '\u25BC'}</span>
+        <span className="text-xs text-th-text-muted">{isOpen ? '\u25B2' : '\u25BC'}</span>
       </button>
 
       {isOpen && (
@@ -116,20 +116,20 @@ function FacetSection({
           {items.map((item) => (
             <label
               key={item.id}
-              className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-50 cursor-pointer text-sm"
+              className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-th-hover cursor-pointer text-sm"
             >
               <input
                 type="checkbox"
                 checked={selectedIds.includes(item.id)}
                 onChange={() => onToggleItem(item.id)}
-                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="rounded border-border text-indigo-600 focus:ring-indigo-500"
               />
-              <span className="font-mono text-xs text-slate-700">{item.displayName}</span>
-              <span className="ml-auto text-xs text-slate-400">{item.candidateCount}</span>
+              <span className="font-mono text-xs text-th-text-primary">{item.displayName}</span>
+              <span className="ml-auto text-xs text-th-text-muted">{item.candidateCount}</span>
             </label>
           ))}
           {items.length === 0 && (
-            <p className="text-xs text-slate-400 px-1">No items</p>
+            <p className="text-xs text-th-text-muted px-1">No items</p>
           )}
         </div>
       )}
@@ -156,11 +156,11 @@ function AiMaturitySection({
       <button
         type="button"
         onClick={onToggleSection}
-        className="flex items-center justify-between w-full text-left text-sm font-medium text-slate-700 py-1.5 hover:text-slate-900"
+        className="flex items-center justify-between w-full text-left text-sm font-medium text-th-text-primary py-1.5 hover:text-th-text-primary"
         aria-expanded={isOpen}
       >
         <span>AI Maturity Level</span>
-        <span className="text-xs text-slate-400">{isOpen ? '\u25B2' : '\u25BC'}</span>
+        <span className="text-xs text-th-text-muted">{isOpen ? '\u25B2' : '\u25BC'}</span>
       </button>
 
       {isOpen && (
@@ -171,16 +171,16 @@ function AiMaturitySection({
             return (
               <label
                 key={item.id}
-                className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-50 cursor-pointer text-sm"
+                className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-th-hover cursor-pointer text-sm"
               >
                 <input
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => onSetMin(isSelected ? null : level)}
-                  className="rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  className="rounded border-border text-violet-600 focus:ring-violet-500"
                 />
-                <span className="font-mono text-xs text-slate-700">{item.displayName}</span>
-                <span className="ml-auto text-xs text-slate-400">{item.candidateCount}</span>
+                <span className="font-mono text-xs text-th-text-primary">{item.displayName}</span>
+                <span className="ml-auto text-xs text-th-text-muted">{item.candidateCount}</span>
               </label>
             );
           })}

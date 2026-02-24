@@ -35,7 +35,7 @@ export function CandidatesTab() {
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-slate-900 mb-4">Candidates</h2>
+      <h2 className="text-sm font-semibold text-th-text-primary mb-4">Candidates</h2>
 
       {/* Summary row */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -47,17 +47,17 @@ export function CandidatesTab() {
       {/* Taxonomy coverage */}
       {languageTaxonomy && languageTaxonomy.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+          <h3 className="text-xs font-medium text-th-text-secondary uppercase tracking-wide mb-2">
             Language Coverage
           </h3>
           <div className="flex flex-wrap gap-2">
             {languageTaxonomy.map((item) => (
               <span
                 key={item.id}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-xs"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-surface-inset text-xs"
               >
-                <span className="font-mono text-slate-700">{item.displayName}</span>
-                <span className="text-slate-400">{item.candidateCount}</span>
+                <span className="font-mono text-th-text-primary">{item.displayName}</span>
+                <span className="text-th-text-muted">{item.candidateCount}</span>
               </span>
             ))}
           </div>
@@ -68,15 +68,15 @@ export function CandidatesTab() {
       {isLoading && (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-slate-100 rounded animate-pulse" />
+            <div key={i} className="h-12 bg-surface-inset rounded animate-pulse" />
           ))}
         </div>
       )}
 
       {/* Candidates table */}
       {candidates && candidates.length > 0 && (
-        <div className="border border-slate-200 rounded-lg overflow-x-auto">
-          <div className="grid grid-cols-6 gap-2 px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 border-b border-slate-200 min-w-[600px]">
+        <div className="border border-border rounded-lg overflow-x-auto">
+          <div className="grid grid-cols-6 gap-2 px-4 py-2 bg-surface text-xs font-medium text-th-text-secondary border-b border-border min-w-[600px]">
             <span>Username</span>
             <span>Skill Score</span>
             <span>AI Maturity</span>
@@ -91,7 +91,7 @@ export function CandidatesTab() {
       )}
 
       {candidates && candidates.length === 0 && (
-        <p className="text-sm text-slate-400 text-center py-8">No candidates yet.</p>
+        <p className="text-sm text-th-text-muted text-center py-8">No candidates yet.</p>
       )}
     </div>
   );
@@ -99,9 +99,9 @@ export function CandidatesTab() {
 
 function SummaryCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900 mt-1">{value}</p>
+    <div className="bg-surface-raised rounded-lg border border-border p-4">
+      <p className="text-xs text-th-text-secondary">{label}</p>
+      <p className="text-2xl font-semibold text-th-text-primary mt-1">{value}</p>
     </div>
   );
 }
@@ -129,15 +129,15 @@ function CandidateRow({ candidate }: { candidate: Candidate & { id: string } }) 
   return (
     <>
       <div
-        className={`grid grid-cols-6 gap-2 px-4 py-2 border-b border-slate-100 text-xs items-center cursor-pointer hover:bg-slate-50 min-w-[600px] ${
+        className={`grid grid-cols-6 gap-2 px-4 py-2 border-b border-border text-xs items-center cursor-pointer hover:bg-th-hover min-w-[600px] ${
           candidate.isStale ? 'bg-amber-50' : ''
         }`}
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="font-mono text-slate-700">{candidate.githubUsername}</span>
+        <span className="font-mono text-th-text-primary">{candidate.githubUsername}</span>
         <span><SkillScoreBadge score={candidate.skillScore} /></span>
         <span><AIMaturityBadge score={candidate.aiMaturityScore} /></span>
-        <span className="text-slate-500">{lastScannedDate}</span>
+        <span className="text-th-text-secondary">{lastScannedDate}</span>
         <span><StalenessTag isStale={candidate.isStale} /></span>
         <span>
           <button
@@ -147,7 +147,7 @@ function CandidateRow({ candidate }: { candidate: Candidate & { id: string } }) 
               rescanMutation.mutate();
             }}
             disabled={rescanMutation.isPending}
-            className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 text-[10px] transition-colors disabled:opacity-50"
+            className="px-2 py-0.5 bg-surface-inset text-th-text-secondary rounded hover:bg-th-hover text-[10px] transition-colors disabled:opacity-50"
           >
             {rescanMutation.isPending ? 'Queuing...' : 'Rescan'}
           </button>
@@ -155,7 +155,7 @@ function CandidateRow({ candidate }: { candidate: Candidate & { id: string } }) 
       </div>
 
       {expanded && (
-        <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+        <div className="px-4 py-3 bg-surface border-b border-border">
           <InlineScoreStepper candidate={candidate} />
         </div>
       )}
@@ -180,7 +180,7 @@ function InlineScoreStepper({ candidate }: { candidate: Candidate & { id: string
 
   return (
     <div>
-      <p className="text-xs text-slate-500 mb-2">AI Maturity Score</p>
+      <p className="text-xs text-th-text-secondary mb-2">AI Maturity Score</p>
       <div className="flex gap-1">
         {[0, 1, 2, 3, 4, 5].map((level) => (
           <button
@@ -191,7 +191,7 @@ function InlineScoreStepper({ candidate }: { candidate: Candidate & { id: string
             className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
               candidate.aiMaturityScore === level
                 ? 'bg-violet-600 text-white'
-                : 'bg-white border border-slate-300 text-slate-600 hover:bg-violet-50 hover:border-violet-300'
+                : 'bg-surface-raised border border-slate-300 text-th-text-secondary hover:bg-violet-50 hover:border-violet-300'
             } disabled:opacity-50`}
           >
             {level}

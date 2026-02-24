@@ -21,7 +21,7 @@ export function AppShell({ sidebar, children }: AppShellProps) {
   const { mobileFiltersOpen, setMobileFiltersOpen } = useUiStore();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-surface">
       {/* Top nav */}
       <nav className="h-12 bg-slate-900 flex items-center justify-between px-3 md:px-4 sticky top-0 z-50">
         <div className="flex items-center gap-2">
@@ -90,13 +90,13 @@ export function AppShell({ sidebar, children }: AppShellProps) {
               className="fixed inset-0 bg-black/40 z-40 md:hidden"
               onClick={() => setMobileFiltersOpen(false)}
             />
-            <div className="fixed inset-y-0 left-0 w-72 bg-white z-50 md:hidden overflow-y-auto shadow-xl pt-12">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-                <span className="text-sm font-medium text-slate-900">Filters</span>
+            <div className="fixed inset-y-0 left-0 w-72 bg-surface-raised z-50 md:hidden overflow-y-auto shadow-xl pt-12">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <span className="text-sm font-medium text-th-text-primary">Filters</span>
                 <button
                   type="button"
                   onClick={() => setMobileFiltersOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1"
+                  className="text-th-text-muted hover:text-th-text-secondary p-1"
                   aria-label="Close filters"
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">

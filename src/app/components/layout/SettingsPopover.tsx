@@ -94,9 +94,9 @@ export function SettingsPopover() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 w-56 bg-white border border-slate-200 rounded-lg shadow-lg p-3 z-50">
+        <div className="absolute right-0 top-8 w-56 bg-surface-raised border border-border rounded-lg shadow-lg p-3 z-50">
           {/* Theme selector */}
-          <p className="text-xs font-medium text-slate-500 mb-2">Theme</p>
+          <p className="text-xs font-medium text-th-text-secondary mb-2">Theme</p>
           <div className="flex gap-1 mb-3">
             {THEMES.map((t) => (
               <button
@@ -105,8 +105,8 @@ export function SettingsPopover() {
                 onClick={() => setTheme(t.id)}
                 className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
                   theme === t.id
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-surface-inset text-th-text-secondary hover:bg-th-hover'
                 }`}
               >
                 {t.label}
@@ -115,7 +115,7 @@ export function SettingsPopover() {
           </div>
 
           {/* Font family selector */}
-          <p className="text-xs font-medium text-slate-500 mb-2">Font Family</p>
+          <p className="text-xs font-medium text-th-text-secondary mb-2">Font Family</p>
           <div className="space-y-1">
             {FONTS.map((f) => (
               <button
@@ -125,7 +125,7 @@ export function SettingsPopover() {
                 className={`w-full text-left px-2 py-1 text-xs rounded transition-colors ${
                   font === f.value
                     ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    : 'text-th-text-secondary hover:bg-th-hover'
                 }`}
               >
                 {f.label}
@@ -133,7 +133,7 @@ export function SettingsPopover() {
             ))}
           </div>
 
-          <p className="text-[10px] text-slate-400 mt-2 italic">
+          <p className="text-[10px] text-th-text-muted mt-2 italic">
             JetBrains Mono stays as monospace for code
           </p>
         </div>
