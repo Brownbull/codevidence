@@ -218,7 +218,17 @@ candidate-skill-scanner/
 
 ## Codebase Patterns
 
-*(Populated by Ralph agent as patterns are discovered)*
+- **Dual runtime context**: `src/app/` = browser/React (DOM types), `src/pipeline/` = Node.js (no DOM). Enforce with separate tsconfigs.
+- **Firestore wrapper**: ALL Firestore access via `src/core/db/firestore.ts`. Never import Firebase SDK directly in business logic.
+- **aiMaturityScore invariant**: `null` = not scored, `0` = scored Level 0. Pipeline scoring output type uses `Omit<Candidate, aiMaturity fields>` to TypeScript-enforce absence.
+- **URL as filter state**: Filter values live in URL params only. Zustand holds UI state only (panel collapse).
+- **Rarest-tag-first query**: Find the tag with lowest candidateCount, use as primary `array-contains` Firestore filter. Remaining tags filtered client-side.
+- **Dual Firestore query for aiMaturityMin**: Two parallel queries (scored >= N + unscored == null) merged client-side to preserve null inclusion.
+- **TanStack Query patterns**: 5-minute staleTime, queryKey includes params for auto-refetch. Separate query keys for candidates list vs candidate profile.
+- **Admin score assignment**: `updateAiMaturityScore` uses `updateDoc` (not `setDoc`) to only write three aiMaturity fields, preserving pipeline-owned fields.
+- **Theme flash prevention**: Inline `<script>` in `index.html` reads localStorage before React mount.
+- **Test patterns**: Source-level tests use `readFileSync` + `toContain()`. Functional tests use dynamic `import()` for module loading.
+- **Build chain**: `pnpm build` = `tsc --noEmit && vite build && classpresso optimize`. All three must pass.
 
 ---
 

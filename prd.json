@@ -304,7 +304,7 @@
         "CLAUDE.md is up to date with any project-specific conventions established during the build"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "The README is the operational handoff document — it must be complete enough for Gabe to resume work after a break without consulting planning docs."
     }
   ]

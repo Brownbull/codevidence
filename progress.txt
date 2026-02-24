@@ -487,3 +487,24 @@
   - `pnpm test:unit`: PASS (788/788 tests, 19 files — 51 new for US-018)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-019
+- What was implemented:
+  - Created README.md with all required sections: What it is, Prerequisites, Local Setup (Firebase project, .env.local, emulators), Running the Scan Pipeline (discover, status), Admin role provisioning, Web UI, Running Tests, Deploying to Firebase Hosting, CLI Command Reference, AI Maturity Model reference table (Levels 0-5), Environment variable reference, null vs 0 invariant documentation
+  - Updated CLAUDE.md Codebase Patterns section with 11 patterns discovered during the build (dual runtime, Firestore wrapper, aiMaturityScore invariant, URL as filter state, rarest-tag-first query, dual Firestore query, TanStack Query patterns, admin score assignment, theme flash prevention, test patterns, build chain)
+  - Updated eggs/INDEX.md with candidate-skill-scanner entry (template=code, status=in-progress)
+  - Created tests/unit/us-019-docs.test.ts — 24 tests verifying README sections, INDEX.md entry, and CLAUDE.md patterns
+- Files changed:
+  - README.md (created)
+  - CLAUDE.md (updated — Codebase Patterns section populated)
+  - eggs/INDEX.md (updated — new entry)
+  - tests/unit/us-019-docs.test.ts (created — 24 tests)
+- **Learnings for future iterations:**
+  - When tests expect literal strings like "Level 1", ensure the source document uses that exact format (e.g., `| Level 1 |` not `| 1 |` in markdown tables).
+  - EGGS_ROOT path resolution: from `eggs/candidate-skill-scanner/`, one `..` reaches `eggs/`, two `../..` reaches the monorepo root. INDEX.md lives at `eggs/INDEX.md`.
+  - All 19 user stories are now complete and passing.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (812/812 tests, 20 files — 24 new for US-019)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
