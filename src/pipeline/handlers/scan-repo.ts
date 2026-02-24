@@ -18,6 +18,7 @@ import type { Repository } from '../../types/repository.js';
 import type { TaxonomyItem } from '../../types/taxonomy.js';
 import { analyzeLayer1 } from '../analysis/layer1.js';
 import { analyzeLayer2 } from '../analysis/layer2.js';
+import { analyzeAiSignals } from '../analysis/ai-signals.js';
 import {
   getDoc,
   updateDoc,
@@ -131,8 +132,11 @@ async function runLayer2(
     await git.clone(repo.githubUrl, cloneDir);
     console.log(`[scan-repo] Full clone complete.`);
 
-    // Run Layer 2 analysis
-    const result = await analyzeLayer2(cloneDir, repo.owner);
+    // Run Layer 2 analysis and AI signal detection in parallel
+    const [result, aiResult] = await Promise.all([
+      analyzeLayer2(cloneDir, repo.owner),
+      analyzeAiSignals(cloneDir),
+    ]);
 
     console.log(
       `[scan-repo] Layer 2 analysis: ` +
@@ -143,13 +147,34 @@ async function runLayer2(
       `coverage=${result.estimatedTestCoverage}`
     );
 
-    // Update Repository doc with Layer 2 results
+    console.log(
+      `[scan-repo] AI signals: ` +
+      `configFiles=${aiResult.aiConfigFiles.length} ` +
+      `coAuthored=${aiResult.coAuthoredByAI} ` +
+      `patterns=[${aiResult.aiAttributionPatterns.join(', ')}]`
+    );
+
+    // Convert AI config file signal dates for Firestore
+    const aiConfigFiles = aiResult.aiConfigFiles.map((signal) => ({
+      fileName: signal.fileName,
+      firstDetectedAt: signal.firstDetectedAt,
+      modificationCount: signal.modificationCount,
+      lastModifiedAt: signal.lastModifiedAt,
+      diffComplexity: signal.diffComplexity,
+      isEvolved: signal.isEvolved,
+      originSignal: signal.originSignal,
+    }));
+
+    // Update Repository doc with Layer 2 + AI signal results
     const updateData: Record<string, unknown> = {
       commitCount: result.commitCount,
       commitSpanMonths: result.commitSpanMonths,
       isOwnerRepo: result.isOwnerRepo,
       hasTestDirectory: result.hasTestDirectory,
       estimatedTestCoverage: result.estimatedTestCoverage,
+      aiConfigFiles,
+      coAuthoredByAI: aiResult.coAuthoredByAI,
+      aiAttributionPatterns: aiResult.aiAttributionPatterns,
       scanStatus: 'layer2',
       lastScanned: serverTimestamp(),
       updatedAt: serverTimestamp(),

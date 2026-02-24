@@ -160,7 +160,7 @@
         "Repository.aiConfigFiles (AiConfigFileSignal[]), coAuthoredByAI, aiAttributionPatterns written to Firestore; unit test verifies AiConfigFileSignal population from mock git log with CLAUDE.md"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Use git log --follow --format='%H %ae %ad' -- <filename> to trace each config file's history. The AI signals are the raw data for manual AI Maturity Score assignment — accuracy matters more than completeness at this stage."
     },
     {
