@@ -196,3 +196,28 @@
   - `pnpm test:unit`: PASS (259/259 tests, 8 files — 52 new for US-007)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-008
+- What was implemented:
+  - `src/pipeline/analysis/layer1.ts` — Layer 1 analysis module. Detects primary language via GitHub metadata fallback to file extension counting (3-level recursive, skipping node_modules/vendor/etc). Parses 7 manifest formats: package.json (npm), requirements.txt (Python), pyproject.toml (Python), Cargo.toml (Rust), go.mod (Go), pom.xml (Maven), build.gradle/build.gradle.kts (Gradle). Classifies deps against FRAMEWORK_MAP (17 entries) and TOOL_MAP (21 entries) to taxonomy IDs. Unknown deps stored as UnknownSignal. Detects tools by config file presence (Dockerfile, firebase.json, main.tf, .github/workflows). Filters common dev deps (typescript, eslint, vitest, etc) from unknown signals.
+  - `src/pipeline/handlers/scan-repo.ts` — scan-repo job handler. Fetches Repository doc from Firestore, creates temp directory (tmpdir() + random suffix), clones via simple-git `--depth 1` for Layer 1, runs `analyzeLayer1()`, stores unknown signals as taxonomy items (isSearchable: false, idempotent via getDoc check), updates Repository doc (primaryLanguage, detectedFrameworks, detectedTools, detectedDependencies, scanStatus: layer1). Clone directory ALWAYS deleted in finally block (rmSync recursive+force). deleteCloneDir never throws.
+  - `src/pipeline/index.ts` — Updated: imported handleScanRepo, registered 'scan-repo': handleScanRepo in worker.
+  - `tests/unit/us-008-layer1.test.ts` — 50 tests: module structure (5), package file parser coverage (7), taxonomy normalization (5), tool detection via config files (5), scan-repo handler structure (15), pipeline index registration (2), functional tests with temp directories (9) verifying package.json extraction (React+Express), requirements.txt extraction (FastAPI+PostgreSQL+AWS), Docker detection, language detection from extensions, unknown signal detection, dev dep filtering, graceful handling of missing/malformed files, GitHub Actions detection.
+- Files changed:
+  - NEW: src/pipeline/analysis/layer1.ts
+  - NEW: src/pipeline/handlers/scan-repo.ts
+  - UPDATED: src/pipeline/index.ts (scan-repo handler registration)
+  - NEW: tests/unit/us-008-layer1.test.ts
+  - UPDATED: prd.json (US-008 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Duplicate keys in object literals cause TS1117 in strict mode — `'firebase-admin'` was in both npm and Python sections of TOOL_MAP.
+  - Regex match group results (`match[1]`, `match[2]`) can be undefined even after a successful match — always use `?? ''` or guard.
+  - `String.split()` result elements can be undefined when using strict TypeScript — add null guards on split results.
+  - `countFileExtensions` uses maxDepth=3 to avoid slow traversal of vendor dirs while still catching most source files.
+  - `isCommonDevDep` prefix check prevents noise in unknown signals (eslint plugins, type packages, build tools).
+  - Clone directory naming: `css-clone-{safeName}-{randomHex}` ensures uniqueness for concurrent clones.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (309/309 tests, 9 files — 50 new for US-008)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---

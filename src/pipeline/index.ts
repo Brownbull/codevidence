@@ -17,6 +17,7 @@ import { runRescan } from './commands/rescan.js';
 import { runStatus } from './commands/status.js';
 import { startWorker } from './worker.js';
 import { handleDiscover } from './handlers/discover.js';
+import { handleScanRepo } from './handlers/scan-repo.js';
 
 const program = new Command();
 
@@ -77,6 +78,7 @@ program
   .action(() => {
     startWorker({
       discover: handleDiscover,
+      'scan-repo': handleScanRepo,
     });
     console.log('[scan] Worker started. Press Ctrl-C to stop.');
   });

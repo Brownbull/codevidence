@@ -128,7 +128,7 @@
         "Repository.detectedFrameworks, detectedTools, detectedDependencies updated; scanStatus set to layer1; unit test verifies correct framework extraction from sample package.json and requirements.txt fixtures"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Layer 1 uses no additional GitHub API calls — all work is on the shallow clone. The system must support up to 50 concurrent ephemeral clones per NFR9 without exhausting local disk."
     },
     {
