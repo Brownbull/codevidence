@@ -47,8 +47,9 @@ describe('US-012: AppShell Layout', () => {
     expect(src).toContain('/admin');
   });
 
-  it('enforces minimum viewport 1280px', () => {
-    expect(src).toContain('min-w-[1280px]');
+  it('uses responsive layout with mobile support', () => {
+    expect(src).toContain('hidden md:block');
+    expect(src).toContain('mobileFiltersOpen');
   });
 
   it('uses slate-50 body background', () => {

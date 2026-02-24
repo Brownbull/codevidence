@@ -99,6 +99,21 @@ export async function pollOnce(handlers: JobHandlerRegistry): Promise<void> {
   }
 }
 
+/**
+ * Processes the next pending job without scheduling follow-up polls.
+ * Used by the `scan run` interactive command for batch processing.
+ * Returns true if a job was processed, false if no pending jobs exist.
+ */
+export async function processOneJob(handlers: JobHandlerRegistry): Promise<boolean> {
+  const job = await fetchNextPendingJob();
+  if (!job) return false;
+
+  console.log(`[worker] Picked up job ${job.id} (type=${job.type}, attempts=${job.attempts})`);
+  await markJobRunning(job.id);
+  await executeJob(job, handlers);
+  return true;
+}
+
 /** Executes a job via its registered handler, handling success and failure. */
 async function executeJob(
   job: ScanJob & { id: string },

@@ -180,8 +180,8 @@ describe('firestore.indexes.json', () => {
     expect(idx).not.toBeNull();
   });
 
-  it('has taxonomy category + isSearchable + sortOrder index', () => {
-    const idx = findIndex(indexFile.indexes, 'taxonomy', ['category', 'isSearchable', 'sortOrder']);
+  it('has taxonomy isSearchable + category + sortOrder index', () => {
+    const idx = findIndex(indexFile.indexes, 'taxonomy', ['isSearchable', 'category', 'sortOrder']);
     expect(idx).not.toBeNull();
   });
 

@@ -15,11 +15,19 @@ export interface AiConfigFileSignal {
 }
 
 /**
+ * Converts a repo fullName ("owner/repo") to a safe Firestore doc ID.
+ * Firestore doc IDs cannot contain "/" — we replace with "__".
+ */
+export function repoDocId(fullName: string): string {
+  return fullName.replace(/\//g, '__');
+}
+
+/**
  * Repository — Firestore document shape for a scanned GitHub repository.
- * id = "{owner}/{repo}" (the repo fullName).
+ * id = repoDocId(fullName) e.g. "owner__repo".
  */
 export interface Repository {
-  id: string;                          // "{owner}/{repo}"
+  id: string;                          // "owner__repo" (repoDocId)
   githubUrl: string;
   owner: string;
   name: string;

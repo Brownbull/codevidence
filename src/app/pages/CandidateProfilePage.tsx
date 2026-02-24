@@ -70,19 +70,19 @@ export function CandidateProfilePage() {
         </Link>
 
         {/* Header */}
-        <div className="bg-white rounded-lg border border-slate-200 p-5 mb-4">
-          <div className="flex items-start gap-4">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 md:p-5 mb-4">
+          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
             {candidate.avatarUrl && (
               <img
                 src={candidate.avatarUrl}
                 alt=""
-                className="h-16 w-16 rounded-full flex-shrink-0"
+                className="h-12 w-12 sm:h-16 sm:w-16 rounded-full flex-shrink-0"
                 referrerPolicy="no-referrer"
               />
             )}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-lg font-semibold text-slate-900">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-base sm:text-lg font-semibold text-slate-900">
                   {candidate.githubUsername}
                 </h1>
                 <a
@@ -95,13 +95,13 @@ export function CandidateProfilePage() {
                 </a>
               </div>
 
-              <div className="flex items-center gap-4 mt-2 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-4 mt-2 flex-wrap">
                 <SkillScoreBadge score={candidate.skillScore} />
                 <AIMaturityBadge score={candidate.aiMaturityScore} />
                 <StalenessTag isStale={candidate.isStale} />
               </div>
 
-              <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
+              <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-slate-400 flex-wrap">
                 <span>Last scanned: {lastScannedDate}</span>
                 <span>{candidate.commitSpanMonths}mo commit span</span>
                 <span>{candidate.repoCount} repo{candidate.repoCount !== 1 ? 's' : ''}</span>

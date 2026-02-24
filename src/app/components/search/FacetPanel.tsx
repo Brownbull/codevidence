@@ -38,7 +38,7 @@ export function FacetPanel() {
 
   if (isLoading) {
     return (
-      <aside className="w-64 border-r border-slate-200 bg-white p-4 overflow-y-auto">
+      <aside className="w-full md:w-64 md:border-r border-slate-200 bg-white p-4 overflow-y-auto">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-6 bg-slate-100 rounded animate-pulse" />
@@ -51,7 +51,7 @@ export function FacetPanel() {
   const grouped = groupByCategory(taxonomy ?? []);
 
   return (
-    <aside className="w-64 border-r border-slate-200 bg-white p-4 overflow-y-auto">
+    <aside className="w-full md:w-64 md:border-r border-slate-200 bg-white p-4 overflow-y-auto">
       {SECTION_CONFIG.map(({ category, label, urlKey }) => {
         const items = grouped[category] ?? [];
         const selectedField = SELECTED_FIELDS[category];

@@ -45,7 +45,7 @@ export function SearchPage() {
 
   return (
     <AppShell sidebar={<FacetPanel />}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-2 mb-4">
         <ActiveFilterChips
           params={params}
           onRemoveTag={toggleTaxonomyId}

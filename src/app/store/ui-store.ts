@@ -12,6 +12,9 @@ interface UiState {
   /** Which facet panel sections are open. */
   openSections: Record<string, boolean>;
   toggleSection: (category: TaxonomyCategory) => void;
+  /** Whether mobile facet drawer is open. */
+  mobileFiltersOpen: boolean;
+  setMobileFiltersOpen: (open: boolean) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -29,4 +32,6 @@ export const useUiStore = create<UiState>((set) => ({
         [category]: !state.openSections[category],
       },
     })),
+  mobileFiltersOpen: false,
+  setMobileFiltersOpen: (open) => set({ mobileFiltersOpen: open }),
 }));

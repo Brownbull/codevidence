@@ -192,7 +192,7 @@ describe('US-007: Discover Handler', () => {
   });
 
   it('deduplicates against existing repositories collection', () => {
-    expect(src).toContain("getDoc<Repository>(REPOSITORIES_COLLECTION, repo.fullName)");
+    expect(src).toContain("getDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repo.fullName))");
     expect(src).toContain('exists: existing !== null');
   });
 
@@ -312,7 +312,7 @@ describe('US-007: Deduplication Logic', () => {
   const src = readSource('src/pipeline/handlers/discover.ts');
 
   it('checks each repo by fullName against repositories collection', () => {
-    expect(src).toContain("getDoc<Repository>(REPOSITORIES_COLLECTION, repo.fullName)");
+    expect(src).toContain("getDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repo.fullName))");
   });
 
   it('filters out repos that already exist', () => {

@@ -11,7 +11,7 @@
  */
 
 import type { ScanJob, DiscoverPayload, ScanRepoPayload } from '../../types/scan-job.js';
-import type { Repository } from '../../types/repository.js';
+import { repoDocId, type Repository } from '../../types/repository.js';
 import type { DiscoveredRepo } from '../../adapters/source-adapter.js';
 import { createGitHubAdapter, GitHubRateLimitError } from '../../adapters/github.js';
 import { markJobRateLimited } from '../queue.js';
@@ -69,7 +69,7 @@ export async function handleDiscover(job: ScanJob & { id: string }): Promise<voi
   // Check all repos for existence in parallel
   const dedupeResults = await Promise.all(
     result.repos.map(async (repo) => {
-      const existing = await getDoc<Repository>(REPOSITORIES_COLLECTION, repo.fullName);
+      const existing = await getDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repo.fullName));
       return { repo, exists: existing !== null };
     })
   );
@@ -131,7 +131,7 @@ export async function handleDiscover(job: ScanJob & { id: string }): Promise<voi
 
       await setDoc<Omit<Repository, 'id'>>(
         REPOSITORIES_COLLECTION,
-        repo.fullName,
+        repoDocId(repo.fullName),
         repoDoc
       );
 

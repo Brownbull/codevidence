@@ -52,6 +52,12 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Screenshots & scan artifacts
+screenshots/
+
 # Misc
 *.bak
 *.tmp
+
+# Keys
+.keys/

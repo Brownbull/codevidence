@@ -36,14 +36,15 @@ export function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top nav */}
-      <nav className="h-12 bg-slate-900 flex items-center justify-between px-4 sticky top-0 z-50">
-        <div className="flex items-center gap-4">
+      <nav className="h-12 bg-slate-900 flex items-center justify-between px-3 md:px-4 sticky top-0 z-50">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link to="/search" className="text-white font-semibold text-sm font-sans tracking-tight">
-            Candidate Skill Scanner
+            <span className="hidden sm:inline">Candidate Skill Scanner</span>
+            <span className="sm:hidden">CSS</span>
           </Link>
           <span className="text-slate-500 text-xs">Admin</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {user?.photoURL && (
             <img
               src={user.photoURL}
@@ -52,7 +53,7 @@ export function AdminPage() {
               referrerPolicy="no-referrer"
             />
           )}
-          <span className="text-slate-300 text-xs">
+          <span className="text-slate-300 text-xs hidden sm:inline">
             {user?.displayName ?? user?.email}
           </span>
           <button
@@ -66,14 +67,14 @@ export function AdminPage() {
       </nav>
 
       {/* Tab bar */}
-      <div className="border-b border-slate-200 bg-white sticky top-12 z-40">
-        <div className="flex gap-0 px-4">
+      <div className="border-b border-slate-200 bg-white sticky top-12 z-40 overflow-x-auto">
+        <div className="flex gap-0 px-2 md:px-4">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => handleTabChange(tab.id)}
-              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+              className={`px-3 md:px-4 py-3 text-xs md:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-slate-900 text-slate-900'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -86,7 +87,7 @@ export function AdminPage() {
       </div>
 
       {/* Tab content */}
-      <main className="p-6 max-w-6xl mx-auto">
+      <main className="p-4 md:p-6 max-w-6xl mx-auto">
         {activeTab === 'pipeline' && <PipelineTab />}
         {activeTab === 'queue' && <QueueTab />}
         {activeTab === 'flags' && <FlagsTab />}

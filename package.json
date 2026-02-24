@@ -25,7 +25,7 @@
     "test:e2e:report": "playwright show-report",
     "test:kill-ports": "lsof -ti:4000,4010,4020 | xargs kill -9 2>/dev/null || true",
     "lint": "tsc --noEmit",
-    "scan": "tsx src/pipeline/index.ts",
+    "scan": "node --env-file=.env.local --import tsx src/pipeline/index.ts",
     "admin:ops": "tsx scripts/admin-ops.ts",
     "db:query": "tsx scripts/db-query.ts",
     "db:query:list": "tsx scripts/db-query.ts --list",

@@ -11,6 +11,7 @@ interface AdminQueueRowProps {
   job: ScanJob & { id: string };
   onRetry: () => void;
   onDismiss: () => void;
+  onCancel: () => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -20,7 +21,46 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'bg-red-100 text-red-700',
 };
 
-export function AdminQueueRow({ job, onRetry, onDismiss }: AdminQueueRowProps) {
+function getJobTarget(job: ScanJob & { id: string }): { label: string; href: string | null } {
+  const payload = job.payload;
+  if ('repoFullName' in payload) {
+    return {
+      label: payload.repoFullName,
+      href: `https://github.com/${payload.repoFullName}`,
+    };
+  }
+  if ('query' in payload) {
+    return { label: payload.query, href: null };
+  }
+  if ('targetId' in payload) {
+    return { label: payload.targetId, href: null };
+  }
+  return { label: '\u2014', href: null };
+}
+
+/** Returns a human-readable time-ago string from a Firestore Timestamp. */
+function timeAgo(ts: { toDate?: () => Date } | null | undefined): string {
+  if (!ts?.toDate) return '';
+  const diffMs = Date.now() - ts.toDate().getTime();
+  if (diffMs < 0) return 'just now';
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+/** Returns a status-aware duration label. */
+function getStatusDuration(job: ScanJob): string {
+  if (job.status === 'pending') return `waiting ${timeAgo(job.createdAt)}`;
+  if (job.status === 'running') return `started ${timeAgo(job.lastAttemptAt ?? job.updatedAt)}`;
+  return '';
+}
+
+export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueRowProps) {
   const [showError, setShowError] = useState(false);
   const createdDate = job.createdAt?.toDate?.()
     ? job.createdAt.toDate().toLocaleString()
@@ -32,14 +72,33 @@ export function AdminQueueRow({ job, onRetry, onDismiss }: AdminQueueRowProps) {
       : job.errorMessage
     : '\u2014';
 
+  const target = getJobTarget(job);
+
   return (
     <>
-      <div className="grid grid-cols-6 gap-2 px-4 py-2 border-b border-slate-100 text-xs items-center">
+      <div className="grid grid-cols-7 gap-2 px-4 py-2 border-b border-slate-100 text-xs items-center min-w-[700px]">
         <span className="font-mono text-slate-700">{job.type}</span>
-        <span>
+        <span className="truncate" title={target.label}>
+          {target.href ? (
+            <a
+              href={target.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 hover:text-indigo-800 hover:underline"
+            >
+              {target.label}
+            </a>
+          ) : (
+            <span className="text-slate-500">{target.label}</span>
+          )}
+        </span>
+        <span className="flex items-center gap-1.5">
           <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[job.status] ?? 'bg-slate-100 text-slate-500'}`}>
             {job.status}
           </span>
+          {(job.status === 'pending' || job.status === 'running') && (
+            <span className="text-[10px] text-slate-400 italic">{getStatusDuration(job)}</span>
+          )}
         </span>
         <span className="text-slate-500">{createdDate}</span>
         <span className="text-slate-500">{job.attempts}/{job.maxAttempts}</span>
@@ -51,6 +110,15 @@ export function AdminQueueRow({ job, onRetry, onDismiss }: AdminQueueRowProps) {
           {errorTruncated}
         </span>
         <span className="flex gap-1">
+          {(job.status === 'pending' || job.status === 'running') && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-2 py-0.5 bg-red-50 text-red-600 rounded hover:bg-red-100 text-[10px] transition-colors"
+            >
+              Cancel
+            </button>
+          )}
           {job.status === 'failed' && (
             <>
               <button

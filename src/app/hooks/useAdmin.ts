@@ -87,6 +87,24 @@ export function useDismissJob() {
   });
 }
 
+/** Cancels a pending or running job. */
+export function useCancelJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (jobId: string) => {
+      await updateDoc<ScanJob>(SCAN_JOBS_COLLECTION, jobId, {
+        status: 'failed',
+        errorMessage: 'Cancelled by admin',
+        failedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin-jobs'] });
+    },
+  });
+}
+
 /** Queues a discover job from the pipeline form. */
 export function useQueueDiscover() {
   const queryClient = useQueryClient();

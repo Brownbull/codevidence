@@ -75,8 +75,8 @@ export function CandidatesTab() {
 
       {/* Candidates table */}
       {candidates && candidates.length > 0 && (
-        <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <div className="grid grid-cols-6 gap-2 px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 border-b border-slate-200">
+        <div className="border border-slate-200 rounded-lg overflow-x-auto">
+          <div className="grid grid-cols-6 gap-2 px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 border-b border-slate-200 min-w-[600px]">
             <span>Username</span>
             <span>Skill Score</span>
             <span>AI Maturity</span>
@@ -129,7 +129,7 @@ function CandidateRow({ candidate }: { candidate: Candidate & { id: string } }) 
   return (
     <>
       <div
-        className={`grid grid-cols-6 gap-2 px-4 py-2 border-b border-slate-100 text-xs items-center cursor-pointer hover:bg-slate-50 ${
+        className={`grid grid-cols-6 gap-2 px-4 py-2 border-b border-slate-100 text-xs items-center cursor-pointer hover:bg-slate-50 min-w-[600px] ${
           candidate.isStale ? 'bg-amber-50' : ''
         }`}
         onClick={() => setExpanded(!expanded)}

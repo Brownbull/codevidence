@@ -65,6 +65,7 @@ If there are still stories with `passes: false`, end your response normally
 | `pnpm test:coverage` | Unit tests with coverage report |
 | `pnpm test:e2e` | Run E2E tests (Playwright, Chromium only) |
 | `pnpm test:e2e:chromium` | E2E on Chromium only (fast) |
+| `pnpm test:quick` | Fast test run after every task |
 | **Database** | |
 | `pnpm db:query <name>` | Run a dev/test database query |
 | `pnpm db:query:list` | List all registered database queries |
@@ -147,6 +148,20 @@ This project has TWO distinct runtime contexts:
 - No function > 50 lines (extract helper functions)
 - All tests must pass before committing
 - TypeScript must compile with no errors (`tsc --noEmit`)
+
+### 6a. Testing Coverage
+
+- Lines: 45%, Branches: 30%, Functions: 25%, Statements: 40%
+- Unit tests: max 300 lines
+- Integration tests: max 500 lines
+- E2E tests: max 400 lines
+
+### 6b. Security Rules
+
+- All user-facing strings through `sanitizeInput()` with maxLength
+- Auth check and mutation in the SAME transaction (Firestore: inside `runTransaction`)
+- Max 500 operations per Firestore batch: `for (let i = 0; i < items.length; i += 500)`
+- Defense layers: Pre-commit (gitleaks) → CI → Firestore rules → Runtime auth checks
 
 ### 7. Parallelize Independent Awaits
 
@@ -248,3 +263,23 @@ candidate-skill-scanner/
 - Commit after each completed story
 - Keep CI green
 - Read the Codebase Patterns section in progress.txt before starting each story
+
+---
+
+## Workflow
+
+- **Story lifecycle**: `create → ready → dev → review → close → done`
+- **Story sizing limits**: max 8 tasks, 40 subtasks, 12 files per story (split if exceeded)
+- **Agent model**: Sonnet default, Opus for complex planning, Haiku deprecated
+- **Session budget**: 90 minutes or 2 compactions max (stop at compaction 5)
+
+---
+
+## Testing Details
+
+- **E2E selector priority**: data-testid > getByRole > scoped text > bare text
+- **No `networkidle`** — Firebase WebSocket keeps connection alive
+- **No `waitForTimeout` > 3000ms** — use `waitFor` instead
+- Always clean up test data in afterAll/afterEach
+- Prefer `toHaveBeenCalledWith` over bare `toHaveBeenCalled`
+- Reset mocks in `beforeEach` with `vi.resetAllMocks`

@@ -15,9 +15,11 @@ import { Command } from 'commander';
 import { runDiscover } from './commands/discover.js';
 import { runRescan } from './commands/rescan.js';
 import { runStatus } from './commands/status.js';
+import { runInteractive } from './commands/run.js';
 import { startWorker } from './worker.js';
 import { handleDiscover } from './handlers/discover.js';
 import { handleScanRepo } from './handlers/scan-repo.js';
+import { authenticateWorker } from './auth.js';
 
 const program = new Command();
 
@@ -35,6 +37,7 @@ program
   .option('-l, --limit <number>', 'Max repositories to discover', (v) => parseInt(v, 10), 100)
   .option('-s, --source <source>', 'Source to search (github)', 'github')
   .action(async (opts: { query: string; limit: number; source: string }) => {
+    await authenticateWorker();
     await runDiscover(opts);
     process.exit(0);
   });
@@ -50,6 +53,7 @@ program
   )
   .requiredOption('-i, --target-id <id>', 'Firestore document ID of the target')
   .action(async (opts: { targetType: string; targetId: string }) => {
+    await authenticateWorker();
     const targetType = opts.targetType as 'candidate' | 'repo';
     await runRescan({ targetType, targetId: opts.targetId });
     process.exit(0);
@@ -75,12 +79,24 @@ program
 program
   .command('worker')
   .description('Start the polling worker loop (Ctrl-C to stop)')
-  .action(() => {
+  .action(async () => {
+    await authenticateWorker();
     startWorker({
       discover: handleDiscover,
       'scan-repo': handleScanRepo,
     });
     console.log('[scan] Worker started. Press Ctrl-C to stop.');
+  });
+
+// ─── scan run ─────────────────────────────────────────────────────────────────
+
+program
+  .command('run')
+  .description('Interactive: show status, choose how many pending jobs to process')
+  .action(async () => {
+    await authenticateWorker();
+    await runInteractive();
+    process.exit(0);
   });
 
 // ─── Parse ────────────────────────────────────────────────────────────────────

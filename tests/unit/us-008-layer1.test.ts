@@ -249,7 +249,7 @@ describe('US-008: Scan Repo Handler', () => {
   });
 
   it('fetches Repository doc before analysis', () => {
-    expect(src).toContain("getDoc<Repository>(REPOSITORIES_COLLECTION, repoFullName)");
+    expect(src).toContain("getDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repoFullName))");
   });
 
   it('throws if Repository not found', () => {

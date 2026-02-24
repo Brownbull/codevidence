@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import type { ScanJobStatus } from '@/types/scan-job';
-import { useJobs, useRetryJob, useDismissJob } from '@/app/hooks/useAdmin';
+import { useJobs, useRetryJob, useDismissJob, useCancelJob } from '@/app/hooks/useAdmin';
 import { AdminQueueRow } from './AdminQueueRow';
 
 const STATUS_TABS: { label: string; value: ScanJobStatus | 'all' }[] = [
@@ -23,13 +23,14 @@ export function QueueTab() {
   const { data: jobs, isLoading } = useJobs(statusFilter);
   const retryJob = useRetryJob();
   const dismissJob = useDismissJob();
+  const cancelJob = useCancelJob();
 
   return (
     <div>
       <h2 className="text-sm font-semibold text-slate-900 mb-4">Job Queue</h2>
 
       {/* Status filter tabs */}
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-1 mb-4 flex-wrap">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
@@ -62,10 +63,11 @@ export function QueueTab() {
       )}
 
       {jobs && jobs.length > 0 && (
-        <div className="border border-slate-200 rounded-lg overflow-hidden">
+        <div className="border border-slate-200 rounded-lg overflow-x-auto">
           {/* Table header */}
-          <div className="grid grid-cols-6 gap-2 px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 border-b border-slate-200">
+          <div className="grid grid-cols-7 gap-2 px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 border-b border-slate-200 min-w-[700px]">
             <span>Type</span>
+            <span>Target</span>
             <span>Status</span>
             <span>Created At</span>
             <span>Attempts</span>
@@ -80,6 +82,7 @@ export function QueueTab() {
               job={job}
               onRetry={() => retryJob.mutate(job.id)}
               onDismiss={() => dismissJob.mutate(job.id)}
+              onCancel={() => cancelJob.mutate(job.id)}
             />
           ))}
         </div>

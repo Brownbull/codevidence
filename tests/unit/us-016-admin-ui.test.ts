@@ -106,7 +106,7 @@ describe('US-016: PipelineTab', () => {
   });
 
   it('disables form during submission', () => {
-    expect(src).toContain('disabled={isSubmitting}');
+    expect(src).toContain('formState.isSubmitting');
   });
 
   it('queues discover job via useQueueDiscover', () => {

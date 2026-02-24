@@ -14,7 +14,7 @@ import { randomBytes } from 'crypto';
 import simpleGit from 'simple-git';
 
 import type { ScanJob, ScanRepoPayload } from '../../types/scan-job.js';
-import type { Repository } from '../../types/repository.js';
+import { repoDocId, type Repository } from '../../types/repository.js';
 import type { TaxonomyItem } from '../../types/taxonomy.js';
 import { analyzeLayer1 } from '../analysis/layer1.js';
 import { analyzeLayer2 } from '../analysis/layer2.js';
@@ -52,7 +52,7 @@ export async function handleScanRepo(job: ScanJob & { id: string }): Promise<voi
   );
 
   // Fetch the Repository doc to get metadata
-  const repoDoc = await getDoc<Repository>(REPOSITORIES_COLLECTION, repoFullName);
+  const repoDoc = await getDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repoFullName));
   if (!repoDoc) {
     throw new Error(`Repository not found in Firestore: ${repoFullName}`);
   }
@@ -100,7 +100,7 @@ async function runLayer1(
     }
 
     // Update Repository doc with Layer 1 results
-    await updateDoc<Repository>(REPOSITORIES_COLLECTION, repo.fullName, {
+    await updateDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repo.fullName), {
       primaryLanguage: result.primaryLanguage,
       detectedFrameworks: result.detectedFrameworks,
       detectedTools: result.detectedTools,
@@ -189,7 +189,7 @@ async function runLayer2(
       updateData.lastCommitAt = result.lastCommitAt;
     }
 
-    await updateDoc<Repository>(REPOSITORIES_COLLECTION, repo.fullName, updateData);
+    await updateDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repo.fullName), updateData);
 
     console.log(`[scan-repo] Repository ${repo.fullName} updated to scanStatus: layer2.`);
 
@@ -237,7 +237,9 @@ async function storeUnknownSignals(
 
   await Promise.all(
     signals.map(async (signal) => {
-      const taxonomyId = `${signal.category}:${signal.name}`;
+      // Replace "/" in names like "@tanstack/react-query" — Firestore doc IDs cannot contain "/"
+      const safeName = signal.name.replace(/\//g, '__');
+      const taxonomyId = `${signal.category}:${safeName}`;
 
       // Check if already exists to avoid overwriting curated items
       const existing = await getDoc<TaxonomyItem>(TAXONOMY_COLLECTION, taxonomyId);
