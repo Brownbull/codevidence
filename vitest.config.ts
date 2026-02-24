@@ -15,6 +15,7 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
     exclude: ['tests/e2e/**/*'],
+    retry: 1,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

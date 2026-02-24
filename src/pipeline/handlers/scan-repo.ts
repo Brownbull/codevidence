@@ -17,6 +17,7 @@ import type { ScanJob, ScanRepoPayload } from '../../types/scan-job.js';
 import type { Repository } from '../../types/repository.js';
 import type { TaxonomyItem } from '../../types/taxonomy.js';
 import { analyzeLayer1 } from '../analysis/layer1.js';
+import { analyzeLayer2 } from '../analysis/layer2.js';
 import {
   getDoc,
   updateDoc,
@@ -56,8 +57,9 @@ export async function handleScanRepo(job: ScanJob & { id: string }): Promise<voi
 
   if (targetDepth === 'layer1') {
     await runLayer1(job.id, repoDoc);
+  } else if (targetDepth === 'layer2') {
+    await runLayer2(job.id, repoDoc);
   } else {
-    // Layer 2 will be implemented in US-009
     throw new Error(`Unsupported targetDepth: ${targetDepth}`);
   }
 }
@@ -107,6 +109,63 @@ async function runLayer1(
     });
 
     console.log(`[scan-repo] Repository ${repo.fullName} updated to scanStatus: layer1.`);
+  } finally {
+    // ALWAYS delete clone directory — success or failure
+    deleteCloneDir(cloneDir);
+  }
+}
+
+/**
+ * Runs Layer 2 analysis: full clone → analysis → update Firestore → delete clone.
+ */
+async function runLayer2(
+  jobId: string,
+  repo: Repository & { id: string }
+): Promise<void> {
+  const cloneDir = createTempCloneDir(repo.fullName);
+
+  try {
+    // Full clone (no --depth flag for Layer 2 — needs full commit history)
+    console.log(`[scan-repo] Cloning ${repo.fullName} (full) to ${cloneDir}...`);
+    const git = simpleGit();
+    await git.clone(repo.githubUrl, cloneDir);
+    console.log(`[scan-repo] Full clone complete.`);
+
+    // Run Layer 2 analysis
+    const result = await analyzeLayer2(cloneDir, repo.owner);
+
+    console.log(
+      `[scan-repo] Layer 2 analysis: ` +
+      `commits=${result.commitCount} ` +
+      `span=${result.commitSpanMonths}mo ` +
+      `owner=${result.isOwnerRepo} ` +
+      `tests=${result.testFileCount} ` +
+      `coverage=${result.estimatedTestCoverage}`
+    );
+
+    // Update Repository doc with Layer 2 results
+    const updateData: Record<string, unknown> = {
+      commitCount: result.commitCount,
+      commitSpanMonths: result.commitSpanMonths,
+      isOwnerRepo: result.isOwnerRepo,
+      hasTestDirectory: result.hasTestDirectory,
+      estimatedTestCoverage: result.estimatedTestCoverage,
+      scanStatus: 'layer2',
+      lastScanned: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    // Only set dates if they exist (avoid writing null over existing values)
+    if (result.firstCommitAt) {
+      updateData.firstCommitAt = result.firstCommitAt;
+    }
+    if (result.lastCommitAt) {
+      updateData.lastCommitAt = result.lastCommitAt;
+    }
+
+    await updateDoc<Repository>(REPOSITORIES_COLLECTION, repo.fullName, updateData);
+
+    console.log(`[scan-repo] Repository ${repo.fullName} updated to scanStatus: layer2.`);
   } finally {
     // ALWAYS delete clone directory — success or failure
     deleteCloneDir(cloneDir);

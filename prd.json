@@ -144,7 +144,7 @@
         "Clone deleted after analysis; unit test verifies ownership detection logic with mock git log fixture"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Layer 2 requires a full clone — not shallow. Use git log --format='%H %ae %ad' -n 200 for commit history. The full clone is more expensive on disk — delete it promptly after analysis."
     },
     {

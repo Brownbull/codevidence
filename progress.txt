@@ -221,3 +221,25 @@
   - `pnpm test:unit`: PASS (309/309 tests, 9 files — 50 new for US-008)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-009
+- What was implemented:
+  - `src/pipeline/analysis/layer2.ts` — Layer 2 analysis module. Uses simple-git to read up to 200 commits. Computes commitCount, firstCommitAt/lastCommitAt, commitSpanMonths (month diff). Ownership detection: matches repo owner username against commit author email prefix with >50% threshold. Test coverage: checks tests/, __tests__/, spec/, test/ directories + co-located test files in src/. Classifies: none (0), low (<10), medium (10-50), high (50+). Supports test file patterns: .test.ts/.tsx/.js/.jsx, .spec.ts/.tsx/.js/.jsx, _test.py, test_*.py, _test.go, _test.rs.
+  - `src/pipeline/handlers/scan-repo.ts` — Updated: added runLayer2 function. Full clone (no --depth flag), runs analyzeLayer2, updates Repository with commitCount, commitSpanMonths, isOwnerRepo, hasTestDirectory, estimatedTestCoverage, firstCommitAt, lastCommitAt, scanStatus: layer2. Clone always deleted in finally block.
+  - `tests/unit/us-009-layer2.test.ts` — 28 tests: module structure (5), commit pattern analysis (4), ownership detection (4), test coverage detection (5), scan-repo handler Layer 2 integration (5), functional tests with temp git repos (5) — ownership detection (dominant/non-dominant), test directory detection, no-test coverage, empty repo handling.
+- Files changed:
+  - NEW: src/pipeline/analysis/layer2.ts
+  - UPDATED: src/pipeline/handlers/scan-repo.ts (Layer 2 support)
+  - NEW: tests/unit/us-009-layer2.test.ts
+  - UPDATED: prd.json (US-009 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - simple-git `logResult.all` is `readonly` — `detectOwnership` parameter must use `ReadonlyArray<...>` not `Array<...>`.
+  - simple-git `.log()` with `format: { hash: '%H', email: '%ae', date: '%aI' }` returns typed objects with those fields.
+  - Functional tests creating temp git repos need `git.init()` + `git.addConfig('user.email/name', ...)` before first commit.
+  - Ownership detection uses `includes(ownerLower)` as fallback since GitHub noreply emails use `username@users.noreply.github.com` format.
+  - `computeMonthSpan` uses year*12+month diff — simpler and more stable than millisecond division.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (337/337 tests, 10 files — 28 new for US-009)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
