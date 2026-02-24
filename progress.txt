@@ -348,3 +348,28 @@
   - `pnpm test:unit`: PASS (535/535 tests, 14 files — 51 new for US-013)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-014
+- What was implemented:
+  - `src/handlers/search.ts` — Updated: added dual-query logic for aiMaturityMin > 0. Runs two parallel Firestore queries via Promise.all: (1) scored >= N (candidates at or above minimum) + (2) unscored == null (always included). Results merged and deduplicated by ID client-side. Preserves the null/0 invariant — unscored candidates never excluded by maturity filter.
+  - `src/handlers/admin-flags.ts` — New: admin flag operations. `maybeFlagUnderservedQuery()` writes an admin_flags doc of type underserved-query when results < 10, with 24-hour deduplication cooldown. Queries recent flags, serializes params deterministically (sorted arrays), compares against existing flags within cooldown window. `buildSuggestedCommand()` builds a CLI discover command from search params (strips category prefix from taxonomy IDs).
+  - `src/app/components/search/ResultsState.tsx` — New: ThinResultsState (results < 10, > 0, amber warning with pool coverage message + CLI command + flagged confirmation) and ZeroResultsState (results === 0, centered empty state with CLI command + flagged confirmation).
+  - `src/app/pages/SearchPage.tsx` — Updated: imports and renders ThinResultsState/ZeroResultsState. Added useEffect to call maybeFlagUnderservedQuery when results < 10, with flaggedRef for session-level dedup.
+  - `tests/unit/us-014-ai-filter.test.ts` — 46 tests: dual-query structure (7), admin-flags handler (9), buildSuggestedCommand functional (3), deduplication cooldown logic (5), ThinResultsState component (6), ZeroResultsState component (5), SearchPage integration (7), ResultsState types (4).
+- Files changed:
+  - UPDATED: src/handlers/search.ts (dual-query for aiMaturityMin)
+  - NEW: src/handlers/admin-flags.ts
+  - NEW: src/app/components/search/ResultsState.tsx
+  - UPDATED: src/app/pages/SearchPage.tsx (thin/zero results states + flagging)
+  - NEW: tests/unit/us-014-ai-filter.test.ts
+  - UPDATED: prd.json (US-014 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Dual-query pattern: when filtering by a numeric field that has null values you want to include, run two parallel queries (>= N and == null) and merge client-side. Firestore inequality filters exclude null docs.
+  - Dedup with serializeParams: sort all arrays before JSON.stringify for deterministic comparison. Include all filter dimensions (languages, frameworks, tools, aiAgentPatterns, aiMaturityMin).
+  - Session-level dedup uses useRef to track the last flagged params key, preventing re-flagging on every re-render.
+  - buildSuggestedCommand strips category prefixes (e.g., "language:python" → "python") for cleaner CLI commands.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (581/581 tests, 15 files — 46 new for US-014)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---

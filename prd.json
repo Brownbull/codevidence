@@ -224,7 +224,7 @@
         "ThinResultsState and ZeroResultsState implemented in src/app/components/search/; Vitest test verifies deduplication cooldown logic"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Using a sentinel value (aiMaturityScore: -1) is explicitly prohibited — the two-query parallel merge preserves the null/0 invariant. The thin-results state must feel actively managed, not like a dead end."
     },
     {

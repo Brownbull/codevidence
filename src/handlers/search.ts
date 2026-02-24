@@ -18,6 +18,10 @@ const MAX_RESULTS = 200;
 
 /**
  * Searches candidates using rarest-tag-first Firestore query optimization.
+ *
+ * When aiMaturityMin > 0: runs two parallel queries merged client-side:
+ *   1. scored >= N (candidates at or above minimum)
+ *   2. unscored == null (always included — never excluded by the filter)
  */
 export async function searchCandidates(
   params: SearchQueryParams,
@@ -32,23 +36,50 @@ export async function searchCandidates(
 
   if (allTags.length === 0) return [];
 
-  // Find the rarest tag (lowest candidateCount)
   const rarestTag = findRarestTag(allTags, taxonomyItems);
   if (!rarestTag) return [];
 
-  // Firestore query: array-contains for the rarest tag, capped at 200
-  const results = await queryDocs<Candidate>(
-    CANDIDATES_COLLECTION,
-    where('skillTags', 'array-contains', rarestTag),
-    limit(MAX_RESULTS),
-  );
+  let results: (Candidate & { id: string })[];
+
+  if (params.aiMaturityMin !== null && params.aiMaturityMin > 0) {
+    // Dual query: scored >= N + unscored (null), merged client-side
+    const [scored, unscored] = await Promise.all([
+      queryDocs<Candidate>(
+        CANDIDATES_COLLECTION,
+        where('skillTags', 'array-contains', rarestTag),
+        where('aiMaturityScore', '>=', params.aiMaturityMin),
+        limit(MAX_RESULTS),
+      ),
+      queryDocs<Candidate>(
+        CANDIDATES_COLLECTION,
+        where('skillTags', 'array-contains', rarestTag),
+        where('aiMaturityScore', '==', null),
+        limit(MAX_RESULTS),
+      ),
+    ]);
+
+    // Merge and deduplicate by ID
+    const seen = new Set<string>();
+    results = [];
+    for (const candidate of [...scored, ...unscored]) {
+      if (!seen.has(candidate.id)) {
+        seen.add(candidate.id);
+        results.push(candidate);
+      }
+    }
+  } else {
+    results = await queryDocs<Candidate>(
+      CANDIDATES_COLLECTION,
+      where('skillTags', 'array-contains', rarestTag),
+      limit(MAX_RESULTS),
+    );
+  }
 
   // Client-side AND filter: all remaining tags must also be present
   const filtered = results.filter((candidate) =>
     allTags.every((tag) => candidate.skillTags.includes(tag))
   );
 
-  // Client-side sort
   return sortCandidates(filtered, params.sortBy);
 }
 

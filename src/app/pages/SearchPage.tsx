@@ -4,21 +4,24 @@
  * Three-zone layout: top nav + left facet panel + main content.
  * Filter state lives in URL via useSearchQuery hook.
  */
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AppShell } from '@/app/components/layout/AppShell';
 import { FacetPanel } from '@/app/components/search/FacetPanel';
 import { ActiveFilterChips } from '@/app/components/search/ActiveFilterChips';
 import { SortControls } from '@/app/components/search/SortControls';
 import { CandidateCard } from '@/app/components/search/CandidateCard';
+import { ThinResultsState, ZeroResultsState } from '@/app/components/search/ResultsState';
 import { useSearchQuery } from '@/app/hooks/useSearchQuery';
 import { useTaxonomy } from '@/app/hooks/useTaxonomy';
 import { useCandidates } from '@/app/hooks/useCandidates';
+import { maybeFlagUnderservedQuery } from '@/handlers/admin-flags';
 
 export function SearchPage() {
   const { params, setSort, setAiMaturityMin, clearAll, toggleTaxonomyId, hasAnyFilter } =
     useSearchQuery();
   const { data: taxonomy } = useTaxonomy();
   const { data: candidates, isLoading } = useCandidates(params, taxonomy, hasAnyFilter);
+  const flaggedRef = useRef<string>('');
 
   const allTags = [
     ...params.languages,
@@ -27,9 +30,21 @@ export function SearchPage() {
     ...params.aiAgentPatterns,
   ];
 
+  // Flag underserved queries (< 10 results) with 24h dedup
+  useEffect(() => {
+    if (!candidates || isLoading || !hasAnyFilter) return;
+    if (candidates.length >= 10) return;
+    const paramsKey = JSON.stringify(params);
+    if (flaggedRef.current === paramsKey) return;
+    flaggedRef.current = paramsKey;
+    void maybeFlagUnderservedQuery(params, candidates.length);
+  }, [candidates, isLoading, hasAnyFilter, params]);
+
+  const isThin = candidates && candidates.length > 0 && candidates.length < 10 && !isLoading;
+  const isEmpty = candidates && candidates.length === 0 && hasAnyFilter && !isLoading;
+
   return (
     <AppShell sidebar={<FacetPanel />}>
-      {/* Active filters + sort controls */}
       <div className="flex items-start justify-between mb-4">
         <ActiveFilterChips
           params={params}
@@ -40,7 +55,6 @@ export function SearchPage() {
         <SortControls currentSort={params.sortBy} onSort={setSort} />
       </div>
 
-      {/* Results */}
       {!hasAnyFilter && (
         <p className="text-slate-500 font-mono text-sm text-center mt-12">
           Select filters in the panel to search candidates.
@@ -70,11 +84,8 @@ export function SearchPage() {
         </div>
       )}
 
-      {candidates && candidates.length === 0 && hasAnyFilter && !isLoading && (
-        <p className="text-slate-500 font-mono text-sm text-center mt-12">
-          No candidates match the selected filters.
-        </p>
-      )}
+      {isThin && <ThinResultsState resultCount={candidates.length} params={params} />}
+      {isEmpty && <ZeroResultsState params={params} />}
     </AppShell>
   );
 }
