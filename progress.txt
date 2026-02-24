@@ -319,3 +319,32 @@
   - `pnpm test:unit`: PASS (484/484 tests, 13 files — 61 new for US-012)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-013
+- What was implemented:
+  - `src/handlers/search.ts` — Search query handler. Rarest-tag-first optimization: finds tag with lowest candidateCount in taxonomy, uses as primary `array-contains` Firestore filter, 200-doc cap, client-side AND filter for remaining tags, client-side sorting (skillScore desc, aiMaturityScore desc with nulls last, lastScanned desc). Exports: searchCandidates, findRarestTag, sortCandidates.
+  - `src/app/hooks/useCandidates.ts` — TanStack Query hook for search results. QueryKey includes serialized params for auto-refetch. 5-minute staleTime. Enabled only when hasAnyFilter + taxonomy loaded.
+  - `src/app/components/search/ScoreBadges.tsx` — Three exported components: SkillScoreBadge (indigo circle with score), AIMaturityBadge (violet pip bar with level labels; null=dashed bar + "Not evaluated"; 0=empty pips + "No AI signals"; 1-5=filled pips), StalenessTag (amber badge when isStale).
+  - `src/app/components/search/CandidateCard.tsx` — Search result card. Avatar, username (links to /candidates/:id), SkillScoreBadge, AIMaturityBadge, top 3 matched skill tags as chips, last_scanned date, StalenessTag.
+  - `src/app/components/search/ActiveFilterChips.tsx` — Chips for each active filter with x remove button. Clear all button. Covers all categories + aiMaturityMin.
+  - `src/app/components/search/SortControls.tsx` — Button group: Skill Score / AI Maturity / Last Scanned. Active sort highlighted with slate-900. Updates URL ?sort= param.
+  - `src/app/pages/SearchPage.tsx` — Updated: wires FacetPanel, ActiveFilterChips, SortControls, CandidateCard list. Loading skeleton. Result count display. Empty states.
+  - `tests/unit/us-013-search.test.ts` — 51 tests: search handler (10 structural + 5 functional for findRarestTag/sortCandidates), CandidateCard (8), SkillScoreBadge (2), AIMaturityBadge (4), StalenessTag (2), ActiveFilterChips (5), SortControls (4), useCandidates (6), SearchPage integration (5).
+- Files changed:
+  - NEW: src/handlers/search.ts
+  - NEW: src/app/hooks/useCandidates.ts
+  - NEW: src/app/components/search/ScoreBadges.tsx, CandidateCard.tsx, ActiveFilterChips.tsx, SortControls.tsx
+  - UPDATED: src/app/pages/SearchPage.tsx
+  - NEW: tests/unit/us-013-search.test.ts
+  - UPDATED: prd.json (US-013 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Rarest-tag-first: find the tag with lowest candidateCount in taxonomy, use it as the `array-contains` primary filter. Remaining tags filtered client-side via `allTags.every(tag => skillTags.includes(tag))`.
+  - aiMaturityScore sort: nulls last requires explicit null checks. `a === null ? 1 : b === null ? -1 : b - a`.
+  - Unicode block characters: `\u2588` (full block) for filled pips, `\u2591` (light shade) for empty pips. `\u25CF` for filled circle.
+  - CandidateCard links to `/candidates/${githubUsername}` matching the route pattern `/candidates/:id`.
+  - Combined SkillScoreBadge + AIMaturityBadge + StalenessTag into one file (ScoreBadges.tsx) to stay under 12 files per story.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (535/535 tests, 14 files — 51 new for US-013)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---

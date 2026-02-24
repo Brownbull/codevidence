@@ -208,7 +208,7 @@
         "useCandidates TanStack Query hook: queryKey includes serialized params, staleTime 5min, enabled only when hasAnyFilter(params); loading skeleton shown while fetching"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "The rarest-tag-first optimization is critical for query performance as pool grows. The SkillScoreBadge and AIMaturityBadge visual designs must match the spec exactly: indigo circle for skill, violet pip bar for AI maturity."
     },
     {
