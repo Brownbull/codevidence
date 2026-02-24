@@ -11,7 +11,7 @@ export interface AiConfigFileSignal {
   lastModifiedAt: Timestamp;
   diffComplexity: 'minimal' | 'moderate' | 'extensive';
   isEvolved: boolean;
-  originSignal: 'likely-original' | 'likely-copied' | 'unknown';
+  originSignal: 'likely-original' | 'modified-from-template' | 'likely-copied' | 'unknown';
 }
 
 /**

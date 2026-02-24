@@ -32,7 +32,7 @@ export interface AiConfigFileSignalRaw {
   lastModifiedAt: Date;
   diffComplexity: 'minimal' | 'moderate' | 'extensive';
   isEvolved: boolean;
-  originSignal: 'likely-original' | 'likely-copied' | 'unknown';
+  originSignal: 'likely-original' | 'modified-from-template' | 'likely-copied' | 'unknown';
 }
 
 // ─── Known AI config file patterns ────────────────────────────────────────────
@@ -175,8 +175,8 @@ async function analyzeFileHistory(
     // Determine if evolved (more than 3 modifications)
     const isEvolved = modificationCount > 3;
 
-    // Determine origin signal
-    const originSignal = await determineOriginSignal(git, fileName, commits);
+    // Determine origin signal (uses modificationCount for template vs copy distinction)
+    const originSignal = await determineOriginSignal(git, fileName, commits, modificationCount);
 
     return {
       fileName,
@@ -233,15 +233,18 @@ function classifyDiffComplexity(totalLines: number): 'minimal' | 'moderate' | 'e
 /**
  * Determines the origin signal for an AI config file.
  *
- * - likely-copied: introduced in a single commit with >50 lines (copy-paste heuristic)
- * - likely-original: introduced gradually or in a small commit
- * - unknown: insufficient data
+ * Combines first-commit size with modification count for better accuracy:
+ * - likely-original:         ≤50 lines in first commit (built from scratch)
+ * - modified-from-template:  >50 lines in first commit AND >3 modifications (started from template, heavily customized)
+ * - likely-copied:           >50 lines in first commit AND ≤3 modifications (copied, barely touched)
+ * - unknown:                 insufficient data
  */
 async function determineOriginSignal(
   git: ReturnType<typeof simpleGit>,
   fileName: string,
-  commits: ReadonlyArray<{ hash: string }>
-): Promise<'likely-original' | 'likely-copied' | 'unknown'> {
+  commits: ReadonlyArray<{ hash: string }>,
+  modificationCount: number
+): Promise<'likely-original' | 'modified-from-template' | 'likely-copied' | 'unknown'> {
   if (commits.length === 0) return 'unknown';
 
   // Get the first (oldest) commit that introduced the file
@@ -263,9 +266,12 @@ async function determineOriginSignal(
       if (!isNaN(added)) linesAdded += added;
     }
 
-    // Heuristic: >50 lines in first commit → likely copied from a template
-    if (linesAdded > 50) return 'likely-copied';
-    return 'likely-original';
+    // Small first commit → built from scratch
+    if (linesAdded <= 50) return 'likely-original';
+
+    // Large first commit (>50 lines) — distinguish template-based vs plain copy
+    if (modificationCount > 3) return 'modified-from-template';
+    return 'likely-copied';
   } catch {
     return 'unknown';
   }

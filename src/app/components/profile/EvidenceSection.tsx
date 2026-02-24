@@ -187,25 +187,80 @@ export function AiSignalsSection({ candidate, repos }: AiSignalsSectionProps) {
   );
 }
 
+/** Human-readable labels and colors for origin signals. */
+const ORIGIN_LABELS: Record<string, { label: string; color: string }> = {
+  'likely-original': { label: 'Original', color: 'text-green-600' },
+  'modified-from-template': { label: 'From template', color: 'text-amber-600' },
+  'likely-copied': { label: 'Copied', color: 'text-red-500' },
+  'unknown': { label: 'Unknown', color: 'text-th-text-muted' },
+};
+
 function AiConfigFileRow({ signal }: { signal: AiConfigFileSignal }) {
+  const origin = ORIGIN_LABELS[signal.originSignal] ?? ORIGIN_LABELS['unknown']!;
+
   return (
-    <div className="flex items-center justify-between text-xs">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-th-text-primary">{signal.fileName}</span>
+    <div className="flex items-center justify-between text-xs gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-mono text-th-text-primary truncate">{signal.fileName}</span>
         {signal.isEvolved && (
-          <span className="px-1 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-medium">
+          <span className="px-1 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-medium flex-shrink-0">
             Evolved
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2 text-th-text-muted">
-        <span>{signal.modificationCount} modifications</span>
-        <span className="text-slate-300">|</span>
-        <span>{signal.diffComplexity}</span>
-        <span className="text-slate-300">|</span>
-        <span>{signal.originSignal}</span>
+      <div className="flex items-center gap-1.5 text-th-text-muted flex-shrink-0">
+        <InfoBadge
+          value={`${signal.modificationCount} mods`}
+          tooltip="Number of git commits that modified this file."
+        />
+        <span className="text-border">|</span>
+        <InfoBadge
+          value={signal.diffComplexity}
+          tooltip="Total lines changed: minimal (<10), moderate (<100), extensive (100+)."
+        />
+        <span className="text-border">|</span>
+        <InfoBadge
+          value={origin.label}
+          valueClass={origin.color}
+          tooltip="Original = built from scratch. From template = started from existing code, then customized. Copied = taken with few/no changes."
+        />
       </div>
     </div>
+  );
+}
+
+/** A value with a clickable info icon that shows a tooltip. */
+function InfoBadge({
+  value,
+  tooltip,
+  valueClass,
+}: {
+  value: string;
+  tooltip: string;
+  valueClass?: string;
+}) {
+  const [show, setShow] = useState(false);
+
+  return (
+    <span className="relative inline-flex items-center gap-0.5">
+      <span className={valueClass}>{value}</span>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setShow(!show); }}
+        onBlur={() => setShow(false)}
+        className="text-th-text-muted hover:text-th-text-secondary transition-colors leading-none"
+        aria-label={`Info: ${value}`}
+      >
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="inline-block">
+          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 12.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11ZM7.25 5a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0ZM7.25 7a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0V7Z" />
+        </svg>
+      </button>
+      {show && (
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 px-2 py-1.5 rounded bg-slate-900 text-white text-[10px] leading-snug shadow-lg z-50 pointer-events-none">
+          {tooltip}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -280,7 +335,7 @@ function EvolutionTimelineItem({
               {signal.isEvolved ? 'Evolved' : 'Static'}
             </span>
           </p>
-          <p>Origin: <span className="text-th-text-primary">{signal.originSignal}</span></p>
+          <p>Origin: <span className={(ORIGIN_LABELS[signal.originSignal] ?? ORIGIN_LABELS['unknown']!).color + ' font-medium'}>{(ORIGIN_LABELS[signal.originSignal] ?? ORIGIN_LABELS['unknown']!).label}</span></p>
           <p>Complexity: <span className="text-th-text-primary">{signal.diffComplexity}</span></p>
         </div>
       )}

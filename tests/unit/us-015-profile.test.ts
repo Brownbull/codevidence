@@ -233,7 +233,7 @@ describe('US-015: AiSignalsSection', () => {
 
   it('renders AI config files with modificationCount', () => {
     expect(src).toContain('signal.modificationCount');
-    expect(src).toContain('modifications');
+    expect(src).toContain('mods');
   });
 
   it('shows isEvolved indicator', () => {

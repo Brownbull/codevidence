@@ -53,7 +53,7 @@ describe('US-010: AI Signals Module Structure', () => {
     expect(src).toContain('lastModifiedAt: Date');
     expect(src).toContain("diffComplexity: 'minimal' | 'moderate' | 'extensive'");
     expect(src).toContain('isEvolved: boolean');
-    expect(src).toContain("originSignal: 'likely-original' | 'likely-copied' | 'unknown'");
+    expect(src).toContain("originSignal: 'likely-original' | 'modified-from-template' | 'likely-copied' | 'unknown'");
   });
 
   it('does not import browser APIs or Firestore', () => {
@@ -130,13 +130,18 @@ describe('US-010: Evolution and Origin Detection', () => {
     expect(src).toContain('modificationCount > 3');
   });
 
-  it('classifies likely-copied when >50 lines in first commit', () => {
-    expect(src).toContain("linesAdded > 50");
-    expect(src).toContain("return 'likely-copied'");
+  it('classifies likely-original when <=50 lines in first commit', () => {
+    expect(src).toContain("linesAdded <= 50");
+    expect(src).toContain("return 'likely-original'");
   });
 
-  it('classifies likely-original for small introductions', () => {
-    expect(src).toContain("return 'likely-original'");
+  it('classifies modified-from-template when >50 lines + evolved', () => {
+    expect(src).toContain("modificationCount > 3");
+    expect(src).toContain("return 'modified-from-template'");
+  });
+
+  it('classifies likely-copied when >50 lines + few modifications', () => {
+    expect(src).toContain("return 'likely-copied'");
   });
 
   it('returns unknown when insufficient data', () => {
