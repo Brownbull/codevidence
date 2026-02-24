@@ -112,7 +112,7 @@
         "Integration test (mocked GitHub API) verifies 429 response causes job re-queue with correct rateLimitedUntil; unit test verifies deduplication logic"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "GITHUB_PAT must be read from .env — never hardcoded. The source-adapter interface is required by NFR15 for future GitLab/Bitbucket support. Layer 1 cost is ~2 API calls per repo (metadata + languages endpoint)."
     },
     {

@@ -16,6 +16,7 @@ import { runDiscover } from './commands/discover.js';
 import { runRescan } from './commands/rescan.js';
 import { runStatus } from './commands/status.js';
 import { startWorker } from './worker.js';
+import { handleDiscover } from './handlers/discover.js';
 
 const program = new Command();
 
@@ -74,9 +75,9 @@ program
   .command('worker')
   .description('Start the polling worker loop (Ctrl-C to stop)')
   .action(() => {
-    // In MVP: no job-type handlers registered — worker will log warnings.
-    // Handlers wired in US-007+ when actual processing is implemented.
-    startWorker({});
+    startWorker({
+      discover: handleDiscover,
+    });
     console.log('[scan] Worker started. Press Ctrl-C to stop.');
   });
 

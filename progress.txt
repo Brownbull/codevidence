@@ -170,3 +170,29 @@
   - `pnpm test:unit`: PASS (112/112 tests, 5 files)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-007
+- What was implemented:
+  - `src/adapters/source-adapter.ts` — Source-agnostic interface defining `SourceAdapter`, `DiscoveredRepo`, `RateLimitInfo`, `DiscoverResult`. Enables future GitLab/Bitbucket support per NFR15.
+  - `src/adapters/github.ts` — GitHub adapter wrapping Octokit. `GitHubAdapter` class implements `SourceAdapter`. `createGitHubAdapter()` factory reads `GITHUB_PAT` from `process.env`. Handles pagination (100 per page, multiple pages up to limit). Rate limit: reads `X-RateLimit-Remaining/Reset/Limit` headers, throttles 2s when remaining < 100, throws `GitHubRateLimitError` on 429/403 with retryAfterMs (min 1 minute).
+  - `src/pipeline/handlers/discover.ts` — Discover job handler. Called by the worker for `discover` type jobs. Calls GitHub adapter, deduplicates repos against `repositories` collection using `getDoc` by `fullName` (parallel via `Promise.all`), writes new `Repository` docs with `scanStatus: 'surface'` and all surface metadata, enqueues `scan-repo` jobs with `targetDepth: 'layer1'` for each new repo. Catches `GitHubRateLimitError` and calls `markJobRateLimited` before re-throwing.
+  - `src/pipeline/index.ts` — Updated worker command: registered `handleDiscover` handler for `discover` job type (replaces empty `{}`).
+  - `tests/unit/us-007-github-adapter.test.ts` — 52 structural tests: source adapter interface shape (4), GitHub adapter (17), discover handler (15), worker registration (3), rate limit logic (4), deduplication logic (4), integration expectations (5).
+- Files changed:
+  - NEW: src/adapters/source-adapter.ts, src/adapters/github.ts
+  - NEW: src/pipeline/handlers/discover.ts
+  - UPDATED: src/pipeline/index.ts (discover handler registration)
+  - NEW: tests/unit/us-007-github-adapter.test.ts
+  - UPDATED: prd.json (US-007 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Octokit `item.owner` can be `null` per GitHub API schema — need `?.login ?? fullName.split('/')[0] ?? ''` fallback chain.
+  - `X-RateLimit-Reset` is epoch seconds (not ms) — multiply by 1000 to get JS timestamp.
+  - `setDoc` with `repo.fullName` as doc ID ensures idempotent Repository creation (same pattern as taxonomy seeding).
+  - The `scan-repo` jobs created by discover use `addDoc` (auto-ID) since they're ephemeral queue items, not keyed entities.
+  - `GitHubRateLimitError` preserves both `retryAfterMs` (for `markJobRateLimited`) and full `RateLimitInfo` (for logging/debugging).
+  - Minimum retry window of 60s prevents tight retry loops when rate limit reset is in the past or very near.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (259/259 tests, 8 files — 52 new for US-007)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
