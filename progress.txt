@@ -373,3 +373,28 @@
   - `pnpm test:unit`: PASS (581/581 tests, 15 files — 46 new for US-014)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - US-015
+- What was implemented:
+  - `src/handlers/candidates.ts` — New: candidate data operations. `getCandidate(username)` fetches single candidate by GitHub username (= Firestore doc ID). `getCandidateRepositories(owner)` queries repositories by owner.
+  - `src/app/hooks/useCandidate.ts` — New: TanStack Query hooks. `useCandidate(username)` caches under `['candidate', username]`, 5-minute staleTime. `useCandidateRepos(owner)` separate query under `['candidate-repos', owner]` to avoid loading repos on every search result render.
+  - `src/app/components/profile/EvidenceSection.tsx` — New: four evidence section components. SkillsSection (grouped Language/Framework/Tool chips), RepositoriesSection (repo list with GitHub links, language, stars, commit span, scan status badge; empty state), AiSignalsSection (AI config files with modificationCount/isEvolved/diffComplexity/originSignal, coAuthoredByAI chip, aiAgentPatterns chips; empty state), EvolutionSection (expandable timeline per config file: first seen → modifications → last modified → classification).
+  - `src/app/pages/CandidateProfilePage.tsx` — Updated: full implementation replacing stub. Reads :id param, loads candidate + repos via hooks. Header with avatar, username, GitHub profile link, SkillScoreBadge, AIMaturityBadge, StalenessTag, lastScanned, commitSpanMonths, repoCount. Four evidence sections. Loading skeleton. 404 state. Back to search link preserves filter state.
+  - `tests/unit/us-015-profile.test.ts` — 59 tests: candidates handler (5), useCandidate hook (8), CandidateProfilePage (16), SkillsSection (4), RepositoriesSection (8), AiSignalsSection (8), EvolutionSection (8), routing integration (2), CandidateCard navigation (1).
+- Files changed:
+  - NEW: src/handlers/candidates.ts
+  - NEW: src/app/hooks/useCandidate.ts
+  - NEW: src/app/components/profile/EvidenceSection.tsx
+  - UPDATED: src/app/pages/CandidateProfilePage.tsx (full implementation)
+  - NEW: tests/unit/us-015-profile.test.ts
+  - UPDATED: prd.json (US-015 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Repos loaded via separate TanStack Query key (`['candidate-repos', owner]`) to avoid loading all repos on every search result card render.
+  - EvidenceSection aggregates aiConfigFiles across all repos using `repos.flatMap(r => r.aiConfigFiles ?? [])`.
+  - Timeline items are expandable — uses React.useState per item for expand/collapse.
+  - Back navigation to /search preserves filter state because filters live in URL params.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (640/640 tests, 16 files — 59 new for US-015)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---

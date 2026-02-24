@@ -240,7 +240,7 @@
         "EvidenceSection (evolution) shows timeline-style display per config file: first seen → modification count → last modified → isEvolved classification; back navigation to search preserves URL filter state"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Repositories are loaded via a separate TanStack Query (not embedded in the main candidate query) to avoid loading all repos on every search result render. The profile must surface evidence, not assertions — every signal shown must trace back to actual repo data."
     },
     {
