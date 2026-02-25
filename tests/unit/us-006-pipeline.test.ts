@@ -13,7 +13,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import type { ScanJob } from '@/types/scan-job';
+
+const ROOT = resolve(__dirname, '../..');
+function readSource(relativePath: string): string {
+  return readFileSync(resolve(ROOT, relativePath), 'utf-8');
+}
 
 // ─── Constants tests ──────────────────────────────────────────────────────────
 
@@ -47,14 +54,19 @@ describe('Queue module — exported API surface', () => {
     expect(typeof mod.enqueueRescanJob).toBe('function');
   });
 
-  it('exports fetchNextPendingJob', async () => {
+  it('exports claimNextJob', async () => {
     const mod = await import('@/pipeline/queue');
-    expect(typeof mod.fetchNextPendingJob).toBe('function');
+    expect(typeof mod.claimNextJob).toBe('function');
   });
 
-  it('exports markJobRunning', async () => {
+  it('exports updateHeartbeat', async () => {
     const mod = await import('@/pipeline/queue');
-    expect(typeof mod.markJobRunning).toBe('function');
+    expect(typeof mod.updateHeartbeat).toBe('function');
+  });
+
+  it('exports reclaimStaleJobs', async () => {
+    const mod = await import('@/pipeline/queue');
+    expect(typeof mod.reclaimStaleJobs).toBe('function');
   });
 
   it('exports markJobCompleted', async () => {
@@ -229,27 +241,9 @@ describe('Worker polling logic — mocked Firestore', () => {
     vi.restoreAllMocks();
   });
 
-  it('pollOnce does nothing when no pending jobs', async () => {
-    // Mock the queue module to return null (no jobs)
-    vi.doMock('@/pipeline/queue', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/pipeline/queue')>();
-      return {
-        ...actual,
-        fetchNextPendingJob: vi.fn().mockResolvedValue(null),
-        markJobRunning: vi.fn(),
-        markJobCompleted: vi.fn(),
-        markJobFailed: vi.fn(),
-        POLL_INTERVAL_MS: 10_000,
-      };
-    });
-
-    const { pollOnce } = await import('@/pipeline/worker');
-    // Should complete without throwing
-    await expect(pollOnce({})).resolves.toBeUndefined();
-  });
-
-  it('pollOnce marks job running then completed on success', async () => {
-    const mockJob: ScanJob & { id: string } = {
+  /** Creates a mock ScanJob with all required fields including new parallel worker fields. */
+  function createMockJob(overrides: Partial<ScanJob & { id: string }> = {}): ScanJob & { id: string } {
+    return {
       id: 'job-001',
       type: 'discover',
       status: 'pending',
@@ -262,24 +256,53 @@ describe('Worker polling logic — mocked Firestore', () => {
       errorMessage: null,
       rateLimitedUntil: null,
       priority: 0,
+      workerId: null,
+      heartbeatAt: null,
+      claimedAt: null,
       createdAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
       updatedAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
+      ...overrides,
     };
+  }
 
-    const mockMarkRunning = vi.fn().mockResolvedValue(undefined);
-    const mockMarkCompleted = vi.fn().mockResolvedValue(undefined);
-    const mockMarkFailed = vi.fn().mockResolvedValue(undefined);
-
+  /** Creates a standard queue mock with claimNextJob returning the given job. */
+  function mockQueue(
+    job: (ScanJob & { id: string }) | null,
+    overrides: Record<string, ReturnType<typeof vi.fn>> = {}
+  ) {
+    vi.doMock('@/pipeline/worker-id', () => ({
+      getWorkerId: vi.fn().mockReturnValue('test-worker-001'),
+    }));
     vi.doMock('@/pipeline/queue', async (importOriginal) => {
       const actual = await importOriginal<typeof import('@/pipeline/queue')>();
       return {
         ...actual,
-        fetchNextPendingJob: vi.fn().mockResolvedValue(mockJob),
-        markJobRunning: mockMarkRunning,
-        markJobCompleted: mockMarkCompleted,
-        markJobFailed: mockMarkFailed,
+        claimNextJob: vi.fn().mockResolvedValue(job),
+        markJobCompleted: vi.fn().mockResolvedValue(undefined),
+        markJobFailed: vi.fn().mockResolvedValue(undefined),
+        updateHeartbeat: vi.fn().mockResolvedValue(undefined),
+        reclaimStaleJobs: vi.fn().mockResolvedValue(0),
         POLL_INTERVAL_MS: 10_000,
+        ...overrides,
       };
+    });
+  }
+
+  it('pollOnce does nothing when no pending jobs', async () => {
+    mockQueue(null);
+
+    const { pollOnce } = await import('@/pipeline/worker');
+    await expect(pollOnce({})).resolves.toBeUndefined();
+  });
+
+  it('pollOnce claims job and marks completed on success', async () => {
+    const mockJob = createMockJob();
+    const mockMarkCompleted = vi.fn().mockResolvedValue(undefined);
+    const mockMarkFailed = vi.fn().mockResolvedValue(undefined);
+
+    mockQueue(mockJob, {
+      markJobCompleted: mockMarkCompleted,
+      markJobFailed: mockMarkFailed,
     });
 
     const handler = vi.fn().mockResolvedValue(undefined);
@@ -287,44 +310,19 @@ describe('Worker polling logic — mocked Firestore', () => {
 
     await pollOnce({ discover: handler });
 
-    expect(mockMarkRunning).toHaveBeenCalledWith('job-001');
     expect(handler).toHaveBeenCalledWith(mockJob);
     expect(mockMarkCompleted).toHaveBeenCalledWith('job-001');
     expect(mockMarkFailed).not.toHaveBeenCalled();
   });
 
   it('pollOnce marks job failed when handler throws', async () => {
-    const mockJob: ScanJob & { id: string } = {
-      id: 'job-002',
-      type: 'discover',
-      status: 'pending',
-      payload: { query: 'fail-test', source: 'github', limit: 5 },
-      attempts: 0,
-      maxAttempts: 3,
-      lastAttemptAt: null,
-      completedAt: null,
-      failedAt: null,
-      errorMessage: null,
-      rateLimitedUntil: null,
-      priority: 0,
-      createdAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
-      updatedAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
-    };
-
-    const mockMarkRunning = vi.fn().mockResolvedValue(undefined);
+    const mockJob = createMockJob({ id: 'job-002' });
     const mockMarkCompleted = vi.fn().mockResolvedValue(undefined);
     const mockMarkFailed = vi.fn().mockResolvedValue(undefined);
 
-    vi.doMock('@/pipeline/queue', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/pipeline/queue')>();
-      return {
-        ...actual,
-        fetchNextPendingJob: vi.fn().mockResolvedValue(mockJob),
-        markJobRunning: mockMarkRunning,
-        markJobCompleted: mockMarkCompleted,
-        markJobFailed: mockMarkFailed,
-        POLL_INTERVAL_MS: 10_000,
-      };
+    mockQueue(mockJob, {
+      markJobCompleted: mockMarkCompleted,
+      markJobFailed: mockMarkFailed,
     });
 
     const handler = vi.fn().mockRejectedValue(new Error('Handler error'));
@@ -332,7 +330,6 @@ describe('Worker polling logic — mocked Firestore', () => {
 
     await pollOnce({ discover: handler });
 
-    expect(mockMarkRunning).toHaveBeenCalledWith('job-002');
     expect(handler).toHaveBeenCalledWith(mockJob);
     expect(mockMarkCompleted).not.toHaveBeenCalled();
     expect(mockMarkFailed).toHaveBeenCalledWith(
@@ -344,77 +341,22 @@ describe('Worker polling logic — mocked Firestore', () => {
   });
 
   it('failed job does not crash worker — worker continues to next poll', async () => {
-    const mockJob: ScanJob & { id: string } = {
-      id: 'job-003',
-      type: 'discover',
-      status: 'pending',
-      payload: { query: 'crash-test', source: 'github', limit: 1 },
-      attempts: 1,
-      maxAttempts: 3,
-      lastAttemptAt: null,
-      completedAt: null,
-      failedAt: null,
-      errorMessage: null,
-      rateLimitedUntil: null,
-      priority: 0,
-      createdAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
-      updatedAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
-    };
+    const mockJob = createMockJob({ id: 'job-003', attempts: 1 });
+    mockQueue(mockJob);
 
-    vi.doMock('@/pipeline/queue', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/pipeline/queue')>();
-      return {
-        ...actual,
-        fetchNextPendingJob: vi.fn().mockResolvedValue(mockJob),
-        markJobRunning: vi.fn().mockResolvedValue(undefined),
-        markJobCompleted: vi.fn().mockResolvedValue(undefined),
-        markJobFailed: vi.fn().mockResolvedValue(undefined),
-        POLL_INTERVAL_MS: 10_000,
-      };
-    });
-
-    // Handler throws a hard error — worker must not propagate it
     const handler = vi.fn().mockRejectedValue(new Error('Critical crash'));
     const { pollOnce } = await import('@/pipeline/worker');
 
-    // Should resolve (not reject) — worker absorbs the error
     await expect(pollOnce({ discover: handler })).resolves.toBeUndefined();
   });
 
-  it('worker logs warning and marks failed when no handler for job type', async () => {
-    const mockJob: ScanJob & { id: string } = {
-      id: 'job-004',
-      type: 'discover',
-      status: 'pending',
-      payload: { query: 'no-handler', source: 'github', limit: 1 },
-      attempts: 0,
-      maxAttempts: 3,
-      lastAttemptAt: null,
-      completedAt: null,
-      failedAt: null,
-      errorMessage: null,
-      rateLimitedUntil: null,
-      priority: 0,
-      createdAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
-      updatedAt: {} as ReturnType<typeof import('firebase/firestore').Timestamp.now>,
-    };
-
+  it('worker marks failed when no handler for job type', async () => {
+    const mockJob = createMockJob({ id: 'job-004' });
     const mockMarkFailed = vi.fn().mockResolvedValue(undefined);
 
-    vi.doMock('@/pipeline/queue', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/pipeline/queue')>();
-      return {
-        ...actual,
-        fetchNextPendingJob: vi.fn().mockResolvedValue(mockJob),
-        markJobRunning: vi.fn().mockResolvedValue(undefined),
-        markJobCompleted: vi.fn().mockResolvedValue(undefined),
-        markJobFailed: mockMarkFailed,
-        POLL_INTERVAL_MS: 10_000,
-      };
-    });
+    mockQueue(mockJob, { markJobFailed: mockMarkFailed });
 
     const { pollOnce } = await import('@/pipeline/worker');
-    // Pass empty registry — no handler for 'discover'
     await pollOnce({});
 
     expect(mockMarkFailed).toHaveBeenCalledWith(
@@ -498,7 +440,7 @@ describe('Job lifecycle — unit-level assertions', () => {
 
   it('pending → running transition sets correct status', () => {
     const jobState = { status: 'pending' as ScanJob['status'] };
-    // Simulate markJobRunning transition
+    // Simulate claimNextJob transition
     const updatedState = { ...jobState, status: 'running' as ScanJob['status'] };
     expect(updatedState.status).toBe('running');
   });
@@ -641,5 +583,52 @@ describe('Job priority ordering', () => {
 
     expect(sorted[0].id).toBe('earlier');
     expect(sorted[1].id).toBe('later');
+  });
+});
+
+// ─── Rescan-candidate handler ────────────────────────────────────────────────
+
+describe('Rescan-candidate handler — source structure', () => {
+  const src = readSource('src/pipeline/handlers/rescan-candidate.ts');
+
+  it('exports handleRescanCandidate async function', () => {
+    expect(src).toContain('export async function handleRescanCandidate');
+  });
+
+  it('casts payload to RescanPayload', () => {
+    expect(src).toContain('as RescanPayload');
+  });
+
+  it('queries repos by owner', () => {
+    expect(src).toContain("where('owner', '==', targetId)");
+  });
+
+  it('enqueues scan-repo layer2 jobs for each repo', () => {
+    expect(src).toContain("targetDepth: 'layer2'");
+    expect(src).toContain('enqueueScanRepoJob');
+  });
+
+  it('uses Promise.all for parallel job enqueueing', () => {
+    expect(src).toContain('Promise.all');
+  });
+});
+
+describe('Queue module — enqueueScanRepoJob', () => {
+  it('exports enqueueScanRepoJob', async () => {
+    const mod = await import('@/pipeline/queue');
+    expect(typeof mod.enqueueScanRepoJob).toBe('function');
+  });
+});
+
+describe('Run command — HANDLERS registry includes rescan-candidate', () => {
+  const src = readSource('src/pipeline/commands/run.ts');
+
+  it('imports handleRescanCandidate', () => {
+    expect(src).toContain("from '../handlers/rescan-candidate.js'");
+    expect(src).toContain('handleRescanCandidate');
+  });
+
+  it('registers rescan-candidate in HANDLERS', () => {
+    expect(src).toContain("'rescan-candidate': handleRescanCandidate");
   });
 });

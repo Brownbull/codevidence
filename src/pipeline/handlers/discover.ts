@@ -151,6 +151,9 @@ export async function handleDiscover(job: ScanJob & { id: string }): Promise<voi
         errorMessage: null,
         rateLimitedUntil: null,
         priority: 0,
+        workerId: null,
+        heartbeatAt: null,
+        claimedAt: null,
         createdAt: now as unknown as ScanJob['createdAt'],
         updatedAt: now as unknown as ScanJob['updatedAt'],
       };

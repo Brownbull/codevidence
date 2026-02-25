@@ -1,18 +1,20 @@
 /**
  * src/pipeline/worker.ts — Worker polling loop for the scan job queue.
  *
- * Polls scan_jobs every 10s for pending jobs, executes them atomically,
- * and handles retry/failure with exponential backoff. Failed jobs never
- * crash the worker — all errors are caught and logged.
+ * Uses atomic job claiming via Firestore transactions for safe parallel
+ * execution across multiple worker processes and machines. Includes
+ * heartbeat for stale job detection and automatic recovery.
  */
 
 import {
-  fetchNextPendingJob,
-  markJobRunning,
+  claimNextJob,
   markJobCompleted,
   markJobFailed,
+  updateHeartbeat,
+  reclaimStaleJobs,
   POLL_INTERVAL_MS,
 } from './queue.js';
+import { getWorkerId } from './worker-id.js';
 import type { ScanJob } from '../types/scan-job.js';
 
 // ─── Job handler type ─────────────────────────────────────────────────────────
@@ -30,6 +32,10 @@ export type JobHandlerRegistry = Partial<Record<ScanJob['type'], JobHandler>>;
 
 let _running = false;
 let _pollTimer: ReturnType<typeof setTimeout> | null = null;
+let _pollCount = 0;
+
+const STALE_CHECK_EVERY = 6; // Every 6th poll ≈ 60s at 10s interval
+const HEARTBEAT_INTERVAL_MS = 60_000;
 
 /** Returns true if the worker is currently running. */
 export function isWorkerRunning(): boolean {
@@ -41,7 +47,7 @@ export function isWorkerRunning(): boolean {
 /**
  * Starts the worker polling loop.
  * Polls every POLL_INTERVAL_MS for the next pending job.
- * Calls stop() to halt.
+ * Calls stopWorker() to halt.
  */
 export function startWorker(handlers: JobHandlerRegistry): void {
   if (_running) {
@@ -50,7 +56,8 @@ export function startWorker(handlers: JobHandlerRegistry): void {
   }
 
   _running = true;
-  console.log(`[worker] Starting. Poll interval: ${POLL_INTERVAL_MS / 1000}s`);
+  const wid = getWorkerId();
+  console.log(`[worker:${wid}] Starting. Poll interval: ${POLL_INTERVAL_MS / 1000}s`);
   scheduleNextPoll(handlers);
 }
 
@@ -61,7 +68,7 @@ export function stopWorker(): void {
     clearTimeout(_pollTimer);
     _pollTimer = null;
   }
-  console.log('[worker] Stopped.');
+  console.log(`[worker:${getWorkerId()}] Stopped.`);
 }
 
 /** Schedules the next poll cycle. */
@@ -70,30 +77,39 @@ function scheduleNextPoll(handlers: JobHandlerRegistry): void {
   _pollTimer = setTimeout(() => void pollOnce(handlers), POLL_INTERVAL_MS);
 }
 
+/** Returns true every Nth poll cycle for periodic stale-job checks. */
+function shouldCheckStale(): boolean {
+  _pollCount++;
+  return _pollCount % STALE_CHECK_EVERY === 0;
+}
+
 /**
  * Executes one poll cycle:
- * 1. Fetch next pending job (priority DESC, createdAt ASC)
- * 2. Mark running
- * 3. Execute handler
+ * 1. (Periodically) Reclaim stale jobs from crashed workers
+ * 2. Atomically claim next pending job via transaction
+ * 3. Execute handler with heartbeat
  * 4. Mark completed or failed
  * 5. Schedule next poll
  */
 export async function pollOnce(handlers: JobHandlerRegistry): Promise<void> {
-  try {
-    const job = await fetchNextPendingJob();
+  const wid = getWorkerId();
 
+  try {
+    if (shouldCheckStale()) {
+      const reclaimed = await reclaimStaleJobs();
+      if (reclaimed > 0) console.log(`[worker:${wid}] Reclaimed ${reclaimed} stale job(s).`);
+    }
+
+    const job = await claimNextJob(wid);
     if (!job) {
       scheduleNextPoll(handlers);
       return;
     }
 
-    console.log(`[worker] Picked up job ${job.id} (type=${job.type}, attempts=${job.attempts})`);
-
-    await markJobRunning(job.id);
+    console.log(`[worker:${wid}] Claimed job ${job.id} (type=${job.type}, attempts=${job.attempts})`);
     await executeJob(job, handlers);
   } catch (err) {
-    // Top-level error guard: worker must never crash
-    console.error('[worker] Unexpected poll error:', err);
+    console.error(`[worker:${wid}] Unexpected poll error:`, err);
   } finally {
     scheduleNextPoll(handlers);
   }
@@ -105,16 +121,20 @@ export async function pollOnce(handlers: JobHandlerRegistry): Promise<void> {
  * Returns true if a job was processed, false if no pending jobs exist.
  */
 export async function processOneJob(handlers: JobHandlerRegistry): Promise<boolean> {
-  const job = await fetchNextPendingJob();
+  const wid = getWorkerId();
+  const job = await claimNextJob(wid);
   if (!job) return false;
 
-  console.log(`[worker] Picked up job ${job.id} (type=${job.type}, attempts=${job.attempts})`);
-  await markJobRunning(job.id);
+  console.log(`[worker:${wid}] Claimed job ${job.id} (type=${job.type}, attempts=${job.attempts})`);
   await executeJob(job, handlers);
   return true;
 }
 
-/** Executes a job via its registered handler, handling success and failure. */
+/**
+ * Executes a job via its registered handler with heartbeat.
+ * Heartbeat interval keeps the job alive during long-running tasks;
+ * cleared on completion or failure.
+ */
 async function executeJob(
   job: ScanJob & { id: string },
   handlers: JobHandlerRegistry
@@ -131,6 +151,13 @@ async function executeJob(
     );
     return;
   }
+
+  // Start heartbeat interval for stale detection
+  const heartbeatTimer = setInterval(() => {
+    void updateHeartbeat(job.id).catch((err) =>
+      console.warn(`[worker] Heartbeat failed for ${job.id}:`, err)
+    );
+  }, HEARTBEAT_INTERVAL_MS);
 
   try {
     await handler(job);
@@ -149,5 +176,7 @@ async function executeJob(
     } else {
       console.log(`[worker] Job ${job.id} permanently failed after ${nextAttempts} attempts.`);
     }
+  } finally {
+    clearInterval(heartbeatTimer);
   }
 }

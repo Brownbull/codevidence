@@ -11,6 +11,7 @@ import { fetchJobsByStatus } from '../queue.js';
 import { processOneJob } from '../worker.js';
 import { handleDiscover } from '../handlers/discover.js';
 import { handleScanRepo } from '../handlers/scan-repo.js';
+import { handleRescanCandidate } from '../handlers/rescan-candidate.js';
 import type { ScanJob } from '../../types/scan-job.js';
 import type { JobHandlerRegistry } from '../worker.js';
 
@@ -26,6 +27,7 @@ function getJobTarget(job: ScanJob): string {
 const HANDLERS: JobHandlerRegistry = {
   discover: handleDiscover,
   'scan-repo': handleScanRepo,
+  'rescan-candidate': handleRescanCandidate,
 };
 
 /**

@@ -22,6 +22,7 @@ import {
   getDocs,
   query,
   serverTimestamp as sdkServerTimestamp,
+  runTransaction as sdkRunTransaction,
   type DocumentData,
   type WithFieldValue,
   type UpdateData,
@@ -29,6 +30,7 @@ import {
   type CollectionReference,
   type DocumentReference,
   type Firestore,
+  type Transaction,
 } from 'firebase/firestore';
 
 // ─── Firebase app initialization ─────────────────────────────────────────────
@@ -192,6 +194,17 @@ export async function queryDocs<T extends DocumentData>(
  */
 export const serverTimestamp = sdkServerTimestamp;
 
+/**
+ * Runs a Firestore transaction. Firestore automatically retries on
+ * contention (up to 5 times). The callback receives a Transaction
+ * object with get/update/set/delete methods that operate on DocumentReferences.
+ */
+export async function runTransaction<T>(
+  callback: (transaction: Transaction) => Promise<T>
+): Promise<T> {
+  return sdkRunTransaction(getDb(), callback);
+}
+
 // ─── Re-export query constraint builders for convenience ─────────────────────
 // These allow callers to build queries without importing from firebase/firestore.
 
@@ -204,4 +217,5 @@ export {
   type QueryConstraint,
   type Timestamp,
   type FieldValue,
+  type Transaction,
 } from 'firebase/firestore';

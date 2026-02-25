@@ -36,6 +36,12 @@ export interface ScanJob {
   errorMessage: string | null;
   rateLimitedUntil: Timestamp | null;
   priority: number;
+  /** ID of the worker that claimed this job. Null when pending/completed/failed. */
+  workerId: string | null;
+  /** Timestamp when the worker last sent a heartbeat. Null when not running. */
+  heartbeatAt: Timestamp | null;
+  /** Timestamp when the worker claimed this job. Null when not running. */
+  claimedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

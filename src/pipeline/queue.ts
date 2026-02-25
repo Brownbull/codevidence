@@ -7,7 +7,7 @@
  * All Firestore access goes through src/core/db/firestore.ts.
  */
 
-import type { ScanJob, ScanJobType, DiscoverPayload, RescanPayload } from '../types/scan-job.js';
+import type { ScanJob, ScanJobType, DiscoverPayload, ScanRepoPayload, RescanPayload } from '../types/scan-job.js';
 import {
   addDoc,
   updateDoc,
@@ -16,6 +16,8 @@ import {
   where,
   orderBy,
   limit,
+  runTransaction,
+  docRef,
   type Timestamp,
 } from '../core/db/firestore.js';
 
@@ -31,6 +33,13 @@ export const POLL_INTERVAL_MS = 10_000;
  */
 export async function enqueueDiscoverJob(payload: DiscoverPayload): Promise<string> {
   return enqueueJob('discover', payload, 0);
+}
+
+/**
+ * Enqueues a scan-repo ScanJob. Priority 0 for normal scans, 1 for rescans.
+ */
+export async function enqueueScanRepoJob(payload: ScanRepoPayload, priority = 0): Promise<string> {
+  return enqueueJob('scan-repo', payload, priority);
 }
 
 /**
@@ -60,56 +69,144 @@ async function enqueueJob(
     errorMessage: null,
     rateLimitedUntil: null,
     priority,
+    workerId: null,
+    heartbeatAt: null,
+    claimedAt: null,
     createdAt: now,
     updatedAt: now,
   };
   return addDoc<Omit<ScanJob, 'id'>>(SCAN_JOBS_COLLECTION, jobData);
 }
 
-// ─── Job polling ──────────────────────────────────────────────────────────────
+// ─── Atomic job claiming ──────────────────────────────────────────────────────
 
 /**
- * Fetches the next pending job ordered by priority DESC, createdAt ASC.
- * Returns null if no pending jobs exist.
+ * Atomically claims the next pending job via Firestore transaction.
+ *
+ * 1. Query top 5 pending jobs (outside transaction — read-only)
+ * 2. For each candidate, attempt a transaction that re-reads and verifies
+ *    the job is still pending before updating to running
+ * 3. First successful transaction wins; losers try next candidate
+ *
+ * Returns null if no claimable jobs exist.
  */
-export async function fetchNextPendingJob(): Promise<(ScanJob & { id: string }) | null> {
-  const jobs = await queryDocs<ScanJob>(
+export async function claimNextJob(
+  workerId: string
+): Promise<(ScanJob & { id: string }) | null> {
+  const candidates = await queryDocs<ScanJob>(
     SCAN_JOBS_COLLECTION,
     where('status', '==', 'pending'),
     orderBy('priority', 'desc'),
     orderBy('createdAt', 'asc'),
-    limit(1)
+    limit(5)
   );
 
-  if (jobs.length === 0) return null;
+  if (candidates.length === 0) return null;
 
-  const job = jobs[0] as ScanJob & { id: string };
+  for (const candidate of candidates) {
+    if (candidate.rateLimitedUntil !== null) {
+      const limitUntil = (candidate.rateLimitedUntil as Timestamp).toMillis();
+      if (Date.now() < limitUntil) continue;
+    }
 
-  // Skip rate-limited jobs whose window hasn't passed yet
-  if (job.rateLimitedUntil !== null) {
-    const limitUntil = (job.rateLimitedUntil as Timestamp).toMillis();
-    if (Date.now() < limitUntil) return null;
+    const claimed = await tryClaimJob(candidate.id, workerId);
+    if (claimed) return claimed;
   }
 
-  return job;
+  return null;
 }
 
-// ─── Status transitions ───────────────────────────────────────────────────────
+/**
+ * Attempts to atomically claim a job via Firestore transaction.
+ * Returns the job if claimed, null if already taken by another worker.
+ */
+async function tryClaimJob(
+  jobId: string,
+  workerId: string
+): Promise<(ScanJob & { id: string }) | null> {
+  try {
+    return await runTransaction(async (transaction) => {
+      const ref = docRef<ScanJob>(SCAN_JOBS_COLLECTION, jobId);
+      const snap = await transaction.get(ref);
 
-/** Transitions a pending job → running and records lastAttemptAt. */
-export async function markJobRunning(jobId: string): Promise<void> {
+      if (!snap.exists()) return null;
+
+      const job = snap.data() as ScanJob;
+      if (job.status !== 'pending') return null;
+
+      transaction.update(ref, {
+        status: 'running',
+        workerId,
+        claimedAt: serverTimestamp(),
+        heartbeatAt: serverTimestamp(),
+        lastAttemptAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      return { ...job, id: snap.id } as ScanJob & { id: string };
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ─── Heartbeat and stale recovery ─────────────────────────────────────────────
+
+/** Stale threshold: 5 minutes without heartbeat. */
+export const STALE_JOB_THRESHOLD_MS = 5 * 60 * 1000;
+
+/** Updates the heartbeat timestamp for a running job. */
+export async function updateHeartbeat(jobId: string): Promise<void> {
   await updateDoc<ScanJob>(SCAN_JOBS_COLLECTION, jobId, {
-    status: 'running',
-    lastAttemptAt: serverTimestamp(),
+    heartbeatAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
 
-/** Transitions a running job → completed and records completedAt. */
+/**
+ * Finds running jobs with stale heartbeats and resets them to pending.
+ * Skips legacy jobs (heartbeatAt === null) to avoid reclaiming pre-upgrade jobs.
+ */
+export async function reclaimStaleJobs(): Promise<number> {
+  const running = await queryDocs<ScanJob>(
+    SCAN_JOBS_COLLECTION,
+    where('status', '==', 'running'),
+    limit(50)
+  );
+
+  const staleThreshold = Date.now() - STALE_JOB_THRESHOLD_MS;
+  let reclaimed = 0;
+
+  for (const job of running) {
+    if (!job.heartbeatAt) continue;
+    const heartbeatMs = (job.heartbeatAt as Timestamp).toMillis();
+    if (heartbeatMs < staleThreshold) {
+      await updateDoc<ScanJob>(SCAN_JOBS_COLLECTION, job.id, {
+        status: 'pending',
+        workerId: null,
+        claimedAt: null,
+        heartbeatAt: null,
+        errorMessage: `Reclaimed: worker ${job.workerId ?? 'unknown'} went stale`,
+        updatedAt: serverTimestamp(),
+      });
+      reclaimed++;
+      console.log(`[queue] Reclaimed stale job ${job.id} (worker: ${job.workerId ?? 'unknown'})`);
+    }
+  }
+
+  return reclaimed;
+}
+
+// ─── Status transitions ───────────────────────────────────────────────────────
+
+/** Transitions a running job → completed, clears worker ownership. */
 export async function markJobCompleted(jobId: string): Promise<void> {
   await updateDoc<ScanJob>(SCAN_JOBS_COLLECTION, jobId, {
     status: 'completed',
     completedAt: serverTimestamp(),
+    workerId: null,
+    claimedAt: null,
+    heartbeatAt: null,
     updatedAt: serverTimestamp(),
   });
 }
@@ -131,27 +228,27 @@ export async function markJobFailed(
   const newAttempts = attempts + 1;
 
   if (newAttempts < maxAttempts) {
-    // Retry: re-queue as pending with backoff
-    const backoffMs = Math.pow(2, newAttempts) * 60 * 1000;
-    const retryAt = new Date(Date.now() + backoffMs);
-
+    // Retry: re-queue as pending with backoff, clear worker ownership
     await updateDoc<ScanJob>(SCAN_JOBS_COLLECTION, jobId, {
       status: 'pending',
       attempts: newAttempts,
       errorMessage,
       rateLimitedUntil: null,
+      workerId: null,
+      claimedAt: null,
+      heartbeatAt: null,
       updatedAt: serverTimestamp(),
     });
-
-    // Suppress unused variable warning — retryAt used for logging context
-    void retryAt;
   } else {
-    // Exhausted attempts → permanently failed
+    // Exhausted attempts → permanently failed, clear worker ownership
     await updateDoc<ScanJob>(SCAN_JOBS_COLLECTION, jobId, {
       status: 'failed',
       attempts: newAttempts,
       errorMessage,
       failedAt: serverTimestamp(),
+      workerId: null,
+      claimedAt: null,
+      heartbeatAt: null,
       updatedAt: serverTimestamp(),
     });
   }

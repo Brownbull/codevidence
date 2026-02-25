@@ -19,6 +19,7 @@ import { runInteractive } from './commands/run.js';
 import { startWorker } from './worker.js';
 import { handleDiscover } from './handlers/discover.js';
 import { handleScanRepo } from './handlers/scan-repo.js';
+import { handleRescanCandidate } from './handlers/rescan-candidate.js';
 import { authenticateWorker } from './auth.js';
 
 const program = new Command();
@@ -81,9 +82,12 @@ program
   .description('Start the polling worker loop (Ctrl-C to stop)')
   .action(async () => {
     await authenticateWorker();
+    const { getWorkerId } = await import('./worker-id.js');
+    console.log(`[scan] Worker ID: ${getWorkerId()}`);
     startWorker({
       discover: handleDiscover,
       'scan-repo': handleScanRepo,
+      'rescan-candidate': handleRescanCandidate,
     });
     console.log('[scan] Worker started. Press Ctrl-C to stop.');
   });
