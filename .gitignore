@@ -1,11 +1,20 @@
 # Environment & Secrets
 .env
 .env.local
+.env.*.local
 .env.production
 .env.staging
 secrets.json
 credentials.json
 service-account.json
+*-adminsdk-*.json
+firebase-adminsdk*.json
+*.pem
+*.key
+*.private
+private_key*.json
+gcp-key*.json
+keyfile*.json
 
 # Claude Code personal overrides
 CLAUDE.local.md
