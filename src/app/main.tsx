@@ -9,6 +9,8 @@ import { LoginPage } from '@/app/pages/LoginPage';
 import { SearchPage } from '@/app/pages/SearchPage';
 import { CandidateProfilePage } from '@/app/pages/CandidateProfilePage';
 import { AdminPage } from '@/app/pages/AdminPage';
+import { GrantAccessPage } from '@/app/pages/GrantAccessPage';
+import { ScoreMethodologyPage } from '@/app/pages/ScoreMethodologyPage';
 import './styles.css';
 
 const queryClient = new QueryClient({
@@ -28,11 +30,13 @@ function App() {
           <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/grant-access" element={<GrantAccessPage />} />
 
             {/* Authenticated */}
             <Route element={<PrivateRoute />}>
               <Route path="/search" element={<SearchPage />} />
               <Route path="/candidates/:id" element={<CandidateProfilePage />} />
+              <Route path="/methodology" element={<ScoreMethodologyPage />} />
             </Route>
 
             {/* Admin-only */}

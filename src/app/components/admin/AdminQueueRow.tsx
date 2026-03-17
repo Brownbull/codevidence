@@ -93,11 +93,11 @@ export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueR
           )}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[job.status] ?? 'bg-surface-inset text-th-text-secondary'}`}>
+          <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[job.status] ?? 'bg-surface-inset text-th-text-secondary'}`}>
             {job.status}
           </span>
           {(job.status === 'pending' || job.status === 'running') && (
-            <span className="text-[10px] text-th-text-muted italic">{getStatusDuration(job)}</span>
+            <span className="text-xs text-th-text-muted italic">{getStatusDuration(job)}</span>
           )}
         </span>
         <span className="text-th-text-secondary">{createdDate}</span>
@@ -114,7 +114,7 @@ export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueR
             <button
               type="button"
               onClick={onCancel}
-              className="px-2 py-0.5 bg-red-50 text-red-600 rounded hover:bg-red-100 text-[10px] transition-colors"
+              className="px-2 py-0.5 bg-red-50 text-red-600 rounded hover:bg-red-100 text-xs transition-colors"
             >
               Cancel
             </button>
@@ -124,14 +124,14 @@ export function AdminQueueRow({ job, onRetry, onDismiss, onCancel }: AdminQueueR
               <button
                 type="button"
                 onClick={onRetry}
-                className="px-2 py-0.5 bg-surface-inset text-th-text-secondary rounded hover:bg-th-hover text-[10px] transition-colors"
+                className="px-2 py-0.5 bg-surface-inset text-th-text-secondary rounded hover:bg-th-hover text-xs transition-colors"
               >
                 Retry
               </button>
               <button
                 type="button"
                 onClick={onDismiss}
-                className="px-2 py-0.5 bg-surface-inset text-th-text-secondary rounded hover:bg-th-hover text-[10px] transition-colors"
+                className="px-2 py-0.5 bg-surface-inset text-th-text-secondary rounded hover:bg-th-hover text-xs transition-colors"
               >
                 Dismiss
               </button>

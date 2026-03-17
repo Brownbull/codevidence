@@ -193,6 +193,118 @@
       "isSearchable": true
     },
     {
+      "id": "framework:angular",
+      "category": "framework",
+      "displayName": "Angular",
+      "aliases": ["angularjs"],
+      "sortOrder": 130,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:svelte",
+      "category": "framework",
+      "displayName": "Svelte",
+      "aliases": ["sveltekit"],
+      "sortOrder": 140,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:nestjs",
+      "category": "framework",
+      "displayName": "NestJS",
+      "aliases": ["nest"],
+      "sortOrder": 150,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:nuxt",
+      "category": "framework",
+      "displayName": "Nuxt.js",
+      "aliases": ["nuxtjs"],
+      "sortOrder": 160,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:remix",
+      "category": "framework",
+      "displayName": "Remix",
+      "aliases": [],
+      "sortOrder": 170,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:astro",
+      "category": "framework",
+      "displayName": "Astro",
+      "aliases": [],
+      "sortOrder": 180,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:hono",
+      "category": "framework",
+      "displayName": "Hono",
+      "aliases": [],
+      "sortOrder": 190,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:starlette",
+      "category": "framework",
+      "displayName": "Starlette",
+      "aliases": [],
+      "sortOrder": 200,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:streamlit",
+      "category": "framework",
+      "displayName": "Streamlit",
+      "aliases": [],
+      "sortOrder": 210,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:rocket",
+      "category": "framework",
+      "displayName": "Rocket",
+      "aliases": [],
+      "sortOrder": 220,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:warp",
+      "category": "framework",
+      "displayName": "Warp",
+      "aliases": [],
+      "sortOrder": 230,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:gin",
+      "category": "framework",
+      "displayName": "Gin",
+      "aliases": [],
+      "sortOrder": 240,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:fiber",
+      "category": "framework",
+      "displayName": "Fiber",
+      "aliases": ["gofiber"],
+      "sortOrder": 250,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:echo",
+      "category": "framework",
+      "displayName": "Echo",
+      "aliases": [],
+      "sortOrder": 260,
+      "isSearchable": true
+    },
+    {
       "id": "tool:docker",
       "category": "tool",
       "displayName": "Docker",
@@ -281,6 +393,254 @@
       "isSearchable": true
     },
     {
+      "id": "tool:webpack",
+      "category": "tool",
+      "displayName": "Webpack",
+      "aliases": [],
+      "sortOrder": 115,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:mongodb",
+      "category": "tool",
+      "displayName": "MongoDB",
+      "aliases": ["mongo", "mongoose"],
+      "sortOrder": 120,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:mysql",
+      "category": "tool",
+      "displayName": "MySQL",
+      "aliases": ["mariadb"],
+      "sortOrder": 130,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:sqlite",
+      "category": "tool",
+      "displayName": "SQLite",
+      "aliases": [],
+      "sortOrder": 140,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:kafka",
+      "category": "tool",
+      "displayName": "Apache Kafka",
+      "aliases": ["kafkajs"],
+      "sortOrder": 150,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:rabbitmq",
+      "category": "tool",
+      "displayName": "RabbitMQ",
+      "aliases": ["amqp"],
+      "sortOrder": 160,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:nats",
+      "category": "tool",
+      "displayName": "NATS",
+      "aliases": [],
+      "sortOrder": 170,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:elasticsearch",
+      "category": "tool",
+      "displayName": "Elasticsearch",
+      "aliases": ["elastic", "elk"],
+      "sortOrder": 180,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:prometheus",
+      "category": "tool",
+      "displayName": "Prometheus",
+      "aliases": [],
+      "sortOrder": 190,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:grafana",
+      "category": "tool",
+      "displayName": "Grafana",
+      "aliases": [],
+      "sortOrder": 195,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:sentry",
+      "category": "tool",
+      "displayName": "Sentry",
+      "aliases": [],
+      "sortOrder": 200,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:datadog",
+      "category": "tool",
+      "displayName": "Datadog",
+      "aliases": ["dd-trace"],
+      "sortOrder": 210,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:jupyter",
+      "category": "tool",
+      "displayName": "Jupyter",
+      "aliases": ["jupyterlab", "jupyter-notebook"],
+      "sortOrder": 220,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:tensorflow",
+      "category": "tool",
+      "displayName": "TensorFlow",
+      "aliases": ["tf", "keras"],
+      "sortOrder": 230,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:pytorch",
+      "category": "tool",
+      "displayName": "PyTorch",
+      "aliases": ["torch"],
+      "sortOrder": 240,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:pandas",
+      "category": "tool",
+      "displayName": "Pandas",
+      "aliases": [],
+      "sortOrder": 250,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:numpy",
+      "category": "tool",
+      "displayName": "NumPy",
+      "aliases": [],
+      "sortOrder": 260,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:scikit-learn",
+      "category": "tool",
+      "displayName": "scikit-learn",
+      "aliases": ["sklearn"],
+      "sortOrder": 265,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:scipy",
+      "category": "tool",
+      "displayName": "SciPy",
+      "aliases": [],
+      "sortOrder": 268,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:grpc",
+      "category": "tool",
+      "displayName": "gRPC",
+      "aliases": ["protobuf"],
+      "sortOrder": 270,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:celery",
+      "category": "tool",
+      "displayName": "Celery",
+      "aliases": [],
+      "sortOrder": 280,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:supabase",
+      "category": "tool",
+      "displayName": "Supabase",
+      "aliases": [],
+      "sortOrder": 290,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:stripe",
+      "category": "tool",
+      "displayName": "Stripe",
+      "aliases": [],
+      "sortOrder": 300,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:nginx",
+      "category": "tool",
+      "displayName": "Nginx",
+      "aliases": [],
+      "sortOrder": 310,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:ansible",
+      "category": "tool",
+      "displayName": "Ansible",
+      "aliases": [],
+      "sortOrder": 320,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:jenkins",
+      "category": "tool",
+      "displayName": "Jenkins",
+      "aliases": [],
+      "sortOrder": 330,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:circleci",
+      "category": "tool",
+      "displayName": "CircleCI",
+      "aliases": [],
+      "sortOrder": 340,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:gitlab-ci",
+      "category": "tool",
+      "displayName": "GitLab CI",
+      "aliases": [],
+      "sortOrder": 350,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:vercel",
+      "category": "tool",
+      "displayName": "Vercel",
+      "aliases": [],
+      "sortOrder": 360,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:netlify",
+      "category": "tool",
+      "displayName": "Netlify",
+      "aliases": [],
+      "sortOrder": 370,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:vagrant",
+      "category": "tool",
+      "displayName": "Vagrant",
+      "aliases": [],
+      "sortOrder": 380,
+      "isSearchable": true
+    },
+    {
       "id": "ai-agent-pattern:claude-md",
       "category": "ai-agent-pattern",
       "displayName": "CLAUDE.md / Agent Instructions",
@@ -326,6 +686,326 @@
       "displayName": "AI Context File",
       "aliases": ["ai-context.md", "ai-context"],
       "sortOrder": 60,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:claude-hooks",
+      "category": "ai-agent-pattern",
+      "displayName": "Claude Hooks",
+      "aliases": [".claude/hooks"],
+      "sortOrder": 11,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:claude-rules",
+      "category": "ai-agent-pattern",
+      "displayName": "Claude Rules",
+      "aliases": [".claude/rules"],
+      "sortOrder": 12,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:claude-knowledge",
+      "category": "ai-agent-pattern",
+      "displayName": "Claude Knowledge",
+      "aliases": [".claude/knowledge", "shared-memory"],
+      "sortOrder": 13,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:claude-workflows",
+      "category": "ai-agent-pattern",
+      "displayName": "Claude Workflows",
+      "aliases": [".claude/workflows"],
+      "sortOrder": 14,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:windsurf-rules",
+      "category": "ai-agent-pattern",
+      "displayName": "Windsurf Rules",
+      "aliases": [".windsurfrules", ".windsurf"],
+      "sortOrder": 70,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:cline-config",
+      "category": "ai-agent-pattern",
+      "displayName": "Cline Config",
+      "aliases": [".clinerules", ".cline"],
+      "sortOrder": 80,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:continue-config",
+      "category": "ai-agent-pattern",
+      "displayName": "Continue.dev Config",
+      "aliases": [".continue", ".continuerc.json"],
+      "sortOrder": 90,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:cody-config",
+      "category": "ai-agent-pattern",
+      "displayName": "Cody Config",
+      "aliases": [".cody"],
+      "sortOrder": 100,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:codex-config",
+      "category": "ai-agent-pattern",
+      "displayName": "Codex Config",
+      "aliases": ["codex.md", ".codex"],
+      "sortOrder": 110,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:amazonq-config",
+      "category": "ai-agent-pattern",
+      "displayName": "Amazon Q Config",
+      "aliases": [".amazonq"],
+      "sortOrder": 120,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:agents-md",
+      "category": "ai-agent-pattern",
+      "displayName": "AGENTS.md / Multi-Agent",
+      "aliases": ["agents-md", "multi-agent"],
+      "sortOrder": 130,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:mcp-config",
+      "category": "ai-agent-pattern",
+      "displayName": "MCP Configuration",
+      "aliases": ["mcp", "model-context-protocol"],
+      "sortOrder": 140,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:github-agents",
+      "category": "ai-agent-pattern",
+      "displayName": "GitHub Agents",
+      "aliases": ["github-agents"],
+      "sortOrder": 150,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:claude-commands",
+      "category": "ai-agent-pattern",
+      "displayName": "Claude Commands",
+      "aliases": ["claude-commands"],
+      "sortOrder": 160,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:agent-definitions",
+      "category": "ai-agent-pattern",
+      "displayName": "Agent Definitions",
+      "aliases": ["agent-defs", "agents-dir"],
+      "sortOrder": 170,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:agent-definition-file",
+      "category": "ai-agent-pattern",
+      "displayName": "Agent Definition File",
+      "aliases": ["agent-yaml", "agent-json"],
+      "sortOrder": 175,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:knowledge-base",
+      "category": "ai-agent-pattern",
+      "displayName": "Knowledge Base",
+      "aliases": ["knowledge-dir"],
+      "sortOrder": 180,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:prompt-templates",
+      "category": "ai-agent-pattern",
+      "displayName": "Prompt Templates",
+      "aliases": ["prompts-dir"],
+      "sortOrder": 190,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:agent-instincts",
+      "category": "ai-agent-pattern",
+      "displayName": "Agent Instincts",
+      "aliases": ["instincts"],
+      "sortOrder": 200,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:agent-knowledge",
+      "category": "ai-agent-pattern",
+      "displayName": "Agent Knowledge",
+      "aliases": ["agent-knowledge"],
+      "sortOrder": 210,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:agent-templates",
+      "category": "ai-agent-pattern",
+      "displayName": "Agent Templates",
+      "aliases": ["agent-templates"],
+      "sortOrder": 220,
+      "isSearchable": true
+    },
+    {
+      "id": "ai-agent-pattern:prompt-file",
+      "category": "ai-agent-pattern",
+      "displayName": "Prompt File",
+      "aliases": ["prompt-md"],
+      "sortOrder": 230,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:anthropic-sdk",
+      "category": "tool",
+      "displayName": "Anthropic SDK",
+      "aliases": ["anthropic", "claude-sdk"],
+      "sortOrder": 700,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:openai-sdk",
+      "category": "tool",
+      "displayName": "OpenAI SDK",
+      "aliases": ["openai"],
+      "sortOrder": 710,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:langchain",
+      "category": "framework",
+      "displayName": "LangChain",
+      "aliases": ["langchain"],
+      "sortOrder": 720,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:llamaindex",
+      "category": "framework",
+      "displayName": "LlamaIndex",
+      "aliases": ["llama-index", "llamaindex"],
+      "sortOrder": 730,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:crewai",
+      "category": "framework",
+      "displayName": "CrewAI",
+      "aliases": ["crewai"],
+      "sortOrder": 740,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:autogen",
+      "category": "framework",
+      "displayName": "AutoGen",
+      "aliases": ["autogen"],
+      "sortOrder": 750,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:semantic-kernel",
+      "category": "framework",
+      "displayName": "Semantic Kernel",
+      "aliases": ["semantic-kernel"],
+      "sortOrder": 760,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:vercel-ai-sdk",
+      "category": "framework",
+      "displayName": "Vercel AI SDK",
+      "aliases": ["ai-sdk", "vercel-ai"],
+      "sortOrder": 770,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:langgraph",
+      "category": "framework",
+      "displayName": "LangGraph",
+      "aliases": ["langgraph"],
+      "sortOrder": 775,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:haystack",
+      "category": "framework",
+      "displayName": "Haystack",
+      "aliases": ["haystack"],
+      "sortOrder": 776,
+      "isSearchable": true
+    },
+    {
+      "id": "framework:dspy",
+      "category": "framework",
+      "displayName": "DSPy",
+      "aliases": ["dspy"],
+      "sortOrder": 777,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:huggingface",
+      "category": "tool",
+      "displayName": "Hugging Face",
+      "aliases": ["huggingface", "hf"],
+      "sortOrder": 780,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:ollama",
+      "category": "tool",
+      "displayName": "Ollama",
+      "aliases": ["ollama"],
+      "sortOrder": 781,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:pinecone",
+      "category": "tool",
+      "displayName": "Pinecone",
+      "aliases": ["pinecone"],
+      "sortOrder": 782,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:chromadb",
+      "category": "tool",
+      "displayName": "ChromaDB",
+      "aliases": ["chromadb", "chroma"],
+      "sortOrder": 783,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:weaviate",
+      "category": "tool",
+      "displayName": "Weaviate",
+      "aliases": ["weaviate"],
+      "sortOrder": 784,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:qdrant",
+      "category": "tool",
+      "displayName": "Qdrant",
+      "aliases": ["qdrant"],
+      "sortOrder": 785,
+      "isSearchable": true
+    },
+    {
+      "id": "tool:milvus",
+      "category": "tool",
+      "displayName": "Milvus",
+      "aliases": ["milvus"],
+      "sortOrder": 786,
       "isSearchable": true
     },
     {

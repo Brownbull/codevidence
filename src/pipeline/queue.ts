@@ -11,6 +11,7 @@ import type { ScanJob, ScanJobType, DiscoverPayload, ScanRepoPayload, RescanPayl
 import {
   addDoc,
   updateDoc,
+  deleteDoc,
   queryDocs,
   serverTimestamp,
   where,
@@ -269,6 +270,13 @@ export async function markJobRateLimited(jobId: string, retryAfterMs: number): P
     rateLimitedUntil: rateLimitedUntil as unknown as Timestamp,
     updatedAt: serverTimestamp(),
   });
+}
+
+// ─── Cancel ──────────────────────────────────────────────────────────────────
+
+/** Cancels a pending job by deleting it from the queue. Only pending jobs can be cancelled. */
+export async function cancelJob(jobId: string): Promise<void> {
+  await deleteDoc(SCAN_JOBS_COLLECTION, jobId);
 }
 
 // ─── Status query ─────────────────────────────────────────────────────────────

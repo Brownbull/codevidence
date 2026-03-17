@@ -12,11 +12,15 @@ export interface DiscoverPayload {
 export interface ScanRepoPayload {
   repoFullName: string;
   targetDepth: 'layer1' | 'layer2';
+  /** Optional fine-grained PAT for accessing private repositories. */
+  githubToken?: string;
 }
 
 export interface RescanPayload {
   targetType: 'candidate' | 'repo';
   targetId: string;
+  /** Optional fine-grained PAT for accessing private repositories. */
+  githubToken?: string;
 }
 
 /**

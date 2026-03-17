@@ -40,7 +40,7 @@ export function CandidateCard({ candidate, matchedTags = [] }: CandidateCardProp
         <div className="flex-1 min-w-0">
           {/* Top row: username + badges */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="font-semibold text-sm text-th-text-primary">
+            <span className="font-semibold text-base text-th-text-primary">
               {candidate.githubUsername}
             </span>
             <SkillScoreBadge score={candidate.skillScore} />

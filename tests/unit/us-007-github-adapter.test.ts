@@ -72,7 +72,7 @@ describe('US-007: GitHub Adapter', () => {
   });
 
   it('exports createGitHubAdapter factory function', () => {
-    expect(src).toContain('export function createGitHubAdapter(): SourceAdapter');
+    expect(src).toContain('export function createGitHubAdapter(token?: string): SourceAdapter');
   });
 
   it('exports GitHubAdapter class implementing SourceAdapter', () => {
@@ -237,7 +237,7 @@ describe('US-007: Discover Handler', () => {
     expect(src).toContain('owner: repo.owner');
     expect(src).toContain('name: repo.name');
     expect(src).toContain('fullName: repo.fullName');
-    expect(src).toContain('primaryLanguage: repo.primaryLanguage');
+    expect(src).toContain('primaryLanguage: normalizeGitHubLanguage(repo.primaryLanguage)');
     expect(src).toContain('starCount: repo.starCount');
     expect(src).toContain('forkCount: repo.forkCount');
     expect(src).toContain('topics: repo.topics');

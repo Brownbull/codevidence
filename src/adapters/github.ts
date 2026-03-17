@@ -16,6 +16,7 @@ import type {
   DiscoverResult,
   DiscoveredRepo,
   RateLimitInfo,
+  UserProfile,
 } from './source-adapter.js';
 
 /** Threshold below which we start throttling requests. */
@@ -78,11 +79,11 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Creates a GitHubAdapter instance.
- * Uses GITHUB_PAT from environment for authenticated API access.
+ * Uses the provided token or falls back to GITHUB_PAT from environment.
  */
-export function createGitHubAdapter(): SourceAdapter {
-  const token = getGitHubToken();
-  const octokit = new Octokit({ auth: token });
+export function createGitHubAdapter(token?: string): SourceAdapter {
+  const effectiveToken = token ?? getGitHubToken();
+  const octokit = new Octokit({ auth: effectiveToken });
 
   return new GitHubAdapter(octokit);
 }
@@ -185,5 +186,101 @@ export class GitHubAdapter implements SourceAdapter {
     }
 
     return { repos, totalCount, rateLimit: lastRateLimit };
+  }
+
+  /**
+   * List repos for a user. Uses listForAuthenticatedUser (includes private repos
+   * when the token belongs to the target user), filtered to owner-only repos.
+   */
+  async listUserRepos(username: string, limit: number): Promise<DiscoverResult> {
+    const repos: DiscoveredRepo[] = [];
+    const perPage = Math.min(limit, 100);
+    let page = 1;
+    let lastRateLimit: RateLimitInfo = { remaining: 0, resetAtMs: 0, limit: 0 };
+
+    while (repos.length < limit) {
+      try {
+        const response = await this.octokit.repos.listForAuthenticatedUser({
+          per_page: perPage,
+          page,
+          sort: 'updated',
+          direction: 'desc',
+          affiliation: 'owner',
+        });
+
+        lastRateLimit = extractRateLimit(
+          response.headers as Record<string, string | undefined>
+        );
+
+        const ownedItems = response.data.filter(
+          (item) => item.owner.login.toLowerCase() === username.toLowerCase()
+        );
+
+        for (const item of ownedItems) {
+          if (repos.length >= limit) break;
+          repos.push({
+            fullName: item.full_name,
+            owner: item.owner.login,
+            name: item.name,
+            primaryLanguage: item.language ?? null,
+            starCount: item.stargazers_count ?? 0,
+            forkCount: item.forks_count ?? 0,
+            lastPushedAt: item.pushed_at ?? new Date().toISOString(),
+            topics: item.topics ?? [],
+            githubUrl: item.html_url,
+          });
+        }
+
+        if (response.data.length < perPage) break;
+
+        if (lastRateLimit.remaining < RATE_LIMIT_THROTTLE_THRESHOLD) {
+          await sleep(THROTTLE_DELAY_MS);
+        }
+
+        page++;
+      } catch (err: unknown) {
+        const error = err as { status?: number; response?: { headers?: Record<string, string> } };
+        if (error.status === 429 || error.status === 403) {
+          const errorRateLimit = extractRateLimit(error.response?.headers ?? {});
+          const retryAfterMs = Math.max(errorRateLimit.resetAtMs - Date.now(), 60_000);
+          throw new GitHubRateLimitError(
+            `GitHub API rate limited (HTTP ${error.status}). Retry after ${Math.ceil(retryAfterMs / 60_000)}m.`,
+            retryAfterMs,
+            errorRateLimit
+          );
+        }
+        throw err;
+      }
+    }
+
+    return { repos, totalCount: repos.length, rateLimit: lastRateLimit };
+  }
+
+  /**
+   * Fetch a GitHub user's public profile.
+   * Returns null if the user is not found (404).
+   */
+  async getUserProfile(username: string): Promise<UserProfile | null> {
+    try {
+      const response = await this.octokit.users.getByUsername({ username });
+      const d = response.data;
+      return {
+        login: d.login,
+        email: d.email ?? null,
+        avatarUrl: d.avatar_url ?? null,
+        name: d.name ?? null,
+        bio: d.bio ?? null,
+        location: d.location ?? null,
+        company: d.company ?? null,
+        hireable: d.hireable ?? null,
+        websiteUrl: d.blog || null,
+        followers: d.followers ?? null,
+        createdAt: d.created_at ?? null,
+      };
+    } catch (err: unknown) {
+      const error = err as { status?: number };
+      if (error.status === 404) return null;
+      throw err;
+    }
   }
 }

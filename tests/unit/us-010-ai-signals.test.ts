@@ -70,41 +70,42 @@ describe('US-010: AI Signals Module Structure', () => {
 // ─── AI Config File Pattern Detection ───────────────────────────────────────────
 
 describe('US-010: AI Config File Patterns', () => {
-  const src = readSource('src/pipeline/analysis/ai-signals.ts');
+  const patternsSrc = readSource('src/pipeline/analysis/ai-config-patterns.ts');
 
   it('detects CLAUDE.md', () => {
-    expect(src).toContain("'CLAUDE.md'");
+    expect(patternsSrc).toContain("'CLAUDE.md'");
   });
 
   it('detects .claude/ directory', () => {
-    expect(src).toContain("'.claude'");
+    expect(patternsSrc).toContain("'.claude'");
   });
 
   it('detects .cursor/rules', () => {
-    expect(src).toContain("'.cursor/rules'");
+    expect(patternsSrc).toContain("'.cursor/rules'");
   });
 
   it('detects .cursor/settings.json', () => {
-    expect(src).toContain("'.cursor/settings.json'");
+    expect(patternsSrc).toContain("'.cursor/settings.json'");
   });
 
   it('detects ai-context.md', () => {
-    expect(src).toContain("'ai-context.md'");
+    expect(patternsSrc).toContain("'ai-context.md'");
   });
 
   it('detects .github/copilot-instructions.md', () => {
-    expect(src).toContain("'.github/copilot-instructions.md'");
+    expect(patternsSrc).toContain("'.github/copilot-instructions.md'");
   });
 
   it('detects .aider* files via prefix pattern', () => {
-    expect(src).toContain("'.aider'");
+    expect(patternsSrc).toContain("'.aider'");
   });
 });
 
 // ─── Diff Complexity Classification ─────────────────────────────────────────────
 
 describe('US-010: Diff Complexity Classification', () => {
-  const src = readSource('src/pipeline/analysis/ai-signals.ts');
+  const src = readSource('src/pipeline/analysis/ai-signals.ts') +
+    readSource('src/pipeline/analysis/ai-signals-helpers.ts');
 
   it('classifies minimal (<10 lines)', () => {
     expect(src).toContain("totalLines < 10");
@@ -124,7 +125,8 @@ describe('US-010: Diff Complexity Classification', () => {
 // ─── Evolution Detection ────────────────────────────────────────────────────────
 
 describe('US-010: Evolution and Origin Detection', () => {
-  const src = readSource('src/pipeline/analysis/ai-signals.ts');
+  const src = readSource('src/pipeline/analysis/ai-signals.ts') +
+    readSource('src/pipeline/analysis/ai-signals-helpers.ts');
 
   it('sets isEvolved = modificationCount > 3', () => {
     expect(src).toContain('modificationCount > 3');
@@ -153,26 +155,27 @@ describe('US-010: Evolution and Origin Detection', () => {
 
 describe('US-010: Co-Authored-By AI Detection', () => {
   const src = readSource('src/pipeline/analysis/ai-signals.ts');
+  const patternsSrc = readSource('src/pipeline/analysis/ai-config-patterns.ts');
 
   it('checks for co-authored-by trailers', () => {
     expect(src).toContain("'co-authored-by:'");
   });
 
   it('knows GitHub Copilot as an AI tool', () => {
-    expect(src).toContain("'github copilot'");
-    expect(src).toContain("'copilot'");
+    expect(patternsSrc).toContain("'github copilot'");
+    expect(patternsSrc).toContain("'copilot'");
   });
 
   it('knows Cursor as an AI tool', () => {
-    expect(src).toContain("'cursor'");
+    expect(patternsSrc).toContain("'cursor'");
   });
 
   it('knows Claude as an AI tool', () => {
-    expect(src).toContain("'claude'");
+    expect(patternsSrc).toContain("'claude'");
   });
 
   it('knows Aider as an AI tool', () => {
-    expect(src).toContain("'aider'");
+    expect(patternsSrc).toContain("'aider'");
   });
 
   it('reads up to 200 commit messages', () => {
@@ -183,7 +186,8 @@ describe('US-010: Co-Authored-By AI Detection', () => {
 // ─── Scan Repo Handler Integration ──────────────────────────────────────────────
 
 describe('US-010: Scan Repo Handler — AI Signals Integration', () => {
-  const src = readSource('src/pipeline/handlers/scan-repo.ts');
+  const src = readSource('src/pipeline/handlers/scan-repo.ts') +
+    readSource('src/pipeline/handlers/scan-repo-helpers.ts');
 
   it('imports analyzeAiSignals', () => {
     expect(src).toContain("from '../analysis/ai-signals.js'");

@@ -16,6 +16,8 @@ import { runDiscover } from './commands/discover.js';
 import { runRescan } from './commands/rescan.js';
 import { runStatus } from './commands/status.js';
 import { runInteractive } from './commands/run.js';
+import { runRebuildCounts } from './commands/rebuild-counts.js';
+import { runNormalizeLanguages } from './commands/normalize-languages.js';
 import { startWorker } from './worker.js';
 import { handleDiscover } from './handlers/discover.js';
 import { handleScanRepo } from './handlers/scan-repo.js';
@@ -53,10 +55,11 @@ program
     'What to rescan: "candidate" or "repo"'
   )
   .requiredOption('-i, --target-id <id>', 'Firestore document ID of the target')
-  .action(async (opts: { targetType: string; targetId: string }) => {
+  .option('--token <pat>', 'Fine-grained GitHub PAT for private repo access')
+  .action(async (opts: { targetType: string; targetId: string; token?: string }) => {
     await authenticateWorker();
     const targetType = opts.targetType as 'candidate' | 'repo';
-    await runRescan({ targetType, targetId: opts.targetId });
+    await runRescan({ targetType, targetId: opts.targetId, githubToken: opts.token });
     process.exit(0);
   });
 
@@ -100,6 +103,28 @@ program
   .action(async () => {
     await authenticateWorker();
     await runInteractive();
+    process.exit(0);
+  });
+
+// ─── scan rebuild-counts ─────────────────────────────────────────────────────
+
+program
+  .command('rebuild-counts')
+  .description('Rebuild taxonomy candidateCount from all candidate skillTags')
+  .action(async () => {
+    await authenticateWorker();
+    await runRebuildCounts();
+    process.exit(0);
+  });
+
+// ─── scan normalize-languages ───────────────────────────────────────────────
+
+program
+  .command('normalize-languages')
+  .description('Fix repository primaryLanguage values and rebuild candidate profiles')
+  .action(async () => {
+    await authenticateWorker();
+    await runNormalizeLanguages();
     process.exit(0);
   });
 

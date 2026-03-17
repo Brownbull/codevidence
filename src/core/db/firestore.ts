@@ -214,6 +214,7 @@ export {
   limit,
   startAfter,
   endBefore,
+  increment,
   type QueryConstraint,
   type Timestamp,
   type FieldValue,

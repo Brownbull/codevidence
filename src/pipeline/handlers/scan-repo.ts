@@ -1,66 +1,59 @@
-/**
- * src/pipeline/handlers/scan-repo.ts — scan-repo job handler.
- *
- * Handles scan-repo ScanJobs for Layer 1 (and later Layer 2) analysis.
- * Clones the repository, runs analysis, updates Firestore, then deletes the clone.
- *
- * CRITICAL: Clone directory is ALWAYS deleted after analysis, success or failure.
- */
+/** scan-repo job handler. Clones, analyzes, updates Firestore, deletes clone. */
 
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { rmSync, mkdirSync, existsSync } from 'fs';
-import { randomBytes } from 'crypto';
 import simpleGit from 'simple-git';
 
 import type { ScanJob, ScanRepoPayload } from '../../types/scan-job.js';
 import { repoDocId, type Repository } from '../../types/repository.js';
-import type { TaxonomyItem } from '../../types/taxonomy.js';
+import { storeUnknownSignals } from './store-unknown-signals.js';
 import { analyzeLayer1 } from '../analysis/layer1.js';
 import { analyzeLayer2 } from '../analysis/layer2.js';
 import { analyzeAiSignals } from '../analysis/ai-signals.js';
+import { analyzeProficiency } from '../analysis/proficiency.js';
+import { analyzeImports } from '../analysis/import-analysis.js';
+import { analyzeCodeQuality } from '../analysis/code-quality.js';
+import { analyzeDiffStats } from '../analysis/diff-stats.js';
+import { analyzeCodeDurability } from '../analysis/code-durability.js';
+import { analyzeBehavioralPatterns } from '../analysis/behavioral-patterns.js';
+import { analyzeCommitMessageQuality } from '../analysis/commit-messages.js';
+import { analyzeDesignPatterns } from '../analysis/design-patterns.js';
+import { analyzeCodeStyle } from '../analysis/code-style.js';
 import { updateCandidateProfile } from '../scoring/skill-score.js';
+import { SCANNER_VERSION } from '../scanner-version.js';
+import { logLayer1Extras, logLayer2Extras } from './scan-repo-logging.js';
+import { buildCloneUrl, createTempCloneDir, deleteCloneDir, buildLayer2UpdateData } from './scan-repo-helpers.js';
 import {
   getDoc,
   updateDoc,
-  setDoc,
   serverTimestamp,
-  queryDocs,
-  where,
 } from '../../core/db/firestore.js';
 
 const REPOSITORIES_COLLECTION = 'repositories';
-const TAXONOMY_COLLECTION = 'taxonomy';
 
 /**
  * Handles a scan-repo ScanJob.
  *
- * For targetDepth: layer1:
- * 1. Clone repo (shallow --depth 1)
- * 2. Run Layer 1 analysis
- * 3. Normalise unknown signals → new taxonomy items (isSearchable: false)
- * 4. Update Repository doc
- * 5. Delete clone directory (always, even on failure)
+ * For targetDepth: layer1 — shallow clone + Layer 1 analysis.
+ * For targetDepth: layer2 — full clone + Layer 1 + Layer 2 analysis.
  */
 export async function handleScanRepo(job: ScanJob & { id: string }): Promise<void> {
   const payload = job.payload as ScanRepoPayload;
-  const { repoFullName, targetDepth } = payload;
+  const { repoFullName, targetDepth, githubToken } = payload;
 
   console.log(
     `[scan-repo] Processing job ${job.id}: ` +
-    `repo=${repoFullName} depth=${targetDepth}`
+    `repo=${repoFullName} depth=${targetDepth}` +
+    (githubToken ? ' (with developer token)' : '')
   );
 
-  // Fetch the Repository doc to get metadata
   const repoDoc = await getDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repoFullName));
   if (!repoDoc) {
     throw new Error(`Repository not found in Firestore: ${repoFullName}`);
   }
 
   if (targetDepth === 'layer1') {
-    await runLayer1(job.id, repoDoc);
+    await runLayer1(job.id, repoDoc, githubToken);
   } else if (targetDepth === 'layer2') {
-    await runLayer2(job.id, repoDoc);
+    await runLayer2(job.id, repoDoc, githubToken);
   } else {
     throw new Error(`Unsupported targetDepth: ${targetDepth}`);
   }
@@ -71,196 +64,173 @@ export async function handleScanRepo(job: ScanJob & { id: string }): Promise<voi
  */
 async function runLayer1(
   jobId: string,
-  repo: Repository & { id: string }
+  repo: Repository & { id: string },
+  githubToken?: string
 ): Promise<void> {
   const cloneDir = createTempCloneDir(repo.fullName);
 
   try {
-    // Shallow clone (--depth 1 for Layer 1)
+    const cloneUrl = buildCloneUrl(repo.githubUrl, githubToken);
     console.log(`[scan-repo] Cloning ${repo.fullName} (shallow) to ${cloneDir}...`);
     const git = simpleGit();
-    await git.clone(repo.githubUrl, cloneDir, ['--depth', '1']);
+    await git.clone(cloneUrl, cloneDir, ['--depth', '1']);
     console.log(`[scan-repo] Clone complete.`);
 
-    // Run Layer 1 analysis
     const result = analyzeLayer1(cloneDir, repo.primaryLanguage);
+    const { profResult, importResult, codeQuality, styleResult } =
+      runLayer1Analyses(cloneDir, result);
+    logLayer1AllResults(result, profResult, importResult, codeQuality, styleResult);
 
-    console.log(
-      `[scan-repo] Layer 1 analysis: ` +
-      `lang=${result.primaryLanguage} ` +
-      `frameworks=[${result.detectedFrameworks.join(', ')}] ` +
-      `tools=[${result.detectedTools.join(', ')}] ` +
-      `deps=${result.detectedDependencies.length} ` +
-      `unknowns=${result.unknownSignals.length}`
-    );
-
-    // Store unknown signals as new taxonomy items (isSearchable: false)
     if (result.unknownSignals.length > 0) {
       await storeUnknownSignals(result.unknownSignals);
     }
 
-    // Update Repository doc with Layer 1 results
     await updateDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repo.fullName), {
       primaryLanguage: result.primaryLanguage,
       detectedFrameworks: result.detectedFrameworks,
       detectedTools: result.detectedTools,
       detectedDependencies: result.detectedDependencies,
+      proficiencySignals: profResult.proficiencySignals,
+      techProficiency: profResult.techProficiency,
+      confirmedImports: importResult.confirmedImports,
+      frameworkDepth: importResult.frameworkDepth,
+      codeQualityMetrics: codeQuality,
+      codeStyleMetrics: styleResult,
       scanStatus: 'layer1',
+      scannerVersion: SCANNER_VERSION,
       lastScanned: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
 
     console.log(`[scan-repo] Repository ${repo.fullName} updated to scanStatus: layer1.`);
   } finally {
-    // ALWAYS delete clone directory — success or failure
     deleteCloneDir(cloneDir);
   }
 }
 
 /**
- * Runs Layer 2 analysis: full clone → analysis → update Firestore → delete clone.
+ * Runs Layer 2 analysis: full clone → Layer 1 + Layer 2 → update Firestore → delete clone.
+ * Also runs Layer 1 analyses on the full clone to ensure proficiency, imports, quality,
+ * and style fields are populated (a full clone is a superset of a shallow clone).
  */
 async function runLayer2(
   jobId: string,
-  repo: Repository & { id: string }
+  repo: Repository & { id: string },
+  githubToken?: string
 ): Promise<void> {
   const cloneDir = createTempCloneDir(repo.fullName);
 
   try {
-    // Full clone (no --depth flag for Layer 2 — needs full commit history)
+    const cloneUrl = buildCloneUrl(repo.githubUrl, githubToken);
     console.log(`[scan-repo] Cloning ${repo.fullName} (full) to ${cloneDir}...`);
     const git = simpleGit();
-    await git.clone(repo.githubUrl, cloneDir);
+    await git.clone(cloneUrl, cloneDir);
     console.log(`[scan-repo] Full clone complete.`);
 
-    // Run Layer 2 analysis and AI signal detection in parallel
-    const [result, aiResult] = await Promise.all([
-      analyzeLayer2(cloneDir, repo.owner),
-      analyzeAiSignals(cloneDir),
-    ]);
+    // Layer 1 analyses on the full clone
+    const l1Result = analyzeLayer1(cloneDir, repo.primaryLanguage);
+    const l1Extra = runLayer1Analyses(cloneDir, l1Result);
+    logLayer1AllResults(l1Result, l1Extra.profResult, l1Extra.importResult, l1Extra.codeQuality, l1Extra.styleResult);
 
-    console.log(
-      `[scan-repo] Layer 2 analysis: ` +
-      `commits=${result.commitCount} ` +
-      `span=${result.commitSpanMonths}mo ` +
-      `owner=${result.isOwnerRepo} ` +
-      `tests=${result.testFileCount} ` +
-      `coverage=${result.estimatedTestCoverage}`
+    // Layer 2 analyses in parallel
+    const [result, aiResult, diffStats, durability, behavioral, commitMsg, designResult] =
+      await Promise.all([
+        analyzeLayer2(cloneDir, repo.owner),
+        analyzeAiSignals(cloneDir),
+        Promise.resolve(analyzeDiffStats(cloneDir)),
+        analyzeCodeDurability(cloneDir, repo.owner),
+        analyzeBehavioralPatterns(cloneDir),
+        analyzeCommitMessageQuality(cloneDir),
+        Promise.resolve(analyzeDesignPatterns(cloneDir, repo.primaryLanguage)),
+      ]);
+
+    logLayer2Results(result, aiResult, diffStats, durability, behavioral, commitMsg, designResult);
+
+    const updateData = buildCombinedUpdateData(
+      l1Result, l1Extra, result, aiResult, diffStats, durability, behavioral, commitMsg, designResult,
     );
 
-    console.log(
-      `[scan-repo] AI signals: ` +
-      `configFiles=${aiResult.aiConfigFiles.length} ` +
-      `coAuthored=${aiResult.coAuthoredByAI} ` +
-      `patterns=[${aiResult.aiAttributionPatterns.join(', ')}]`
-    );
-
-    // Convert AI config file signal dates for Firestore
-    const aiConfigFiles = aiResult.aiConfigFiles.map((signal) => ({
-      fileName: signal.fileName,
-      firstDetectedAt: signal.firstDetectedAt,
-      modificationCount: signal.modificationCount,
-      lastModifiedAt: signal.lastModifiedAt,
-      diffComplexity: signal.diffComplexity,
-      isEvolved: signal.isEvolved,
-      originSignal: signal.originSignal,
-    }));
-
-    // Update Repository doc with Layer 2 + AI signal results
-    const updateData: Record<string, unknown> = {
-      commitCount: result.commitCount,
-      commitSpanMonths: result.commitSpanMonths,
-      isOwnerRepo: result.isOwnerRepo,
-      hasTestDirectory: result.hasTestDirectory,
-      estimatedTestCoverage: result.estimatedTestCoverage,
-      aiConfigFiles,
-      coAuthoredByAI: aiResult.coAuthoredByAI,
-      aiAttributionPatterns: aiResult.aiAttributionPatterns,
-      scanStatus: 'layer2',
-      lastScanned: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    // Only set dates if they exist (avoid writing null over existing values)
-    if (result.firstCommitAt) {
-      updateData.firstCommitAt = result.firstCommitAt;
-    }
-    if (result.lastCommitAt) {
-      updateData.lastCommitAt = result.lastCommitAt;
+    if (l1Result.unknownSignals.length > 0) {
+      await storeUnknownSignals(l1Result.unknownSignals);
     }
 
     await updateDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repo.fullName), updateData);
-
     console.log(`[scan-repo] Repository ${repo.fullName} updated to scanStatus: layer2.`);
-
-    // Build/update candidate profile for this repo's owner
     await updateCandidateProfile(repo.owner);
   } finally {
-    // ALWAYS delete clone directory — success or failure
     deleteCloneDir(cloneDir);
   }
 }
 
-/**
- * Creates a unique temporary directory for cloning.
- */
-function createTempCloneDir(repoFullName: string): string {
-  const safeName = repoFullName.replace(/\//g, '_');
-  const uniqueId = randomBytes(4).toString('hex');
-  const dir = join(tmpdir(), `css-clone-${safeName}-${uniqueId}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
+// ─── Shared Helpers ─────────────────────────────────────────────────────────
+
+type L1Extra = ReturnType<typeof runLayer1Analyses>;
+
+/** Runs proficiency, import, code quality, and code style analyses. */
+function runLayer1Analyses(cloneDir: string, l1Result: ReturnType<typeof analyzeLayer1>) {
+  return {
+    profResult: analyzeProficiency(cloneDir, l1Result),
+    importResult: analyzeImports(cloneDir, l1Result.detectedFrameworks, l1Result.primaryLanguage),
+    codeQuality: analyzeCodeQuality(cloneDir, l1Result.primaryLanguage),
+    styleResult: analyzeCodeStyle(cloneDir, l1Result.primaryLanguage),
+  };
 }
 
-/**
- * Deletes the clone directory. Never throws — logs errors.
- */
-function deleteCloneDir(dir: string): void {
-  try {
-    if (existsSync(dir)) {
-      rmSync(dir, { recursive: true, force: true });
-      console.log(`[scan-repo] Clone directory deleted: ${dir}`);
-    }
-  } catch (err) {
-    console.error(`[scan-repo] Failed to delete clone directory ${dir}:`, err);
-  }
+/** Logs all Layer 1 analysis results including code style. */
+function logLayer1AllResults(
+  result: ReturnType<typeof analyzeLayer1>,
+  profResult: L1Extra['profResult'], importResult: L1Extra['importResult'],
+  codeQuality: L1Extra['codeQuality'], styleResult: L1Extra['styleResult'],
+): void {
+  console.log(
+    `[scan-repo] Layer 1: lang=${result.primaryLanguage} ` +
+    `frameworks=[${result.detectedFrameworks.join(', ')}] ` +
+    `tools=[${result.detectedTools.join(', ')}] deps=${result.detectedDependencies.length} ` +
+    `unknowns=${result.unknownSignals.length}`
+  );
+  logLayer1Extras(profResult, importResult, codeQuality);
+  console.log(
+    `[scan-repo] Code style: composite=${styleResult.compositeStyleScore} ` +
+    `tools=[${styleResult.formattingToolsDetected.join(', ')}] files=${styleResult.filesAnalyzed}`
+  );
 }
 
-/**
- * Stores unknown signals as taxonomy items with isSearchable: false.
- * Uses setDoc for idempotency — running twice won't duplicate.
- */
-async function storeUnknownSignals(
-  signals: Array<{ name: string; category: 'framework' | 'tool'; source: string }>
-): Promise<void> {
-  const now = serverTimestamp();
+/** Builds combined L1 + L2 Firestore update data. */
+function buildCombinedUpdateData(
+  l1Result: ReturnType<typeof analyzeLayer1>, l1Extra: L1Extra,
+  ...args: L2Args
+): Record<string, unknown> {
+  const updateData: Record<string, unknown> = {
+    primaryLanguage: l1Result.primaryLanguage,
+    detectedFrameworks: l1Result.detectedFrameworks,
+    detectedTools: l1Result.detectedTools,
+    detectedDependencies: l1Result.detectedDependencies,
+    proficiencySignals: l1Extra.profResult.proficiencySignals,
+    techProficiency: l1Extra.profResult.techProficiency,
+    confirmedImports: l1Extra.importResult.confirmedImports,
+    frameworkDepth: l1Extra.importResult.frameworkDepth,
+    codeQualityMetrics: l1Extra.codeQuality,
+    codeStyleMetrics: l1Extra.styleResult,
+    ...buildLayer2UpdateData(...args),
+  };
+  if (args[0].firstCommitAt) updateData.firstCommitAt = args[0].firstCommitAt;
+  if (args[0].lastCommitAt) updateData.lastCommitAt = args[0].lastCommitAt;
+  return updateData;
+}
 
-  await Promise.all(
-    signals.map(async (signal) => {
-      // Replace "/" in names like "@tanstack/react-query" — Firestore doc IDs cannot contain "/"
-      const safeName = signal.name.replace(/\//g, '__');
-      const taxonomyId = `${signal.category}:${safeName}`;
+type L2Args = Parameters<typeof buildLayer2UpdateData>;
 
-      // Check if already exists to avoid overwriting curated items
-      const existing = await getDoc<TaxonomyItem>(TAXONOMY_COLLECTION, taxonomyId);
-      if (existing) return;
-
-      const item: Omit<TaxonomyItem, 'id'> = {
-        category: signal.category,
-        displayName: signal.name,
-        aliases: [],
-        candidateCount: 0,
-        isSeeded: false,
-        isSearchable: false, // Admin must review and enable
-        firstDetectedAt: now as unknown as TaxonomyItem['firstDetectedAt'],
-        addedToTaxonomyAt: now as unknown as TaxonomyItem['addedToTaxonomyAt'],
-        sortOrder: 999,
-        createdAt: now as unknown as TaxonomyItem['createdAt'],
-        updatedAt: now as unknown as TaxonomyItem['updatedAt'],
-      };
-
-      await setDoc<Omit<TaxonomyItem, 'id'>>(TAXONOMY_COLLECTION, taxonomyId, item);
-      console.log(`[scan-repo] New taxonomy item stored: ${taxonomyId} (isSearchable: false)`);
-    })
+function logLayer2Results(...args: L2Args): void {
+  const [result, aiResult, diffStats, durability, behavioral, commitMsg, designResult] = args;
+  console.log(
+    `[scan-repo] Layer 2: commits=${result.commitCount} span=${result.commitSpanMonths}mo ` +
+    `owner=${result.isOwnerRepo} coverage=${result.estimatedTestCoverage} ` +
+    `aiConfigs=${aiResult.aiConfigFiles.length} diffLOC=${diffStats.logicLinesOfCode}`
+  );
+  logLayer2Extras(durability, behavioral, commitMsg);
+  console.log(
+    `[scan-repo] Design: signals=${designResult.designPatternSignals.length} ` +
+    `arch=${designResult.architectureStyle ?? 'none'} ` +
+    `anti=${designResult.antiPatternCount} tier=${designResult.designSophisticationTier}`
   );
 }

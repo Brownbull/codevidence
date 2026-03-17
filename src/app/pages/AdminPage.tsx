@@ -7,6 +7,7 @@
 import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/app/auth/AuthContext';
+import { SettingsPopover } from '@/app/components/layout/SettingsPopover';
 import { PipelineTab } from '@/app/components/admin/PipelineTab';
 import { QueueTab } from '@/app/components/admin/QueueTab';
 import { FlagsTab } from '@/app/components/admin/FlagsTab';
@@ -38,11 +39,11 @@ export function AdminPage() {
       {/* Top nav */}
       <nav className="h-12 bg-slate-900 flex items-center justify-between px-3 md:px-4 sticky top-0 z-50">
         <div className="flex items-center gap-2 sm:gap-4">
-          <Link to="/search" className="text-white font-semibold text-sm font-sans tracking-tight">
+          <Link to="/search" className="text-white font-semibold text-base font-sans tracking-tight">
             <span className="hidden sm:inline">Candidate Skill Scanner</span>
             <span className="sm:hidden">CSS</span>
           </Link>
-          <span className="text-slate-500 text-xs">Admin</span>
+          <span className="text-slate-500 text-sm">Admin</span>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
           {user?.photoURL && (
@@ -53,12 +54,13 @@ export function AdminPage() {
               referrerPolicy="no-referrer"
             />
           )}
-          <span className="text-slate-300 text-xs hidden sm:inline">
+          <span className="text-slate-300 text-sm hidden sm:inline">
             {user?.displayName ?? user?.email}
           </span>
+          <SettingsPopover />
           <button
             onClick={() => void signOut()}
-            className="text-slate-400 text-xs hover:text-white transition-colors"
+            className="text-slate-400 text-sm hover:text-white transition-colors"
             type="button"
           >
             Sign out

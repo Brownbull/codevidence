@@ -99,7 +99,7 @@ function UnderservedFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
             <span className="text-xs font-mono text-th-text-primary">
               {flag.resultCount ?? 0} result{(flag.resultCount ?? 0) !== 1 ? 's' : ''}
             </span>
-            <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${
+            <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${
               flag.status === 'active'
                 ? 'bg-amber-100 text-amber-700'
                 : 'bg-green-100 text-green-700'
@@ -118,13 +118,13 @@ function UnderservedFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
               ].map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex px-1.5 py-0.5 rounded-full bg-surface-inset text-[10px] font-mono text-th-text-secondary"
+                  className="inline-flex px-1.5 py-0.5 rounded-full bg-surface-inset text-xs font-mono text-th-text-secondary"
                 >
                   {tag.split(':')[1] ?? tag}
                 </span>
               ))}
               {flag.queryParams.aiMaturityMin !== null && (
-                <span className="inline-flex px-1.5 py-0.5 rounded-full bg-violet-50 text-[10px] font-mono text-violet-600">
+                <span className="inline-flex px-1.5 py-0.5 rounded-full bg-violet-50 text-xs font-mono text-violet-600">
                   AI {'\u2265'} {flag.queryParams.aiMaturityMin}
                 </span>
               )}
@@ -179,7 +179,7 @@ function RepoFlagRow({ flag }: { flag: AdminFlag & { id: string } }) {
             {flag.detectedSignals.map((signal) => (
               <span
                 key={signal}
-                className="inline-flex px-1.5 py-0.5 rounded-full bg-violet-50 text-[10px] text-violet-600"
+                className="inline-flex px-1.5 py-0.5 rounded-full bg-violet-50 text-xs text-violet-600"
               >
                 {signal}
               </span>

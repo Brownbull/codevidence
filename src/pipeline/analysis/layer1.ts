@@ -33,19 +33,35 @@ export interface UnknownSignal {
 // Must match IDs in scripts/seeds/taxonomy.json.
 
 const FRAMEWORK_MAP: Record<string, string> = {
-  // npm
+  // npm — JS/TS frameworks
   'react': 'framework:react',
   'react-dom': 'framework:react',
   'next': 'framework:nextjs',
   'vue': 'framework:vue',
   'express': 'framework:express',
+  '@angular/core': 'framework:angular',
+  '@angular/common': 'framework:angular',
+  'svelte': 'framework:svelte',
+  '@sveltejs/kit': 'framework:svelte',
+  '@nestjs/core': 'framework:nestjs',
+  '@nestjs/common': 'framework:nestjs',
+  'nuxt': 'framework:nuxt',
+  'nuxt3': 'framework:nuxt',
+  '@remix-run/react': 'framework:remix',
+  '@remix-run/node': 'framework:remix',
+  'astro': 'framework:astro',
+  'hono': 'framework:hono',
   // Python
   'fastapi': 'framework:fastapi',
   'django': 'framework:django',
   'flask': 'framework:flask',
+  'starlette': 'framework:starlette',
+  'streamlit': 'framework:streamlit',
   // Rust
   'actix-web': 'framework:actix',
   'axum': 'framework:axum',
+  'rocket': 'framework:rocket',
+  'warp': 'framework:warp',
   // Java
   'spring-boot-starter': 'framework:spring',
   'spring-boot-starter-web': 'framework:spring',
@@ -55,40 +71,228 @@ const FRAMEWORK_MAP: Record<string, string> = {
   // Elixir
   'phoenix': 'framework:phoenix',
   'phoenix_html': 'framework:phoenix',
+  // Go (full module paths matched in classifyDependencies)
+  'github.com/gin-gonic/gin': 'framework:gin',
+  'github.com/gofiber/fiber': 'framework:fiber',
+  'github.com/labstack/echo': 'framework:echo',
+  // npm — LLM / AI agent frameworks
+  '@langchain/core': 'framework:langchain',
+  '@langchain/community': 'framework:langchain',
+  '@langchain/langgraph': 'framework:langgraph',
+  'langchain': 'framework:langchain',
+  'llamaindex': 'framework:llamaindex',
+  'crewai': 'framework:crewai',
+  'ai': 'framework:vercel-ai-sdk',
+  // Python — LLM / AI agent frameworks
+  'langchain-core': 'framework:langchain',
+  'langchain-community': 'framework:langchain',
+  'langgraph': 'framework:langgraph',
+  'llama-index': 'framework:llamaindex',
+  'llama-index-core': 'framework:llamaindex',
+  'autogen': 'framework:autogen',
+  'pyautogen': 'framework:autogen',
+  'semantic-kernel': 'framework:semantic-kernel',
+  'haystack-ai': 'framework:haystack',
+  'farm-haystack': 'framework:haystack',
+  'dspy-ai': 'framework:dspy',
+  'dspy': 'framework:dspy',
 };
 
 const TOOL_MAP: Record<string, string> = {
-  // npm
+  // npm — Firebase / GCP
   'firebase': 'tool:firebase',
   'firebase-admin': 'tool:firebase',
   'firebase-functions': 'tool:firebase',
   '@google-cloud/firestore': 'tool:firebase',
+  // npm — GraphQL
   'graphql': 'tool:graphql',
   'apollo-server': 'tool:graphql',
   '@apollo/server': 'tool:graphql',
+  // npm — build tools
   'vite': 'tool:vite',
+  'webpack': 'tool:webpack',
+  // npm — PostgreSQL
   'pg': 'tool:postgresql',
   'knex': 'tool:postgresql',
   'prisma': 'tool:postgresql',
   '@prisma/client': 'tool:postgresql',
+  // npm — Redis
   'redis': 'tool:redis',
   'ioredis': 'tool:redis',
+  // npm — AWS
   'aws-sdk': 'tool:aws',
   '@aws-sdk/client-s3': 'tool:aws',
-  // Python
+  '@aws-sdk/client-dynamodb': 'tool:aws',
+  // npm — MongoDB
+  'mongodb': 'tool:mongodb',
+  'mongoose': 'tool:mongodb',
+  // npm — MySQL
+  'mysql': 'tool:mysql',
+  'mysql2': 'tool:mysql',
+  // npm — SQLite
+  'better-sqlite3': 'tool:sqlite',
+  // npm — Message queues
+  'kafkajs': 'tool:kafka',
+  'amqplib': 'tool:rabbitmq',
+  'nats': 'tool:nats',
+  // npm — Monitoring / observability
+  'prom-client': 'tool:prometheus',
+  '@elastic/elasticsearch': 'tool:elasticsearch',
+  '@sentry/node': 'tool:sentry',
+  '@sentry/react': 'tool:sentry',
+  'dd-trace': 'tool:datadog',
+  // npm — gRPC
+  '@grpc/grpc-js': 'tool:grpc',
+  '@grpc/proto-loader': 'tool:grpc',
+  // npm — ML / data
+  '@tensorflow/tfjs': 'tool:tensorflow',
+  '@tensorflow/tfjs-node': 'tool:tensorflow',
+  // npm — Services
+  '@supabase/supabase-js': 'tool:supabase',
+  'stripe': 'tool:stripe',
+  // Python — PostgreSQL
   'psycopg2': 'tool:postgresql',
   'psycopg2-binary': 'tool:postgresql',
   'sqlalchemy': 'tool:postgresql',
+  // Python — Redis
   'redis-py': 'tool:redis',
+  // Python — AWS
   'boto3': 'tool:aws',
-  // Rust
+  // Python — MongoDB
+  'pymongo': 'tool:mongodb',
+  // Python — MySQL
+  'mysqlclient': 'tool:mysql',
+  'pymysql': 'tool:mysql',
+  // Python — Message queues
+  'kafka-python': 'tool:kafka',
+  'confluent-kafka': 'tool:kafka',
+  'pika': 'tool:rabbitmq',
+  'celery': 'tool:celery',
+  // Python — Monitoring
+  'prometheus-client': 'tool:prometheus',
+  'elasticsearch': 'tool:elasticsearch',
+  'sentry-sdk': 'tool:sentry',
+  'ddtrace': 'tool:datadog',
+  // Python — ML / data science
+  'tensorflow': 'tool:tensorflow',
+  'torch': 'tool:pytorch',
+  'torchvision': 'tool:pytorch',
+  'pandas': 'tool:pandas',
+  'numpy': 'tool:numpy',
+  'scikit-learn': 'tool:scikit-learn',
+  'scipy': 'tool:scipy',
+  // Python — Jupyter
+  'jupyter': 'tool:jupyter',
+  'jupyterlab': 'tool:jupyter',
+  'notebook': 'tool:jupyter',
+  'ipykernel': 'tool:jupyter',
+  // Python — gRPC
+  'grpcio': 'tool:grpc',
+  // Rust — PostgreSQL
   'tokio-postgres': 'tool:postgresql',
   'sqlx': 'tool:postgresql',
-  // Go
+  // Rust — MongoDB
+  'mongodb-driver': 'tool:mongodb',
+  // Go — databases & services
   'github.com/lib/pq': 'tool:postgresql',
   'github.com/go-redis/redis': 'tool:redis',
   'github.com/aws/aws-sdk-go': 'tool:aws',
+  'go.mongodb.org/mongo-driver': 'tool:mongodb',
+  'github.com/go-sql-driver/mysql': 'tool:mysql',
+  'github.com/segmentio/kafka-go': 'tool:kafka',
+  'github.com/streadway/amqp': 'tool:rabbitmq',
+  'github.com/nats-io/nats.go': 'tool:nats',
+  'google.golang.org/grpc': 'tool:grpc',
+  // npm — LLM / AI SDKs & providers
+  '@anthropic-ai/sdk': 'tool:anthropic-sdk',
+  '@ai-sdk/anthropic': 'tool:anthropic-sdk',
+  '@ai-sdk/openai': 'tool:openai-sdk',
+  'openai': 'tool:openai-sdk',
+  // Python — LLM / AI SDKs & providers
+  'anthropic': 'tool:anthropic-sdk',
+  // Python pip package 'openai' already matched above in npm section
+  'transformers': 'tool:huggingface',
+  'huggingface-hub': 'tool:huggingface',
+  'huggingface_hub': 'tool:huggingface',
+  'diffusers': 'tool:huggingface',
+  'ollama': 'tool:ollama',
+  // npm — Vector databases
+  '@pinecone-database/pinecone': 'tool:pinecone',
+  'chromadb': 'tool:chromadb',
+  'weaviate-ts-client': 'tool:weaviate',
+  '@qdrant/js-client-rest': 'tool:qdrant',
+  // Python — Vector databases
+  'pinecone-client': 'tool:pinecone',
+  'pinecone': 'tool:pinecone',
+  'chromadb-client': 'tool:chromadb',
+  'weaviate-client': 'tool:weaviate',
+  'qdrant-client': 'tool:qdrant',
+  'pymilvus': 'tool:milvus',
 };
+
+/** Maps Python import names to taxonomy IDs (for notebook cell scanning). */
+const PYTHON_IMPORT_MAP: Record<string, string> = {
+  'pandas': 'tool:pandas',
+  'numpy': 'tool:numpy',
+  'scipy': 'tool:scipy',
+  'sklearn': 'tool:scikit-learn',
+  'tensorflow': 'tool:tensorflow',
+  'keras': 'tool:tensorflow',
+  'torch': 'tool:pytorch',
+  'torchvision': 'tool:pytorch',
+  'flask': 'framework:flask',
+  'django': 'framework:django',
+  'fastapi': 'framework:fastapi',
+  'streamlit': 'framework:streamlit',
+  'starlette': 'framework:starlette',
+  'redis': 'tool:redis',
+  'pymongo': 'tool:mongodb',
+  'sqlalchemy': 'tool:postgresql',
+  'psycopg2': 'tool:postgresql',
+  'boto3': 'tool:aws',
+  'celery': 'tool:celery',
+  'kafka': 'tool:kafka',
+  'elasticsearch': 'tool:elasticsearch',
+  'sentry_sdk': 'tool:sentry',
+  'prometheus_client': 'tool:prometheus',
+  'grpc': 'tool:grpc',
+  'IPython': 'tool:jupyter',
+  // LLM / AI SDKs & providers
+  'anthropic': 'tool:anthropic-sdk',
+  'openai': 'tool:openai-sdk',
+  'transformers': 'tool:huggingface',
+  'huggingface_hub': 'tool:huggingface',
+  'diffusers': 'tool:huggingface',
+  'ollama': 'tool:ollama',
+  // LLM / AI agent frameworks
+  'langchain': 'framework:langchain',
+  'langchain_core': 'framework:langchain',
+  'langchain_community': 'framework:langchain',
+  'langgraph': 'framework:langgraph',
+  'llama_index': 'framework:llamaindex',
+  'crewai': 'framework:crewai',
+  'autogen': 'framework:autogen',
+  'semantic_kernel': 'framework:semantic-kernel',
+  'haystack': 'framework:haystack',
+  'dspy': 'framework:dspy',
+  // Vector databases
+  'pinecone': 'tool:pinecone',
+  'chromadb': 'tool:chromadb',
+  'weaviate': 'tool:weaviate',
+  'qdrant_client': 'tool:qdrant',
+  'pymilvus': 'tool:milvus',
+};
+
+/** Common Python stdlib modules to exclude from notebook import scanning. */
+const PYTHON_STDLIB = new Set([
+  'os', 'sys', 'json', 'math', 're', 'io', 'time', 'datetime', 'collections',
+  'functools', 'itertools', 'pathlib', 'typing', 'abc', 'copy', 'glob',
+  'shutil', 'subprocess', 'threading', 'logging', 'warnings', 'unittest',
+  'argparse', 'csv', 'hashlib', 'random', 'string', 'pickle', 'sqlite3',
+  'xml', 'html', 'http', 'urllib', 'socket', 'email', 'uuid', 'decimal',
+  'enum', 'dataclasses', 'contextlib', 'ast', 'inspect', 'pprint',
+  'struct', 'base64', 'textwrap', 'operator', 'signal', 'platform',
+]);
 
 // File extension → language taxonomy ID
 const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
@@ -108,9 +312,40 @@ const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   '.cpp': 'language:cpp',
   '.cc': 'language:cpp',
   '.cxx': 'language:cpp',
+  '.cs': 'language:csharp',
   '.rb': 'language:ruby',
   '.ex': 'language:elixir',
   '.exs': 'language:elixir',
+  '.html': 'language:html',
+  '.htm': 'language:html',
+  '.css': 'language:css',
+  '.sh': 'language:shell',
+  '.bash': 'language:shell',
+  '.zsh': 'language:shell',
+  '.ps1': 'language:powershell',
+  '.php': 'language:php',
+  '.scala': 'language:scala',
+  '.r': 'language:r',
+  '.dart': 'language:dart',
+  '.lua': 'language:lua',
+  '.pl': 'language:perl',
+  '.pm': 'language:perl',
+  '.hs': 'language:haskell',
+  '.groovy': 'language:groovy',
+  '.m': 'language:objective-c',
+  '.clj': 'language:clojure',
+  '.erl': 'language:erlang',
+  '.fs': 'language:fsharp',
+  '.fsx': 'language:fsharp',
+  '.sql': 'language:sql',
+  '.vue': 'language:vue',
+  '.svelte': 'language:svelte',
+  '.zig': 'language:zig',
+  '.jl': 'language:julia',
+  '.ml': 'language:ocaml',
+  '.sol': 'language:solidity',
+  '.scss': 'language:scss',
+  '.less': 'language:less',
 };
 
 // GitHub language name → taxonomy ID
@@ -125,9 +360,72 @@ const GITHUB_LANGUAGE_MAP: Record<string, string> = {
   'Swift': 'language:swift',
   'C': 'language:c',
   'C++': 'language:cpp',
+  'C#': 'language:csharp',
   'Ruby': 'language:ruby',
   'Elixir': 'language:elixir',
+  'HTML': 'language:html',
+  'CSS': 'language:css',
+  'Shell': 'language:shell',
+  'Bash': 'language:shell',
+  'PowerShell': 'language:powershell',
+  'PHP': 'language:php',
+  'Scala': 'language:scala',
+  'R': 'language:r',
+  'Dart': 'language:dart',
+  'Lua': 'language:lua',
+  'Perl': 'language:perl',
+  'Haskell': 'language:haskell',
+  'Groovy': 'language:groovy',
+  'Objective-C': 'language:objective-c',
+  'Clojure': 'language:clojure',
+  'Erlang': 'language:erlang',
+  'F#': 'language:fsharp',
+  'TSQL': 'language:tsql',
+  'PLpgSQL': 'language:plsql',
+  'PLSQL': 'language:plsql',
+  'SQL': 'language:sql',
+  'Vim Script': 'language:vim-script',
+  'Dockerfile': 'language:dockerfile',
+  'Makefile': 'language:makefile',
+  'Nix': 'language:nix',
+  'Zig': 'language:zig',
+  'Julia': 'language:julia',
+  'OCaml': 'language:ocaml',
+  'Solidity': 'language:solidity',
+  'Assembly': 'language:assembly',
+  'SCSS': 'language:scss',
+  'Less': 'language:less',
+  'CoffeeScript': 'language:coffeescript',
+  'Vue': 'language:vue',
+  'Svelte': 'language:svelte',
 };
+
+// ─── Language normalizer (exported for use by handlers) ───────────────────────
+
+/**
+ * Normalizes a GitHub API language name to a taxonomy ID.
+ * Returns the taxonomy ID if mapped, or auto-generates "language:<lowercase>" as fallback.
+ *
+ * Examples:
+ *   "JavaScript"       → "language:javascript"
+ *   "HTML"             → "language:html"
+ *   "language:python"  → "language:python" (already normalized, passthrough)
+ *   null               → null
+ */
+export function normalizeGitHubLanguage(githubLanguage: string | null): string | null {
+  if (!githubLanguage) return null;
+
+  // Already in taxonomy format — pass through
+  if (githubLanguage.startsWith('language:')) return githubLanguage.toLowerCase();
+
+  // Known mapping
+  if (GITHUB_LANGUAGE_MAP[githubLanguage]) {
+    return GITHUB_LANGUAGE_MAP[githubLanguage];
+  }
+
+  // Auto-generate taxonomy ID for unmapped languages
+  return `language:${githubLanguage.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`;
+}
 
 // ─── Analysis ─────────────────────────────────────────────────────────────────
 
@@ -157,6 +455,10 @@ export function analyzeLayer1(
   parseGoMod(cloneDir, frameworks, tools, deps, unknownSignals);
   parsePomXml(cloneDir, frameworks, tools, deps, unknownSignals);
   parseBuildGradle(cloneDir, frameworks, tools, deps, unknownSignals);
+  parseSetupPy(cloneDir, frameworks, tools, deps, unknownSignals);
+  parsePipfile(cloneDir, frameworks, tools, deps, unknownSignals);
+  parseCondaEnvironment(cloneDir, frameworks, tools, deps, unknownSignals);
+  parseNotebookImports(cloneDir, frameworks, tools, deps);
 
   // Check for tool presence via config files
   detectToolsByFiles(cloneDir, tools);
@@ -176,9 +478,10 @@ function detectPrimaryLanguage(
   cloneDir: string,
   githubPrimaryLanguage: string | null
 ): string | null {
-  // If GitHub provides a primary language, use it (most reliable)
-  if (githubPrimaryLanguage && GITHUB_LANGUAGE_MAP[githubPrimaryLanguage]) {
-    return GITHUB_LANGUAGE_MAP[githubPrimaryLanguage];
+  // If GitHub provides a primary language, normalize and use it (most reliable)
+  if (githubPrimaryLanguage) {
+    const normalized = normalizeGitHubLanguage(githubPrimaryLanguage);
+    if (normalized) return normalized;
   }
 
   // Fallback: count file extensions
@@ -484,19 +787,297 @@ function parseBuildGradle(
   classifyDependencies(allDeps, source, frameworks, tools, deps, unknownSignals);
 }
 
+// ─── setup.py parser ──────────────────────────────────────────────────────────
+
+function parseSetupPy(
+  cloneDir: string,
+  frameworks: Set<string>,
+  tools: Set<string>,
+  deps: Set<string>,
+  unknownSignals: UnknownSignal[]
+): void {
+  const filePath = join(cloneDir, 'setup.py');
+  if (!existsSync(filePath)) return;
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch {
+    return;
+  }
+
+  const allDeps: string[] = [];
+
+  // Extract from install_requires=[...], setup_requires=[...], tests_require=[...]
+  const listRegex = /(?:install_requires|setup_requires|tests_require)\s*=\s*\[([^\]]*)\]/gs;
+  let match: RegExpExecArray | null;
+  while ((match = listRegex.exec(content)) !== null) {
+    extractPythonDeps(match[1] ?? '', allDeps);
+  }
+
+  // Extract from extras_require={...: [...], ...} nested lists
+  const extrasRegex = /extras_require\s*=\s*\{([\s\S]*?)\}/gs;
+  while ((match = extrasRegex.exec(content)) !== null) {
+    const innerListRegex = /\[([^\]]*)\]/gs;
+    let inner: RegExpExecArray | null;
+    while ((inner = innerListRegex.exec(match[1] ?? '')) !== null) {
+      extractPythonDeps(inner[1] ?? '', allDeps);
+    }
+  }
+
+  classifyDependencies(allDeps, 'setup.py', frameworks, tools, deps, unknownSignals);
+}
+
+/** Extracts quoted package names from a Python list literal string. */
+function extractPythonDeps(block: string, allDeps: string[]): void {
+  const items = block.match(/"([^"]+)"|'([^']+)'/g) ?? [];
+  for (const item of items) {
+    const part = item.replace(/["']/g, '').split(/[>=<!\[;]/)[0];
+    const cleaned = part ? part.trim().toLowerCase() : '';
+    if (cleaned) allDeps.push(cleaned);
+  }
+}
+
+// ─── Pipfile parser ───────────────────────────────────────────────────────────
+
+function parsePipfile(
+  cloneDir: string,
+  frameworks: Set<string>,
+  tools: Set<string>,
+  deps: Set<string>,
+  unknownSignals: UnknownSignal[]
+): void {
+  const filePath = join(cloneDir, 'Pipfile');
+  if (!existsSync(filePath)) return;
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch {
+    return;
+  }
+
+  const allDeps: string[] = [];
+  const sectionRegex = /\[(packages|dev-packages)\]\s*\n([\s\S]*?)(?=\n\[|$)/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = sectionRegex.exec(content)) !== null) {
+    const block = match[2] ?? '';
+    for (const line of block.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) continue;
+      const pkgName = trimmed.slice(0, eqIdx).trim().toLowerCase();
+      if (pkgName) allDeps.push(pkgName);
+    }
+  }
+
+  classifyDependencies(allDeps, 'Pipfile', frameworks, tools, deps, unknownSignals);
+}
+
+// ─── Conda environment.yml parser ─────────────────────────────────────────────
+
+function parseCondaEnvironment(
+  cloneDir: string,
+  frameworks: Set<string>,
+  tools: Set<string>,
+  deps: Set<string>,
+  unknownSignals: UnknownSignal[]
+): void {
+  const ymlPath = join(cloneDir, 'environment.yml');
+  const yamlPath = join(cloneDir, 'environment.yaml');
+  const filePath = existsSync(ymlPath) ? ymlPath : existsSync(yamlPath) ? yamlPath : null;
+  if (!filePath) return;
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch {
+    return;
+  }
+
+  const allDeps: string[] = [];
+
+  // Extract from dependencies: YAML list
+  const depsMatch = content.match(/dependencies:\s*\n((?:\s+-[^\n]*\n?)*)/);
+  if (depsMatch) {
+    for (const line of (depsMatch[1] ?? '').split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('-')) continue;
+      const value = trimmed.slice(1).trim();
+      if (value === 'pip:' || value.startsWith('python')) continue;
+      const part = value.split(/[>=<=!]/)[0];
+      const cleaned = part ? part.trim().toLowerCase() : '';
+      if (cleaned) allDeps.push(cleaned);
+    }
+  }
+
+  // Extract from nested pip: sub-list
+  const pipMatch = content.match(/pip:\s*\n((?:\s+-[^\n]*\n?)*)/);
+  if (pipMatch) {
+    for (const line of (pipMatch[1] ?? '').split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('-')) continue;
+      const part = trimmed.slice(1).trim().split(/[>=<=!\[;]/)[0];
+      const cleaned = part ? part.trim().toLowerCase() : '';
+      if (cleaned) allDeps.push(cleaned);
+    }
+  }
+
+  const source = filePath === ymlPath ? 'environment.yml' : 'environment.yaml';
+  classifyDependencies(allDeps, source, frameworks, tools, deps, unknownSignals);
+}
+
+// ─── Jupyter notebook import scanner ──────────────────────────────────────────
+
+const NOTEBOOK_SKIP_DIRS = new Set([
+  'node_modules', '.git', 'vendor', 'dist', 'build',
+  '__pycache__', '.venv', 'venv', 'target', '.ipynb_checkpoints',
+]);
+
+const MAX_NOTEBOOKS = 10;
+
+function parseNotebookImports(
+  cloneDir: string,
+  frameworks: Set<string>,
+  tools: Set<string>,
+  deps: Set<string>,
+): void {
+  const notebooks = findNotebookFiles(cloneDir);
+  if (notebooks.length === 0) return;
+
+  // Any .ipynb file = Jupyter detected
+  tools.add('tool:jupyter');
+
+  const allImports = new Set<string>();
+  for (const nb of notebooks) {
+    for (const imp of extractImportsFromNotebook(nb)) {
+      allImports.add(imp);
+    }
+  }
+
+  for (const imp of allImports) {
+    const taxonomyId = PYTHON_IMPORT_MAP[imp] ?? PYTHON_IMPORT_MAP[imp.toLowerCase()];
+    if (taxonomyId) {
+      if (taxonomyId.startsWith('framework:')) {
+        frameworks.add(taxonomyId);
+      } else {
+        tools.add(taxonomyId);
+      }
+    }
+    deps.add(imp.toLowerCase());
+  }
+}
+
+function findNotebookFiles(cloneDir: string): string[] {
+  const notebooks: string[] = [];
+
+  // Root level
+  try {
+    for (const entry of readdirSync(cloneDir)) {
+      if (entry.endsWith('.ipynb') && !entry.startsWith('.')) {
+        notebooks.push(join(cloneDir, entry));
+        if (notebooks.length >= MAX_NOTEBOOKS) return notebooks;
+      }
+    }
+  } catch {
+    return notebooks;
+  }
+
+  // One level deep
+  try {
+    for (const entry of readdirSync(cloneDir)) {
+      if (NOTEBOOK_SKIP_DIRS.has(entry)) continue;
+      const dirPath = join(cloneDir, entry);
+      try {
+        if (!statSync(dirPath).isDirectory()) continue;
+        for (const file of readdirSync(dirPath)) {
+          if (file.endsWith('.ipynb') && !file.startsWith('.')) {
+            notebooks.push(join(dirPath, file));
+            if (notebooks.length >= MAX_NOTEBOOKS) return notebooks;
+          }
+        }
+      } catch { continue; }
+    }
+  } catch { /* skip */ }
+
+  return notebooks;
+}
+
+interface NotebookCell {
+  cell_type?: string;
+  source?: string[];
+}
+
+function extractImportsFromNotebook(filePath: string): string[] {
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch {
+    return [];
+  }
+
+  let notebook: { cells?: NotebookCell[] };
+  try {
+    notebook = JSON.parse(content) as { cells?: NotebookCell[] };
+  } catch {
+    return [];
+  }
+
+  const imports = new Set<string>();
+  for (const cell of notebook.cells ?? []) {
+    if (cell.cell_type !== 'code') continue;
+    const source = Array.isArray(cell.source) ? cell.source.join('') : '';
+    const importRegex = /^(?:import|from)\s+(\w+)/gm;
+    let match: RegExpExecArray | null;
+    while ((match = importRegex.exec(source)) !== null) {
+      const mod = match[1];
+      if (mod && !PYTHON_STDLIB.has(mod)) imports.add(mod);
+    }
+  }
+
+  return [...imports];
+}
+
 // ─── Tool detection via config files ──────────────────────────────────────────
 
 function detectToolsByFiles(cloneDir: string, tools: Set<string>): void {
   const fileToolMap: [string, string][] = [
+    // Containers
     ['Dockerfile', 'tool:docker'],
     ['docker-compose.yml', 'tool:docker'],
     ['docker-compose.yaml', 'tool:docker'],
     ['.dockerignore', 'tool:docker'],
+    // Firebase
     ['firebase.json', 'tool:firebase'],
     ['.firebaserc', 'tool:firebase'],
+    // IaC
     ['terraform.tf', 'tool:terraform'],
     ['main.tf', 'tool:terraform'],
+    ['ansible.cfg', 'tool:ansible'],
+    ['playbook.yml', 'tool:ansible'],
+    ['playbook.yaml', 'tool:ansible'],
+    ['Vagrantfile', 'tool:vagrant'],
+    // Kubernetes
+    ['k8s', 'tool:kubernetes'],
+    ['kubernetes', 'tool:kubernetes'],
+    // CI/CD
     ['.github/workflows', 'tool:github-actions'],
+    ['.gitlab-ci.yml', 'tool:gitlab-ci'],
+    ['.circleci', 'tool:circleci'],
+    ['Jenkinsfile', 'tool:jenkins'],
+    // Monitoring
+    ['prometheus.yml', 'tool:prometheus'],
+    ['prometheus.yaml', 'tool:prometheus'],
+    ['grafana', 'tool:grafana'],
+    // Web servers
+    ['nginx.conf', 'tool:nginx'],
+    // Hosting
+    ['vercel.json', 'tool:vercel'],
+    ['netlify.toml', 'tool:netlify'],
+    // Jupyter
+    ['.ipynb_checkpoints', 'tool:jupyter'],
   ];
 
   for (const [file, toolId] of fileToolMap) {

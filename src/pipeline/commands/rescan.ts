@@ -10,14 +10,16 @@ import type { RescanPayload } from '../../types/scan-job.js';
 export interface RescanOptions {
   targetType: 'candidate' | 'repo';
   targetId: string;
+  githubToken?: string;
 }
 
 /**
  * Handles the `scan rescan` command.
  * Creates a rescan-candidate or rescan-repo ScanJob with priority: 1.
+ * Optionally accepts a fine-grained PAT for private repository access.
  */
 export async function runRescan(opts: RescanOptions): Promise<void> {
-  const { targetType, targetId } = opts;
+  const { targetType, targetId, githubToken } = opts;
 
   if (!targetId || targetId.trim() === '') {
     console.error('[rescan] --target-id is required and cannot be empty.');
@@ -32,10 +34,12 @@ export async function runRescan(opts: RescanOptions): Promise<void> {
   const payload: RescanPayload = {
     targetType,
     targetId: targetId.trim(),
+    githubToken,
   };
 
   console.log(
-    `[rescan] Enqueueing rescan job: targetType="${payload.targetType}" targetId="${payload.targetId}"`
+    `[rescan] Enqueueing rescan job: targetType="${payload.targetType}" targetId="${payload.targetId}"` +
+    (githubToken ? ' (with developer token)' : '')
   );
 
   const jobId = await enqueueRescanJob(payload);

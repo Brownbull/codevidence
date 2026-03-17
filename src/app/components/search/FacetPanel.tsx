@@ -33,7 +33,7 @@ const SELECTED_FIELDS: Record<string, 'languages' | 'frameworks' | 'tools' | 'ai
 
 export function FacetPanel() {
   const { data: taxonomy, isLoading } = useTaxonomy();
-  const { params, toggleTaxonomyId, setAiMaturityMin } = useSearchQuery();
+  const { params, toggleTaxonomyId, setFilter, setAiMaturityMin } = useSearchQuery();
   const { openSections, toggleSection } = useUiStore();
 
   if (isLoading) {
@@ -67,6 +67,7 @@ export function FacetPanel() {
             isOpen={openSections[category] ?? true}
             onToggleSection={() => toggleSection(category)}
             onToggleItem={(id) => toggleTaxonomyId(urlKey, id)}
+            onSetAll={(ids) => setFilter(urlKey, ids)}
           />
         );
       })}
@@ -93,18 +94,21 @@ interface FacetSectionProps {
   isOpen: boolean;
   onToggleSection: () => void;
   onToggleItem: (taxonomyId: string) => void;
+  onSetAll: (taxonomyIds: string[]) => void;
 }
 
 function FacetSection({
-  category, label, items, selectedIds, isOpen, onToggleSection, onToggleItem,
+  category, label, items, selectedIds, isOpen, onToggleSection, onToggleItem, onSetAll,
 }: FacetSectionProps) {
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.id));
+
   return (
     <fieldset className="mb-4 border-0 p-0">
       <legend className="sr-only">{label}</legend>
       <button
         type="button"
         onClick={onToggleSection}
-        className="flex items-center justify-between w-full text-left text-sm font-medium text-th-text-primary py-1.5 hover:text-th-text-primary"
+        className="flex items-center justify-between w-full text-left text-base font-medium text-th-text-primary py-1.5 hover:text-th-text-primary"
         aria-expanded={isOpen}
       >
         <span>{label}</span>
@@ -113,6 +117,15 @@ function FacetSection({
 
       {isOpen && (
         <div className="mt-1 space-y-1">
+          {items.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onSetAll(allSelected ? [] : items.map((i) => i.id))}
+              className="text-xs text-th-text-muted hover:text-indigo-600 px-1 mb-0.5"
+            >
+              {allSelected ? 'Deselect all' : 'Select all'}
+            </button>
+          )}
           {items.map((item) => (
             <label
               key={item.id}
@@ -124,7 +137,7 @@ function FacetSection({
                 onChange={() => onToggleItem(item.id)}
                 className="rounded border-border text-indigo-600 focus:ring-indigo-500"
               />
-              <span className="font-mono text-xs text-th-text-primary">{item.displayName}</span>
+              <span className="font-mono text-sm text-th-text-primary">{item.displayName}</span>
               <span className="ml-auto text-xs text-th-text-muted">{item.candidateCount}</span>
             </label>
           ))}
@@ -156,7 +169,7 @@ function AiMaturitySection({
       <button
         type="button"
         onClick={onToggleSection}
-        className="flex items-center justify-between w-full text-left text-sm font-medium text-th-text-primary py-1.5 hover:text-th-text-primary"
+        className="flex items-center justify-between w-full text-left text-base font-medium text-th-text-primary py-1.5 hover:text-th-text-primary"
         aria-expanded={isOpen}
       >
         <span>AI Maturity Level</span>
@@ -179,7 +192,7 @@ function AiMaturitySection({
                   onChange={() => onSetMin(isSelected ? null : level)}
                   className="rounded border-border text-violet-600 focus:ring-violet-500"
                 />
-                <span className="font-mono text-xs text-th-text-primary">{item.displayName}</span>
+                <span className="font-mono text-sm text-th-text-primary">{item.displayName}</span>
                 <span className="ml-auto text-xs text-th-text-muted">{item.candidateCount}</span>
               </label>
             );

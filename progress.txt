@@ -508,3 +508,38 @@
   - `pnpm test:unit`: PASS (812/812 tests, 20 files — 24 new for US-019)
   - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
 ---
+
+## 2026-02-24 - Parallel Workers + Rescan-Candidate Handler
+- What was implemented:
+  - **rescan-candidate handler** (`src/pipeline/handlers/rescan-candidate.ts`): Fetches all repos by owner, enqueues scan-repo layer2 jobs for each via `Promise.all`
+  - **Atomic job claiming** via Firestore transactions: `claimNextJob(workerId)` replaces old two-step `fetchNextPendingJob`/`markJobRunning` race condition
+  - **Worker ID tracking** (`src/pipeline/worker-id.ts`): `{hostname}-{pid}-{hex4}` format, singleton per process
+  - **Heartbeat system**: Workers send heartbeat every 60s during job execution; stale jobs (>5 min) reclaimed automatically
+  - **Transaction support** in Firestore wrapper: `runTransaction` wrapper + `Transaction` type re-export
+  - **Schema extension**: Added `workerId`, `heartbeatAt`, `claimedAt` (all nullable) to ScanJob type
+  - **Handler registration**: `rescan-candidate` registered in both `index.ts` (worker command) and `run.ts` (interactive command)
+  - **Test suite**: 45 new tests in `us-parallel-workers.test.ts`; updated 58 tests in `us-006-pipeline.test.ts`
+- Files changed:
+  - `src/types/scan-job.ts` — 3 new nullable fields
+  - `src/core/db/firestore.ts` — runTransaction wrapper + Transaction type
+  - `src/pipeline/worker-id.ts` (created)
+  - `src/pipeline/queue.ts` — claimNextJob, updateHeartbeat, reclaimStaleJobs, enqueueScanRepoJob
+  - `src/pipeline/worker.ts` — rewritten for atomic claiming + heartbeat
+  - `src/pipeline/handlers/rescan-candidate.ts` (created)
+  - `src/pipeline/commands/run.ts` — handler registration
+  - `src/pipeline/index.ts` — handler registration + worker ID display
+  - `src/pipeline/handlers/discover.ts` — new ScanJob fields in inline creation
+  - `tests/unit/us-parallel-workers.test.ts` (created — 45 tests)
+  - `tests/unit/us-006-pipeline.test.ts` — updated mocks for new API
+  - `docs/PLAN-parallel-workers.md` (created — reference design doc)
+- **Learnings for future iterations:**
+  - Firestore transactions auto-retry up to 5 times on contention — catch block should return null, not re-throw
+  - When spreading `{ id: snap.id, ...job }`, if the type already has `id`, use `{ ...job, id: snap.id }` to avoid TS2783
+  - Removing API functions (fetchNextPendingJob, markJobRunning) breaks downstream mocks — must update all test files that mock these
+  - New nullable ScanJob fields must be added to ALL inline job creation sites (queue.ts, discover.ts handler)
+  - Multiple workers can now safely run `pnpm scan worker` in parallel across terminals/machines
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (867/867 tests, 21 files)
+  - `pnpm build`: PASS
+---

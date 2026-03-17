@@ -1,6 +1,6 @@
 {
   "name": "candidate-skill-scanner",
-  "version": "0.1.0",
+  "version": "0.4.2",
   "description": "Chrome-only SPA + local Node.js scan pipeline that discovers developer talent by analysing public GitHub repositories.",
   "type": "module",
   "private": true,
@@ -29,7 +29,7 @@
     "admin:ops": "tsx scripts/admin-ops.ts",
     "db:query": "tsx scripts/db-query.ts",
     "db:query:list": "tsx scripts/db-query.ts --list",
-    "db:seed": "tsx scripts/seed-taxonomy.ts",
+    "db:seed": "node --env-file=.env.local --import tsx scripts/seed-taxonomy.ts",
     "ai:monitor": "npx @rulecatch/ai-pooler monitor --no-api-key",
     "clean": "rm -rf dist coverage test-results playwright-report",
     "precommit": "tsc --noEmit"

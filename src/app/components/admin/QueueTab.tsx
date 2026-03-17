@@ -27,7 +27,7 @@ export function QueueTab() {
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-th-text-primary mb-4">Job Queue</h2>
+      <h2 className="text-base font-semibold text-th-text-primary mb-4">Job Queue</h2>
 
       {/* Status filter tabs */}
       <div className="flex gap-1 mb-4 flex-wrap">

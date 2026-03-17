@@ -210,7 +210,7 @@ export function PipelineTab() {
               <div className="mb-2 p-3 bg-surface border border-border rounded-md space-y-2">
                 {PRESET_CATEGORIES.map(({ key, label }) => (
                   <div key={key}>
-                    <span className="text-[10px] uppercase tracking-wider text-th-text-muted font-semibold">
+                    <span className="text-xs uppercase tracking-wider text-th-text-muted font-semibold">
                       {label}
                     </span>
                     <div className="flex flex-wrap gap-1 mt-0.5">

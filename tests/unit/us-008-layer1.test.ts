@@ -178,7 +178,8 @@ describe('US-008: Tool Detection via Config Files', () => {
 // ─── Scan Repo Handler ─────────────────────────────────────────────────────────
 
 describe('US-008: Scan Repo Handler', () => {
-  const src = readSource('src/pipeline/handlers/scan-repo.ts');
+  const src = readSource('src/pipeline/handlers/scan-repo.ts') +
+    readSource('src/pipeline/handlers/scan-repo-helpers.ts');
 
   it('exports handleScanRepo function', () => {
     expect(src).toContain('export async function handleScanRepo');
@@ -237,15 +238,17 @@ describe('US-008: Scan Repo Handler', () => {
     expect(src).toContain('updatedAt: serverTimestamp()');
   });
 
-  it('stores unknown signals as taxonomy items with isSearchable: false', () => {
-    expect(src).toContain('isSearchable: false');
-    expect(src).toContain('isSeeded: false');
+  it('delegates unknown signal storage to store-unknown-signals module', () => {
     expect(src).toContain("storeUnknownSignals");
+    expect(src).toContain("from './store-unknown-signals.js'");
   });
 
-  it('checks if taxonomy item exists before storing (idempotent)', () => {
-    expect(src).toContain("getDoc<TaxonomyItem>(TAXONOMY_COLLECTION, taxonomyId)");
-    expect(src).toContain('if (existing) return');
+  it('store-unknown-signals checks idempotency before storing', () => {
+    const helperSrc = readSource('src/pipeline/handlers/store-unknown-signals.ts');
+    expect(helperSrc).toContain('isSearchable: false');
+    expect(helperSrc).toContain('isSeeded: false');
+    expect(helperSrc).toContain("getDoc<TaxonomyItem>(TAXONOMY_COLLECTION, taxonomyId)");
+    expect(helperSrc).toContain('if (existing) return');
   });
 
   it('fetches Repository doc before analysis', () => {

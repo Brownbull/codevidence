@@ -303,9 +303,10 @@ describe('scripts/seed-taxonomy.ts', () => {
     expect(content).toContain('isSeeded: true');
   });
 
-  it('sets candidateCount: 0 on all items', () => {
+  it('preserves existing candidateCount or defaults to 0', () => {
     const content = readFile('scripts/seed-taxonomy.ts');
-    expect(content).toContain('candidateCount: 0');
+    expect(content).toContain('candidateCount');
+    expect(content).toContain('existing?.candidateCount ?? 0');
   });
 });
 

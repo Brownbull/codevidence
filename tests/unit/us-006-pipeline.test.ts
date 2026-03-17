@@ -600,7 +600,7 @@ describe('Rescan-candidate handler — source structure', () => {
   });
 
   it('queries repos by owner', () => {
-    expect(src).toContain("where('owner', '==', targetId)");
+    expect(src).toContain("where('owner', '==', canonicalOwner)");
   });
 
   it('enqueues scan-repo layer2 jobs for each repo', () => {

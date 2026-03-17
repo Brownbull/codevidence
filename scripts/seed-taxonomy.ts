@@ -17,7 +17,8 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { setDoc, serverTimestamp, isEmulatorEnabled } from '@/core/db/firestore.js';
+import { setDoc, getDoc, serverTimestamp, isEmulatorEnabled } from '@/core/db/firestore.js';
+import { authenticateWorker } from '@/pipeline/auth.js';
 import type { TaxonomyItem } from '@/types/taxonomy.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -53,18 +54,22 @@ function loadSeedData(): SeedEntry[] {
 async function seedItem(entry: SeedEntry): Promise<void> {
   const now = serverTimestamp();
 
+  // Preserve existing candidateCount if the doc already exists (avoid resetting counts)
+  const existing = await getDoc<TaxonomyItem>('taxonomy', entry.id);
+  const candidateCount = existing?.candidateCount ?? 0;
+
   const item = {
     id: entry.id,
     category: entry.category,
     displayName: entry.displayName,
     aliases: entry.aliases,
-    candidateCount: 0,
+    candidateCount,
     isSeeded: true,
     isSearchable: entry.isSearchable,
     sortOrder: entry.sortOrder,
-    firstDetectedAt: now,
-    addedToTaxonomyAt: now,
-    createdAt: now,
+    firstDetectedAt: existing?.firstDetectedAt ?? now,
+    addedToTaxonomyAt: existing?.addedToTaxonomyAt ?? now,
+    createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
 
@@ -76,6 +81,9 @@ async function seedItem(entry: SeedEntry): Promise<void> {
 async function main(): Promise<void> {
   const usingEmulator = isEmulatorEnabled();
   console.log(`Seeding taxonomy — emulator: ${String(usingEmulator)}`);
+
+  // Authenticate before writing to production Firestore
+  if (!usingEmulator) await authenticateWorker();
 
   const entries = loadSeedData();
   console.log(`Found ${entries.length} taxonomy items to seed`);

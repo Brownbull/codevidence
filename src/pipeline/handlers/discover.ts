@@ -14,6 +14,7 @@ import type { ScanJob, DiscoverPayload, ScanRepoPayload } from '../../types/scan
 import { repoDocId, type Repository } from '../../types/repository.js';
 import type { DiscoveredRepo } from '../../adapters/source-adapter.js';
 import { createGitHubAdapter, GitHubRateLimitError } from '../../adapters/github.js';
+import { normalizeGitHubLanguage } from '../analysis/layer1.js';
 import { markJobRateLimited } from '../queue.js';
 import {
   getDoc,
@@ -103,7 +104,7 @@ export async function handleDiscover(job: ScanJob & { id: string }): Promise<voi
         owner: repo.owner,
         name: repo.name,
         fullName: repo.fullName,
-        primaryLanguage: repo.primaryLanguage,
+        primaryLanguage: normalizeGitHubLanguage(repo.primaryLanguage),
         languages: {},
         starCount: repo.starCount,
         forkCount: repo.forkCount,
@@ -124,6 +125,7 @@ export async function handleDiscover(job: ScanJob & { id: string }): Promise<voi
         estimatedTestCoverage: 'none',
         skillScoreContribution: 0,
         scanStatus: 'surface',
+        scannerVersion: null,
         lastScanned: now as unknown as Repository['lastScanned'],
         createdAt: now as unknown as Repository['createdAt'],
         updatedAt: now as unknown as Repository['updatedAt'],

@@ -1,26 +1,44 @@
 /**
- * src/pipeline/scoring/skill-score.ts — Skill Score computation and candidate profile generation.
+ * src/pipeline/scoring/skill-score.ts — Skill Score computation and candidate profile orchestration.
  *
- * Deterministic Skill Score formula + Candidate document builder.
+ * Deterministic Skill Score formula + profile orchestrator.
  * Pipeline scoring output MUST NOT include aiMaturityScore fields.
  * This is enforced via the PipelineScoringOutput type.
+ *
+ * Candidate aggregation and Firestore persistence: see candidate-writer.ts
  */
 
 import type { Repository } from '../../types/repository.js';
 import type { Candidate } from '../../types/candidate.js';
+import { createGitHubAdapter } from '../../adapters/github.js';
+import { queryDocs, where } from '../../core/db/firestore.js';
 import {
-  getDoc,
-  setDoc,
-  updateDoc,
-  queryDocs,
-  serverTimestamp,
-  where,
-} from '../../core/db/firestore.js';
+  inferDomains,
+  countQualifyingDomains,
+  QUALIFYING_CONFIDENCE,
+} from './domain-inference.js';
+import { mapConfigFileToPattern } from '../analysis/ai-config-patterns.js';
+import { aggregateRepoData, writeCandidateDoc } from './candidate-writer.js';
+import {
+  computeFrameworkDepthPoints,
+  computeLogicRatioPoints,
+  computeCodeQualityPoints,
+  computeDurabilityPoints,
+  computeBehavioralPoints,
+  computeCommitMessagePoints,
+} from './scoring-helpers.js';
+import {
+  computeDesignPatternPoints,
+  computeCodeStylePoints,
+} from './phase4-helpers.js';
+import { analyzeEvolution, computeEvolutionBonus } from '../analysis/evolution.js';
 
-const CANDIDATES_COLLECTION = 'candidates';
 const REPOSITORIES_COLLECTION = 'repositories';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Re-export for backward compat with existing callers/tests
+export { mapConfigFileToPattern };
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 /** Clean input for the deterministic skill scoring function. */
 export interface SkillScoreInput {
@@ -31,6 +49,22 @@ export interface SkillScoreInput {
   isOwnerRepo: boolean;
   estimatedTestCoverage: 'none' | 'low' | 'medium' | 'high';
   aiSignalPoints: number;
+  proficiencyBonus?: number;
+  domainPoints?: number;
+  // Phase 2: Import validation + code quality
+  confirmedFrameworkCount?: number;  // confirmed via actual imports (cap 6)
+  frameworkDepthPoints?: number;     // depth-level bonus (cap 8)
+  logicCodeRatioPoints?: number;     // logic code ratio bonus (0-3)
+  codeQualityPoints?: number;        // code quality grade bonus (cap 8)
+  // Phase 3: Git history analysis
+  codeDurabilityPoints?: number;     // churn rate + rewrite ratio (cap 12)
+  behavioralPoints?: number;         // atomic commits + type diversity + remedy (cap 5)
+  commitMessagePoints?: number;      // commit message quality (cap 8)
+  // Phase 4: Architecture + style
+  designPatternPoints?: number;      // design sophistication tier (cap 10)
+  codeStylePoints?: number;          // code style discipline (cap 8)
+  // Phase 5: Cross-repo evolution
+  evolutionBonus?: number;           // growth vector + breadth + span (cap 8)
 }
 
 /**
@@ -42,39 +76,13 @@ export type PipelineScoringOutput = Omit<
   'aiMaturityScore' | 'aiMaturityScoredAt' | 'aiMaturityScoredBy'
 >;
 
-// ─── AI Config File → Agent Pattern Mapping ──────────────────────────────────
-
-const AI_CONFIG_PATTERN_MAP: Record<string, string> = {
-  'CLAUDE.md': 'ai-agent-pattern:claude-md',
-  '.claude': 'ai-agent-pattern:claude-md',
-  '.cursor/rules': 'ai-agent-pattern:cursor-rules',
-  '.cursor/settings.json': 'ai-agent-pattern:cursor-rules',
-  '.cursor': 'ai-agent-pattern:cursor-rules',
-  'ai-context.md': 'ai-agent-pattern:ai-context-file',
-  '.github/copilot-instructions.md': 'ai-agent-pattern:copilot-instructions',
-};
-
-/** Maps an AI config file name to its taxonomy agent pattern ID. */
-export function mapConfigFileToPattern(fileName: string): string | null {
-  if (AI_CONFIG_PATTERN_MAP[fileName]) return AI_CONFIG_PATTERN_MAP[fileName] ?? null;
-  if (fileName.toLowerCase().startsWith('.aider')) return 'ai-agent-pattern:aider-config';
-  return null;
-}
-
 // ─── Score Constants ─────────────────────────────────────────────────────────
 
 export const TEST_COVERAGE_POINTS: Record<string, number> = {
   'none': 0,
-  'low': 3,
-  'medium': 8,
-  'high': 15,
-};
-
-const COVERAGE_RANK: Record<string, number> = {
-  'none': 0,
-  'low': 1,
-  'medium': 2,
-  'high': 3,
+  'low': 2,
+  'medium': 5,
+  'high': 10,
 };
 
 // ─── Skill Score Computation ─────────────────────────────────────────────────
@@ -82,32 +90,75 @@ const COVERAGE_RANK: Record<string, number> = {
 /**
  * Computes the Skill Score using the deterministic formula.
  *
- * Formula:
- *   primaryLanguage (20) + frameworks (6 each, capped 30) +
- *   tools (5 each, capped 15) + commitSpan (capped 10) +
- *   ownership bonus (10) + test coverage (0/3/8/15) +
- *   AI signals (capped 10)
+ * Core formula (max = 100):
+ *   primaryLanguage (15) + frameworks (4 each, capped 20) +
+ *   tools (3 each, capped 9) + commitSpan (capped 7) +
+ *   ownership bonus (8) + test coverage (0/2/5/10) +
+ *   AI signals (capped 7) + proficiency bonus (capped 14) +
+ *   domain expertise (capped 10)
  *
- * Result clamped to 0-100.
+ * Phase 2 extras (differentiation beyond 90+):
+ *   confirmed imports (2 each, capped 6) +
+ *   framework depth (capped 8) +
+ *   logic code ratio (0-3) +
+ *   code quality grade (capped 8)
+ *
+ * Phase 3 extras (git history analysis):
+ *   code durability (capped 12) +
+ *   behavioral discipline (capped 5) +
+ *   commit message quality (capped 8)
+ *
+ * Phase 4 extras (architecture + style):
+ *   design pattern sophistication (capped 10) +
+ *   code style discipline (capped 8)
+ *
+ * Phase 5 extras (cross-repo evolution):
+ *   evolution bonus: growth vector + breadth + span (capped 8)
+ *
+ * Theoretical max ~176, clamped to 100.
  */
 export function computeSkillScore(input: SkillScoreInput): number {
-  const languagePoints = input.hasLanguage ? 20 : 0;
-  const frameworkPoints = Math.min(input.frameworkCount * 6, 30);
-  const toolPoints = Math.min(input.toolCount * 5, 15);
-  const commitSpanPoints = Math.min(input.commitSpanMonths, 10);
-  const ownershipPoints = input.isOwnerRepo ? 10 : 0;
+  const languagePoints = input.hasLanguage ? 15 : 0;
+  const frameworkPoints = Math.min(input.frameworkCount * 4, 20);
+  const toolPoints = Math.min(input.toolCount * 3, 9);
+  const commitSpanPoints = Math.min(input.commitSpanMonths, 7);
+  const ownershipPoints = input.isOwnerRepo ? 8 : 0;
   const testPoints = TEST_COVERAGE_POINTS[input.estimatedTestCoverage] ?? 0;
-  const aiPoints = Math.min(input.aiSignalPoints, 10);
+  const aiPoints = Math.min(input.aiSignalPoints, 7);
+  const proficiencyPoints = Math.min(input.proficiencyBonus ?? 0, 14);
+  const domainPts = Math.min(input.domainPoints ?? 0, 10);
+
+  // Phase 2: import validation + code quality
+  const importConfirmPts = Math.min((input.confirmedFrameworkCount ?? 0) * 2, 6);
+  const depthPts = Math.min(input.frameworkDepthPoints ?? 0, 8);
+  const logicRatioPts = Math.min(input.logicCodeRatioPoints ?? 0, 3);
+  const qualityPts = Math.min(input.codeQualityPoints ?? 0, 8);
+
+  // Phase 3: git history analysis
+  const durabilityPts = Math.min(input.codeDurabilityPoints ?? 0, 12);
+  const behavioralPts = Math.min(input.behavioralPoints ?? 0, 5);
+  const commitMsgPts = Math.min(input.commitMessagePoints ?? 0, 8);
+
+  // Phase 4: architecture + style
+  const designPts = Math.min(input.designPatternPoints ?? 0, 10);
+  const stylePts = Math.min(input.codeStylePoints ?? 0, 8);
+
+  // Phase 5: cross-repo evolution
+  const evolutionPts = Math.min(input.evolutionBonus ?? 0, 8);
 
   const total = languagePoints + frameworkPoints + toolPoints +
-    commitSpanPoints + ownershipPoints + testPoints + aiPoints;
+    commitSpanPoints + ownershipPoints + testPoints + aiPoints +
+    proficiencyPoints + domainPts +
+    importConfirmPts + depthPts + logicRatioPts + qualityPts +
+    durabilityPts + behavioralPts + commitMsgPts +
+    designPts + stylePts + evolutionPts;
 
   return Math.max(0, Math.min(100, total));
 }
 
 /**
  * Computes the AI signal points from repositories.
- * Each unique AI agent pattern: 2 points. coAuthoredByAI: 3 points. Cap 10.
+ * Each unique AI agent pattern: 2 points. coAuthoredByAI: 3 points. Cap 7.
  */
 export function computeAiSignalPoints(
   repos: ReadonlyArray<Pick<Repository, 'aiConfigFiles' | 'coAuthoredByAI'>>
@@ -125,25 +176,39 @@ export function computeAiSignalPoints(
 
   const filePoints = uniquePatterns.size * 2;
   const coAuthoredPoints = hasCoAuthored ? 3 : 0;
-  return Math.min(filePoints + coAuthoredPoints, 10);
+  return Math.min(filePoints + coAuthoredPoints, 7);
 }
 
-// ─── Candidate Profile Builder ───────────────────────────────────────────────
+// Re-export scoring helpers for backward compat with existing callers/tests
+export {
+  computeFrameworkDepthPoints,
+  computeLogicRatioPoints,
+  computeCodeQualityPoints,
+  computeDurabilityPoints,
+  computeBehavioralPoints,
+  computeCommitMessagePoints,
+} from './scoring-helpers.js';
+export {
+  computeDesignPatternPoints,
+  computeCodeStylePoints,
+} from './phase4-helpers.js';
+export { analyzeEvolution, computeEvolutionBonus } from '../analysis/evolution.js';
+
+// ─── Candidate Profile Orchestrator ──────────────────────────────────────────
 
 /**
  * Aggregates data from all repos for a given owner and builds/updates the Candidate.
  * Called after Layer 2 analysis completes for a repo.
  */
 export async function updateCandidateProfile(owner: string): Promise<void> {
-  const repos = await queryDocs<Repository>(
-    REPOSITORIES_COLLECTION,
-    where('owner', '==', owner),
-  );
-
+  // Parallelize independent network calls (Rule 7)
+  const [repos, userProfile] = await Promise.all([
+    queryDocs<Repository>(REPOSITORIES_COLLECTION, where('owner', '==', owner)),
+    fetchUserProfileSafe(owner),
+  ]);
   const scannedRepos = repos.filter((r) =>
     r.scanStatus === 'layer1' || r.scanStatus === 'layer2'
   );
-
   if (scannedRepos.length === 0) {
     console.log(`[skill-score] No scanned repos for ${owner}, skipping.`);
     return;
@@ -151,129 +216,81 @@ export async function updateCandidateProfile(owner: string): Promise<void> {
 
   const aggregated = aggregateRepoData(scannedRepos);
   const aiSignalPoints = computeAiSignalPoints(scannedRepos);
+  const detectedDomains = inferDomains(
+    aggregated.languages, aggregated.frameworks,
+    aggregated.tools, aggregated.topics,
+    aggregated.aiAgentPatterns,
+  );
+  const domainPoints = Math.min(countQualifyingDomains(detectedDomains) * 5, 10);
 
-  const skillScore = computeSkillScore({
-    hasLanguage: aggregated.languages.length > 0,
-    frameworkCount: aggregated.frameworks.length,
-    toolCount: aggregated.tools.length,
-    commitSpanMonths: aggregated.maxCommitSpan,
-    isOwnerRepo: aggregated.hasOwnerRepo,
-    estimatedTestCoverage: aggregated.bestCoverage,
-    aiSignalPoints,
-  });
+  const evolutionProfile = analyzeEvolution(scannedRepos);
+  const evolutionBonusPts = computeEvolutionBonus(evolutionProfile);
 
-  const skillTags = [
-    ...aggregated.languages,
-    ...aggregated.frameworks,
-    ...aggregated.tools,
-    ...aggregated.aiAgentPatterns,
-  ].sort();
+  const scoreInput = buildSkillScoreInput(
+    aggregated, aiSignalPoints, domainPoints, scannedRepos, evolutionBonusPts,
+  );
+  const skillScore = computeSkillScore(scoreInput);
+  const skillTags = buildSkillTags(aggregated, detectedDomains);
 
-  await writeCandidateDoc(owner, skillScore, skillTags, aggregated, scannedRepos);
+  await writeCandidateDoc(
+    owner, skillScore, skillTags, aggregated,
+    scannedRepos, userProfile, detectedDomains,
+    evolutionProfile, evolutionBonusPts,
+  );
 }
 
-/** Aggregated data from all repos for a candidate. */
-interface AggregatedRepoData {
-  languages: string[];
-  frameworks: string[];
-  tools: string[];
-  aiToolingSignals: string[];
-  aiAgentPatterns: string[];
-  maxCommitSpan: number;
-  hasOwnerRepo: boolean;
-  bestCoverage: 'none' | 'low' | 'medium' | 'high';
-  bestScanDepth: 'layer1' | 'layer2';
-}
-
-function aggregateRepoData(repos: ReadonlyArray<Repository>): AggregatedRepoData {
-  const languages = new Set<string>();
-  const frameworks = new Set<string>();
-  const tools = new Set<string>();
-  const aiToolingSignals = new Set<string>();
-  const aiAgentPatterns = new Set<string>();
-  let maxCommitSpan = 0;
-  let hasOwnerRepo = false;
-  let bestCoverage: 'none' | 'low' | 'medium' | 'high' = 'none';
-  let bestScanDepth: 'layer1' | 'layer2' = 'layer1';
-
-  for (const repo of repos) {
-    if (repo.primaryLanguage) languages.add(repo.primaryLanguage);
-    for (const fw of repo.detectedFrameworks ?? []) frameworks.add(fw);
-    for (const tool of repo.detectedTools ?? []) tools.add(tool);
-    if (repo.commitSpanMonths > maxCommitSpan) maxCommitSpan = repo.commitSpanMonths;
-    if (repo.isOwnerRepo) hasOwnerRepo = true;
-
-    const repoRank = COVERAGE_RANK[repo.estimatedTestCoverage] ?? 0;
-    if (repoRank > (COVERAGE_RANK[bestCoverage] ?? 0)) {
-      bestCoverage = repo.estimatedTestCoverage;
-    }
-    if (repo.scanStatus === 'layer2') bestScanDepth = 'layer2';
-
-    for (const signal of repo.aiConfigFiles ?? []) {
-      aiToolingSignals.add(signal.fileName);
-      const pattern = mapConfigFileToPattern(signal.fileName);
-      if (pattern) aiAgentPatterns.add(pattern);
-    }
-    if (repo.coAuthoredByAI) {
-      aiAgentPatterns.add('ai-agent-pattern:co-authored-by-ai');
-    }
-  }
-
+function buildSkillScoreInput(
+  data: import('./candidate-writer.js').AggregatedRepoData,
+  aiSignalPoints: number,
+  domainPoints: number,
+  scannedRepos: ReadonlyArray<Repository>,
+  evolutionBonusPts: number,
+): SkillScoreInput {
   return {
-    languages: [...languages].sort(),
-    frameworks: [...frameworks].sort(),
-    tools: [...tools].sort(),
-    aiToolingSignals: [...aiToolingSignals].sort(),
-    aiAgentPatterns: [...aiAgentPatterns].sort(),
-    maxCommitSpan,
-    hasOwnerRepo,
-    bestCoverage,
-    bestScanDepth,
+    hasLanguage: data.languages.length > 0,
+    frameworkCount: data.frameworks.length,
+    toolCount: data.tools.length,
+    commitSpanMonths: data.maxCommitSpan,
+    isOwnerRepo: data.hasOwnerRepo,
+    estimatedTestCoverage: data.bestCoverage,
+    aiSignalPoints,
+    proficiencyBonus: data.proficiencyBonus,
+    domainPoints,
+    confirmedFrameworkCount: data.confirmedFrameworks?.length ?? 0,
+    frameworkDepthPoints: computeFrameworkDepthPoints(data.frameworkDepthSummary ?? []),
+    logicCodeRatioPoints: computeLogicRatioPoints(data.avgLogicCodeRatio),
+    codeQualityPoints: computeCodeQualityPoints(data.bestCodeQualityGrade),
+    codeDurabilityPoints: computeDurabilityPoints(scannedRepos),
+    behavioralPoints: computeBehavioralPoints(scannedRepos),
+    commitMessagePoints: computeCommitMessagePoints(scannedRepos),
+    designPatternPoints: computeDesignPatternPoints(scannedRepos),
+    codeStylePoints: computeCodeStylePoints(scannedRepos),
+    evolutionBonus: evolutionBonusPts,
   };
 }
 
-async function writeCandidateDoc(
+function buildSkillTags(
+  aggregated: import('./candidate-writer.js').AggregatedRepoData,
+  detectedDomains: import('../../types/candidate.js').DomainExpertise[],
+): string[] {
+  const qualifyingDomainIds = detectedDomains
+    .filter((d) => d.confidence >= QUALIFYING_CONFIDENCE)
+    .map((d) => d.domainId);
+  return [
+    ...aggregated.languages, ...aggregated.frameworks,
+    ...aggregated.tools, ...aggregated.aiAgentPatterns,
+    ...qualifyingDomainIds,
+  ].sort();
+}
+
+async function fetchUserProfileSafe(
   owner: string,
-  skillScore: number,
-  skillTags: string[],
-  data: AggregatedRepoData,
-  repos: ReadonlyArray<Repository & { id: string }>
-): Promise<void> {
-  const now = serverTimestamp();
-  const existing = await getDoc<Candidate>(CANDIDATES_COLLECTION, owner);
-
-  const pipelineFields = {
-    githubUsername: owner,
-    githubProfileUrl: `https://github.com/${owner}`,
-    avatarUrl: `https://github.com/${owner}.png`,
-    skillScore,
-    skillTags,
-    detectedLanguages: data.languages,
-    detectedFrameworks: data.frameworks,
-    detectedTools: data.tools,
-    aiToolingSignals: data.aiToolingSignals,
-    aiAgentPatterns: data.aiAgentPatterns,
-    repoCount: repos.length,
-    primaryRepoIds: repos.map((r) => r.fullName).sort(),
-    commitSpanMonths: data.maxCommitSpan,
-    lastScanned: now,
-    isStale: false,
-    scanDepth: data.bestScanDepth,
-    updatedAt: now,
-  };
-
-  if (existing) {
-    await updateDoc<Candidate>(CANDIDATES_COLLECTION, owner, pipelineFields);
-    console.log(`[skill-score] Updated candidate ${owner}: score=${skillScore}`);
-  } else {
-    const fullDoc = {
-      ...pipelineFields,
-      aiMaturityScore: null,
-      aiMaturityScoredAt: null,
-      aiMaturityScoredBy: null,
-      createdAt: now,
-    };
-    await setDoc<Record<string, unknown>>(CANDIDATES_COLLECTION, owner, fullDoc);
-    console.log(`[skill-score] Created candidate ${owner}: score=${skillScore}`);
+): Promise<import('../../adapters/source-adapter.js').UserProfile | null> {
+  try {
+    const adapter = createGitHubAdapter();
+    return await adapter.getUserProfile(owner);
+  } catch (err) {
+    console.warn(`[skill-score] Failed to fetch user profile for ${owner}:`, err);
+    return null;
   }
 }

@@ -149,7 +149,8 @@ describe('US-009: Test Coverage Detection', () => {
 // ─── Scan Repo Handler — Layer 2 Support ────────────────────────────────────────
 
 describe('US-009: Scan Repo Handler — Layer 2 Integration', () => {
-  const src = readSource('src/pipeline/handlers/scan-repo.ts');
+  const src = readSource('src/pipeline/handlers/scan-repo.ts') +
+    readSource('src/pipeline/handlers/scan-repo-helpers.ts');
 
   it('imports analyzeLayer2 from layer2 module', () => {
     expect(src).toContain("from '../analysis/layer2.js'");
@@ -162,8 +163,8 @@ describe('US-009: Scan Repo Handler — Layer 2 Integration', () => {
   });
 
   it('performs full clone for Layer 2 (no --depth flag)', () => {
-    // runLayer2 should clone without --depth
-    expect(src).toContain('git.clone(repo.githubUrl, cloneDir)');
+    // runLayer2 should clone without --depth, using buildCloneUrl for auth support
+    expect(src).toContain('git.clone(cloneUrl, cloneDir)');
   });
 
   it('updates Repository with layer2 fields', () => {

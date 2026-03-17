@@ -1,20 +1,23 @@
 /**
  * src/pipeline/analysis/ai-signals.ts — AI signal detection.
  *
- * Detects AI config files, analyses their evolution via git log,
+ * Detects AI config files/directories, analyses their evolution via git log,
  * and detects co-authored-by AI commit trailers.
  *
- * Known AI config files:
- * - CLAUDE.md, .claude/
- * - .cursor/rules, .cursor/settings.json
- * - ai-context.md
- * - .github/copilot-instructions.md
- * - .aider*, .aiderignore, .aider.conf.yml
+ * Covers: Claude, Cursor, Copilot, Aider, Windsurf, Cline, Continue.dev,
+ * Cody, Codex, Amazon Q, MCP, agent engineering infrastructure, and general
+ * AI context patterns.
  */
 
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, lstatSync } from 'fs';
 import { join } from 'path';
 import simpleGit from 'simple-git';
+import {
+  AI_CONFIG_FILES, AI_CONFIG_DIRS, CLAUDE_SUBDIRS,
+  AGENT_ENGINEERING_SUBDIRS,
+  AI_CONFIG_PREFIXES, AI_CONFIG_SUFFIXES, AI_TOOL_NAMES,
+} from './ai-config-patterns.js';
+import { analyzeFileHistory } from './ai-signals-helpers.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +30,7 @@ export interface AiSignalResult {
 /** Raw AI config file signal — dates as JS Dates (converted to Timestamps at write time). */
 export interface AiConfigFileSignalRaw {
   fileName: string;
+  fileType: 'file' | 'directory';
   firstDetectedAt: Date;
   modificationCount: number;
   lastModifiedAt: Date;
@@ -34,43 +38,6 @@ export interface AiConfigFileSignalRaw {
   isEvolved: boolean;
   originSignal: 'likely-original' | 'modified-from-template' | 'likely-copied' | 'unknown';
 }
-
-// ─── Known AI config file patterns ────────────────────────────────────────────
-
-const AI_CONFIG_FILES = [
-  'CLAUDE.md',
-  '.cursor/rules',
-  '.cursor/settings.json',
-  'ai-context.md',
-  '.github/copilot-instructions.md',
-];
-
-/** Directory patterns — presence of directory itself is a signal. */
-const AI_CONFIG_DIRS = [
-  '.claude',
-  '.cursor',
-];
-
-/** Glob-like prefix patterns for aider files. */
-const AI_CONFIG_PREFIXES = [
-  '.aider',
-];
-
-/** Known AI tool names in co-authored-by trailers. */
-const AI_TOOL_NAMES = [
-  'github copilot',
-  'copilot',
-  'cursor',
-  'claude',
-  'anthropic',
-  'aider',
-  'codeium',
-  'tabnine',
-  'cody',
-  'sourcegraph',
-  'amazon q',
-  'devin',
-];
 
 // ─── Analysis ─────────────────────────────────────────────────────────────────
 
@@ -82,16 +49,14 @@ const AI_TOOL_NAMES = [
 export async function analyzeAiSignals(cloneDir: string): Promise<AiSignalResult> {
   const git = simpleGit(cloneDir);
 
-  // 1. Detect AI config files in the file tree
-  const detectedFiles = detectAiConfigFiles(cloneDir);
+  // 1. Detect AI config files/directories in the file tree
+  const detectedEntries = detectAiConfigEntries(cloneDir);
 
-  // 2. Analyse each detected file's git history
+  // 2. Analyse each detected entry's git history
   const aiConfigFiles: AiConfigFileSignalRaw[] = [];
-  for (const fileName of detectedFiles) {
-    const signal = await analyzeFileHistory(git, fileName);
-    if (signal) {
-      aiConfigFiles.push(signal);
-    }
+  for (const entry of detectedEntries) {
+    const signal = await analyzeFileHistory(git, entry.name, entry.fileType);
+    if (signal) aiConfigFiles.push(signal);
   }
 
   // 3. Detect co-authored-by AI trailers in commit messages
@@ -102,202 +67,148 @@ export async function analyzeAiSignals(cloneDir: string): Promise<AiSignalResult
 
 // ─── File detection ───────────────────────────────────────────────────────────
 
-/**
- * Detects known AI config files in the clone directory.
- * Returns relative file paths.
- */
-function detectAiConfigFiles(cloneDir: string): string[] {
-  const found: string[] = [];
+interface DetectedEntry { name: string; fileType: 'file' | 'directory'; }
 
-  // Check specific files
+/**
+ * Detects known AI config files and directories in the clone directory.
+ */
+function detectAiConfigEntries(cloneDir: string): DetectedEntry[] {
+  const found: DetectedEntry[] = [];
+  const seen = new Set<string>();
+
+  const add = (name: string, ft: 'file' | 'directory') => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    found.push({ name, fileType: ft });
+  };
+
+  // Exact file matches
   for (const file of AI_CONFIG_FILES) {
     if (existsSync(join(cloneDir, file))) {
-      found.push(file);
+      add(file, isDir(join(cloneDir, file)) ? 'directory' : 'file');
     }
   }
 
-  // Check directories
-  for (const dir of AI_CONFIG_DIRS) {
-    const dirPath = join(cloneDir, dir);
-    if (existsSync(dirPath)) {
-      // Add the directory itself as a signal if not already found via a specific file
-      const hasSpecificFile = found.some((f) => f.startsWith(dir + '/'));
-      if (!hasSpecificFile) {
-        found.push(dir);
-      }
-    }
+  // Exact directory matches
+  for (const dir of [...AI_CONFIG_DIRS, ...CLAUDE_SUBDIRS, ...AGENT_ENGINEERING_SUBDIRS]) {
+    if (existsSync(join(cloneDir, dir))) add(dir, 'directory');
   }
 
-  // Check prefix patterns (e.g., .aider*)
-  try {
-    const entries = readdirSync(cloneDir);
-    for (const entry of entries) {
-      for (const prefix of AI_CONFIG_PREFIXES) {
-        if (entry.toLowerCase().startsWith(prefix) && !found.includes(entry)) {
-          found.push(entry);
-        }
-      }
-    }
-  } catch {
-    // Skip if can't read directory
-  }
+  // Prefix + suffix patterns via root directory listing
+  detectByPrefixAndSuffix(cloneDir, add);
+
+  // Agent engineering: sidecar dirs, nested agent YAML files
+  detectAgentInfrastructure(cloneDir, add);
 
   return found;
 }
 
-// ─── File history analysis ────────────────────────────────────────────────────
-
-/**
- * Analyses a single file's git history to build an AiConfigFileSignalRaw.
- */
-async function analyzeFileHistory(
-  git: ReturnType<typeof simpleGit>,
-  fileName: string
-): Promise<AiConfigFileSignalRaw | null> {
+/** Detects files matching prefix (.aider*) and suffix (*.agent.yaml) patterns. */
+function detectByPrefixAndSuffix(
+  cloneDir: string,
+  add: (name: string, ft: 'file' | 'directory') => void,
+): void {
   try {
-    // Get commit history for this file
-    const log = await git.log({ file: fileName, maxCount: 100 });
-    const commits = log.all;
-
-    if (commits.length === 0) {
-      return null;
+    for (const entry of readdirSync(cloneDir)) {
+      const lower = entry.toLowerCase();
+      for (const prefix of AI_CONFIG_PREFIXES) {
+        if (lower.startsWith(prefix)) {
+          add(entry, isDir(join(cloneDir, entry)) ? 'directory' : 'file');
+        }
+      }
+      for (const suffix of AI_CONFIG_SUFFIXES) {
+        if (lower.endsWith(suffix)) add(entry, 'file');
+      }
     }
-
-    const modificationCount = commits.length;
-    const dates = commits.map((c) => new Date(c.date)).sort((a, b) => a.getTime() - b.getTime());
-    const firstDetectedAt = dates[0] ?? new Date();
-    const lastModifiedAt = dates[dates.length - 1] ?? new Date();
-
-    // Compute diff complexity (total lines changed across all modifications)
-    const totalLinesChanged = await computeTotalLinesChanged(git, fileName);
-    const diffComplexity = classifyDiffComplexity(totalLinesChanged);
-
-    // Determine if evolved (more than 3 modifications)
-    const isEvolved = modificationCount > 3;
-
-    // Determine origin signal (uses modificationCount for template vs copy distinction)
-    const originSignal = await determineOriginSignal(git, fileName, commits, modificationCount);
-
-    return {
-      fileName,
-      firstDetectedAt,
-      modificationCount,
-      lastModifiedAt,
-      diffComplexity,
-      isEvolved,
-      originSignal,
-    };
-  } catch {
-    // File may not be tracked by git (e.g., in .gitignore)
-    return null;
-  }
+  } catch { /* skip */ }
 }
 
 /**
- * Computes total lines changed across all modifications to a file.
+ * Scans for agent engineering infrastructure: *-sidecar/ dirs with sub-structures,
+ * nested *.agent.yaml files inside agents/ or _bmad/ directories.
  */
-async function computeTotalLinesChanged(
-  git: ReturnType<typeof simpleGit>,
-  fileName: string
-): Promise<number> {
+function detectAgentInfrastructure(
+  cloneDir: string,
+  add: (name: string, ft: 'file' | 'directory') => void,
+): void {
   try {
-    const diffStat = await git.raw([
-      'log', '--follow', '--numstat', '--format=', '--', fileName,
-    ]);
+    for (const entry of readdirSync(cloneDir)) {
+      const fullPath = join(cloneDir, entry);
+      if (!safeLstat(fullPath)?.isDirectory()) continue;
 
-    let total = 0;
-    for (const line of diffStat.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      const parts = trimmed.split(/\s+/);
-      const added = parseInt(parts[0] ?? '0', 10);
-      const deleted = parseInt(parts[1] ?? '0', 10);
-      if (!isNaN(added)) total += added;
-      if (!isNaN(deleted)) total += deleted;
+      if (entry.endsWith('-sidecar')) {
+        add(entry, 'directory');
+        scanSidecarSubdirs(cloneDir, entry, add);
+      } else if (entry === 'agents' || entry === '_bmad') {
+        scanForAgentYaml(fullPath, entry, add);
+      }
     }
-    return total;
-  } catch {
-    return 0;
+  } catch { /* skip */ }
+}
+
+/** Checks for known sub-structures inside a sidecar directory. */
+function scanSidecarSubdirs(
+  cloneDir: string,
+  sidecarName: string,
+  add: (name: string, ft: 'file' | 'directory') => void,
+): void {
+  const SIDECAR_SIGNALS = ['knowledge', 'instincts', 'templates', 'dynamic', 'tracking'];
+  for (const sub of SIDECAR_SIGNALS) {
+    if (existsSync(join(cloneDir, sidecarName, sub))) {
+      add(`${sidecarName}/${sub}`, 'directory');
+    }
   }
 }
 
-/**
- * Classifies diff complexity based on total lines changed.
- */
-function classifyDiffComplexity(totalLines: number): 'minimal' | 'moderate' | 'extensive' {
-  if (totalLines < 10) return 'minimal';
-  if (totalLines < 100) return 'moderate';
-  return 'extensive';
+/** Scans 2 levels deep for *.agent.yaml files inside a directory. */
+function scanForAgentYaml(
+  dirPath: string,
+  relativePath: string,
+  add: (name: string, ft: 'file' | 'directory') => void,
+): void {
+  try {
+    for (const entry of readdirSync(dirPath)) {
+      const lower = entry.toLowerCase();
+      if (lower.endsWith('.agent.yaml') || lower.endsWith('.agent.json')) {
+        add(`${relativePath}/${entry}`, 'file');
+      }
+      const nested = join(dirPath, entry);
+      if (!safeLstat(nested)?.isDirectory()) continue;
+      try {
+        for (const inner of readdirSync(nested)) {
+          const il = inner.toLowerCase();
+          if (il.endsWith('.agent.yaml') || il.endsWith('.agent.json')) {
+            add(`${relativePath}/${entry}/${inner}`, 'file');
+          }
+        }
+      } catch { /* skip */ }
+    }
+  } catch { /* skip */ }
 }
 
-/**
- * Determines the origin signal for an AI config file.
- *
- * Combines first-commit size with modification count for better accuracy:
- * - likely-original:         ≤50 lines in first commit (built from scratch)
- * - modified-from-template:  >50 lines in first commit AND >3 modifications (started from template, heavily customized)
- * - likely-copied:           >50 lines in first commit AND ≤3 modifications (copied, barely touched)
- * - unknown:                 insufficient data
- */
-async function determineOriginSignal(
-  git: ReturnType<typeof simpleGit>,
-  fileName: string,
-  commits: ReadonlyArray<{ hash: string }>,
-  modificationCount: number
-): Promise<'likely-original' | 'modified-from-template' | 'likely-copied' | 'unknown'> {
-  if (commits.length === 0) return 'unknown';
+function isDir(path: string): boolean {
+  try { return lstatSync(path).isDirectory(); } catch { return false; }
+}
 
-  // Get the first (oldest) commit that introduced the file
-  const firstCommit = commits[commits.length - 1];
-  if (!firstCommit) return 'unknown';
-
-  try {
-    // Check the size of the file in the first commit
-    const diffStat = await git.raw([
-      'diff-tree', '--numstat', '-r', firstCommit.hash, '--', fileName,
-    ]);
-
-    let linesAdded = 0;
-    for (const line of diffStat.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      const parts = trimmed.split(/\s+/);
-      const added = parseInt(parts[0] ?? '0', 10);
-      if (!isNaN(added)) linesAdded += added;
-    }
-
-    // Small first commit → built from scratch
-    if (linesAdded <= 50) return 'likely-original';
-
-    // Large first commit (>50 lines) — distinguish template-based vs plain copy
-    if (modificationCount > 3) return 'modified-from-template';
-    return 'likely-copied';
-  } catch {
-    return 'unknown';
-  }
+function safeLstat(path: string) {
+  try { return lstatSync(path); } catch { return null; }
 }
 
 // ─── AI attribution detection ─────────────────────────────────────────────────
 
-/**
- * Scans commit messages for co-authored-by AI trailers and attribution patterns.
- */
 async function detectAiAttribution(
-  git: ReturnType<typeof simpleGit>
+  git: ReturnType<typeof simpleGit>,
 ): Promise<{ coAuthoredByAI: boolean; aiAttributionPatterns: string[] }> {
   let coAuthoredByAI = false;
   const patterns = new Set<string>();
 
   try {
-    // Read up to 200 commit messages
     const log = await git.log({ maxCount: 200 });
-
     for (const commit of log.all) {
       const body = commit.body?.toLowerCase() ?? '';
       const message = commit.message?.toLowerCase() ?? '';
       const fullText = `${message}\n${body}`;
 
-      // Check for Co-authored-by: trailers
       if (fullText.includes('co-authored-by:')) {
         for (const toolName of AI_TOOL_NAMES) {
           if (fullText.includes(toolName)) {
@@ -306,8 +217,6 @@ async function detectAiAttribution(
           }
         }
       }
-
-      // Check for other AI attribution patterns
       if (fullText.includes('generated by') || fullText.includes('created by')) {
         for (const toolName of AI_TOOL_NAMES) {
           if (fullText.includes(toolName)) {
@@ -316,12 +225,7 @@ async function detectAiAttribution(
         }
       }
     }
-  } catch {
-    // If git log fails, return defaults
-  }
+  } catch { /* git log failed */ }
 
-  return {
-    coAuthoredByAI,
-    aiAttributionPatterns: [...patterns].sort(),
-  };
+  return { coAuthoredByAI, aiAttributionPatterns: [...patterns].sort() };
 }

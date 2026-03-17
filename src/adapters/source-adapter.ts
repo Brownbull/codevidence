@@ -40,6 +40,21 @@ export interface DiscoverResult {
   rateLimit: RateLimitInfo;
 }
 
+/** User profile info returned by getUserProfile. */
+export interface UserProfile {
+  login: string;
+  email: string | null;
+  avatarUrl: string | null;
+  name: string | null;
+  bio: string | null;
+  location: string | null;
+  company: string | null;
+  hireable: boolean | null;
+  websiteUrl: string | null;
+  followers: number | null;
+  createdAt: string | null;            // ISO 8601 account creation date
+}
+
 /**
  * Source adapter interface — every code-hosting platform adapter implements this.
  */
@@ -54,4 +69,20 @@ export interface SourceAdapter {
    * @returns DiscoverResult with repos, total count, and rate limit info
    */
   searchRepositories(query: string, limit: number): Promise<DiscoverResult>;
+
+  /**
+   * List repositories for a user. When authenticated with the user's own
+   * token, includes private repos the token can access.
+   * @param username  The GitHub username to list repos for
+   * @param limit     Maximum repos to return
+   * @returns DiscoverResult with repos and rate limit info
+   */
+  listUserRepos(username: string, limit: number): Promise<DiscoverResult>;
+
+  /**
+   * Fetch a user's public profile info (email, avatar, etc.).
+   * @param username  The username to look up
+   * @returns UserProfile with available info, or null if user not found
+   */
+  getUserProfile(username: string): Promise<UserProfile | null>;
 }

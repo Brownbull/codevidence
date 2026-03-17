@@ -214,8 +214,8 @@ describe('US-015: RepositoriesSection', () => {
     expect(src).toContain('repo.commitSpanMonths');
   });
 
-  it('shows scan status badge', () => {
-    expect(src).toContain('ScanStatusBadge');
+  it('shows scan status in table', () => {
+    expect(src).toContain('RepositoriesTable');
     expect(src).toContain('repo.scanStatus');
   });
 
@@ -224,25 +224,16 @@ describe('US-015: RepositoriesSection', () => {
   });
 });
 
-describe('US-015: AiSignalsSection', () => {
+describe('US-015: RepoAndSignalsSection (consolidated)', () => {
   const src = readSource('src/app/components/profile/EvidenceSection.tsx');
 
-  it('shows empty state when no AI signals', () => {
-    expect(src).toContain('No AI tooling signals detected');
-  });
-
-  it('renders AI config files with modificationCount', () => {
+  it('renders AI config file tags with detail attributes', () => {
     expect(src).toContain('signal.modificationCount');
-    expect(src).toContain('mods');
+    expect(src).toContain('signal.diffComplexity');
   });
 
   it('shows isEvolved indicator', () => {
     expect(src).toContain('signal.isEvolved');
-    expect(src).toContain('Evolved');
-  });
-
-  it('shows diffComplexity', () => {
-    expect(src).toContain('signal.diffComplexity');
   });
 
   it('shows originSignal', () => {
@@ -254,55 +245,58 @@ describe('US-015: AiSignalsSection', () => {
     expect(src).toContain('Co-authored by AI');
   });
 
-  it('renders aiAgentPatterns chips', () => {
+  it('renders aiAgentPatterns inline', () => {
     expect(src).toContain('candidate.aiAgentPatterns');
-    expect(src).toContain('AI Agent Patterns');
+    expect(src).toContain('aiAgentPatterns.map');
   });
 
   it('aggregates config files from all repos', () => {
     expect(src).toContain('repos.flatMap');
     expect(src).toContain('aiConfigFiles');
   });
+
+  it('starts collapsed by default', () => {
+    expect(src).toContain('defaultOpen={false}');
+  });
 });
 
 describe('US-015: EvolutionSection', () => {
-  const src = readSource('src/app/components/profile/EvidenceSection.tsx');
+  const src = readSource('src/app/components/profile/EvolutionSection.tsx');
 
-  it('renders timeline heading', () => {
-    expect(src).toContain('AI Evolution Timeline');
+  it('renders section heading', () => {
+    expect(src).toContain('Growth Evolution');
   });
 
-  it('shows empty state when no config file history', () => {
-    expect(src).toContain('No AI config file history available');
+  it('shows empty state when insufficient repos', () => {
+    expect(src).toContain('Not enough repositories for evolution analysis');
   });
 
-  it('shows first seen date', () => {
-    expect(src).toContain('First seen');
-    expect(src).toContain('firstDetectedAt');
+  it('displays growth vector', () => {
+    expect(src).toContain('growthVector');
+    expect(src).toContain('Growth Vector');
   });
 
-  it('shows modification count', () => {
-    expect(src).toContain('Modifications');
-    expect(src).toContain('signal.modificationCount');
+  it('shows 4 evolution dimensions', () => {
+    expect(src).toContain('techSophistication');
+    expect(src).toContain('testingMaturity');
+    expect(src).toContain('architectureComplexity');
+    expect(src).toContain('aiAdoption');
   });
 
-  it('shows last modified date', () => {
-    expect(src).toContain('Last modified');
-    expect(src).toContain('lastModifiedAt');
+  it('shows trend classification badges', () => {
+    expect(src).toContain('rapid-growth');
+    expect(src).toContain('steady-growth');
+    expect(src).toContain('plateau');
+    expect(src).toContain('regression');
   });
 
-  it('shows isEvolved classification', () => {
-    expect(src).toContain('Evolved');
-    expect(src).toContain('Static');
-  });
-
-  it('includes repo name for context', () => {
+  it('includes repo name in trajectory data', () => {
     expect(src).toContain('repoName');
   });
 
-  it('timeline items are expandable', () => {
-    expect(src).toContain('expanded');
-    expect(src).toContain('setExpanded');
+  it('shows adoption timeline events', () => {
+    expect(src).toContain('Adoption Timeline');
+    expect(src).toContain('adoptionTimeline');
   });
 });
 

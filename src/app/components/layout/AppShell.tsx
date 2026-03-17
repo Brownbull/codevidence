@@ -38,7 +38,7 @@ export function AppShell({ sidebar, children }: AppShellProps) {
               </svg>
             </button>
           )}
-          <Link to="/search" className="text-white font-semibold text-sm font-sans tracking-tight">
+          <Link to="/search" className="text-white font-semibold text-base font-sans tracking-tight">
             <span className="hidden sm:inline">Candidate Skill Scanner</span>
             <span className="sm:hidden">CSS</span>
           </Link>
@@ -47,7 +47,7 @@ export function AppShell({ sidebar, children }: AppShellProps) {
           {isAdmin && (
             <Link
               to="/admin"
-              className="text-slate-300 text-xs hover:text-white transition-colors"
+              className="text-slate-300 text-sm hover:text-white transition-colors"
             >
               Admin
             </Link>
@@ -60,13 +60,13 @@ export function AppShell({ sidebar, children }: AppShellProps) {
               referrerPolicy="no-referrer"
             />
           )}
-          <span className="text-slate-300 text-xs hidden sm:inline">
+          <span className="text-slate-300 text-sm hidden sm:inline">
             {user?.displayName ?? user?.email}
           </span>
           <SettingsPopover />
           <button
             onClick={() => void signOut()}
-            className="text-slate-400 text-xs hover:text-white transition-colors"
+            className="text-slate-400 text-sm hover:text-white transition-colors"
             type="button"
           >
             Sign out

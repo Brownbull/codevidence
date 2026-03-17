@@ -1,13 +1,12 @@
 /**
  * src/pipeline/commands/run.ts — Interactive `scan run` command.
  *
- * Shows queue status, then offers to process pending jobs.
- * Options: all, first N, or skip. Runs the worker inline until
- * the selected batch is done, then exits cleanly.
+ * Shows queue status, lists pending jobs with details, allows
+ * cancelling individual jobs, then processes remaining pending jobs.
  */
 
 import * as readline from 'readline/promises';
-import { fetchJobsByStatus } from '../queue.js';
+import { fetchJobsByStatus, cancelJob } from '../queue.js';
 import { processOneJob } from '../worker.js';
 import { handleDiscover } from '../handlers/discover.js';
 import { handleScanRepo } from '../handlers/scan-repo.js';
@@ -24,6 +23,16 @@ function getJobTarget(job: ScanJob): string {
   return '';
 }
 
+/** Formats a Firestore Timestamp to a short date/time string. */
+function formatTimestamp(ts: ScanJob['createdAt']): string {
+  if (!ts || !('toDate' in ts)) return 'unknown';
+  const d = ts.toDate();
+  return d.toLocaleString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
 const HANDLERS: JobHandlerRegistry = {
   discover: handleDiscover,
   'scan-repo': handleScanRepo,
@@ -32,7 +41,7 @@ const HANDLERS: JobHandlerRegistry = {
 
 /**
  * Handles the `scan run` command.
- * Shows status → prompts for batch size → processes jobs → exits.
+ * Shows status → lists jobs → cancel flow → batch processing → exits.
  */
 export async function runInteractive(): Promise<void> {
   // ── Show queue status ──────────────────────────────────────────────────────
@@ -62,24 +71,42 @@ export async function runInteractive(): Promise<void> {
     return;
   }
 
-  // ── Show what's pending ────────────────────────────────────────────────────
-  printPendingSummary(pending);
+  // ── List pending jobs with details ───────────────────────────────────────
+  printJobList(pending);
 
-  // ── Prompt for batch size ──────────────────────────────────────────────────
+  // ── Cancel flow ──────────────────────────────────────────────────────────
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
-  console.log('\nHow many jobs to process?');
-  console.log(`  [a] All ${pending.length} jobs`);
-  console.log('  [5] First 5');
-  console.log('  [10] First 10');
-  console.log('  [20] First 20');
+  let activePending = pending;
+
+  try {
+    activePending = await cancelLoop(rl, activePending);
+  } catch {
+    console.log('\nInput closed. Exiting.');
+    rl.close();
+    return;
+  }
+
+  if (activePending.length === 0) {
+    console.log('\nAll pending jobs cancelled. Nothing to process.');
+    rl.close();
+    return;
+  }
+
+  // ── Prompt for batch size ──────────────────────────────────────────────
+  console.log(`\n${activePending.length} pending job(s) remaining.`);
+  console.log('How many jobs to process?');
+  console.log(`  [a] All ${activePending.length} jobs`);
+  if (activePending.length > 5) console.log('  [5] First 5');
+  if (activePending.length > 10) console.log('  [10] First 10');
+  if (activePending.length > 20) console.log('  [20] First 20');
   console.log('  [n] Enter a number');
   console.log('  [q] Quit\n');
 
   const answer = await rl.question('> ');
   rl.close();
 
-  const batchSize = parseBatchSize(answer, pending.length);
+  const batchSize = parseBatchSize(answer, activePending.length);
 
   if (batchSize === null) {
     console.log('Exiting.');
@@ -91,7 +118,7 @@ export async function runInteractive(): Promise<void> {
     return;
   }
 
-  // ── Process jobs ───────────────────────────────────────────────────────────
+  // ── Process jobs ───────────────────────────────────────────────────────
   console.log(`\nProcessing ${batchSize} job(s)...\n`);
 
   let processed = 0;
@@ -112,7 +139,7 @@ export async function runInteractive(): Promise<void> {
 
   console.log('\n');
 
-  // ── Final summary ──────────────────────────────────────────────────────────
+  // ── Final summary ──────────────────────────────────────────────────────
   const [finalPending, finalCompleted, finalFailed] = await Promise.all([
     fetchJobsByStatus('pending', 500),
     fetchJobsByStatus('completed', 100),
@@ -144,21 +171,109 @@ function parseBatchSize(input: string, total: number): number | null {
   return Math.min(num, total);
 }
 
-/** Prints a summary of pending jobs grouped by type, with example targets. */
-function printPendingSummary(jobs: (ScanJob & { id: string })[]): void {
-  const byType = new Map<string, { count: number; example: string }>();
-  for (const job of jobs) {
-    const existing = byType.get(job.type);
-    if (existing) {
-      existing.count++;
+/** Prints the full list of pending jobs with index, type, target, and creation date. */
+function printJobList(jobs: (ScanJob & { id: string })[]): void {
+  console.log(`\nPending jobs (${jobs.length}):\n`);
+
+  const idxWidth = String(jobs.length).length;
+
+  for (let i = 0; i < jobs.length; i++) {
+    const job = jobs[i]!;
+    const idx = String(i + 1).padStart(idxWidth);
+    const target = getJobTarget(job);
+    const created = formatTimestamp(job.createdAt);
+    const attempts = job.attempts > 0 ? ` [attempt ${job.attempts}/${job.maxAttempts}]` : '';
+    const error = job.errorMessage ? ` — ${job.errorMessage}` : '';
+
+    console.log(`  ${idx}. [${job.type}] ${target}  (created: ${created})${attempts}${error}`);
+  }
+}
+
+/**
+ * Interactive loop allowing the user to cancel pending jobs by index.
+ * Returns the remaining (non-cancelled) jobs.
+ */
+async function cancelLoop(
+  rl: readline.Interface,
+  jobs: (ScanJob & { id: string })[]
+): Promise<(ScanJob & { id: string })[]> {
+  const cancelled = new Set<string>();
+
+  console.log('\nCancel jobs? Enter job numbers (e.g. "1", "2,4,5"), ranges ("1-3"), or:');
+  console.log('  [s] Skip — proceed to processing');
+  console.log('  [q] Quit\n');
+
+  while (true) {
+    const answer = await rl.question('cancel> ');
+    const trimmed = answer.trim().toLowerCase();
+
+    if (trimmed === 's' || trimmed === 'skip' || trimmed === '') break;
+    if (trimmed === 'q' || trimmed === 'quit' || trimmed === 'exit') {
+      console.log('Exiting.');
+      rl.close();
+      process.exit(0);
+    }
+
+    const indices = parseIndices(trimmed, jobs.length);
+
+    if (indices.length === 0) {
+      console.log('  Invalid input. Use numbers (e.g. "1,3,5"), ranges ("2-4"), [s]kip, or [q]uit.');
+      continue;
+    }
+
+    const toCancel = indices.filter((i) => !cancelled.has(jobs[i]!.id));
+
+    if (toCancel.length === 0) {
+      console.log('  Those jobs are already cancelled.');
+      continue;
+    }
+
+    for (const i of toCancel) {
+      const job = jobs[i]!;
+      const target = getJobTarget(job);
+      try {
+        await cancelJob(job.id);
+        cancelled.add(job.id);
+        console.log(`  ✕ Cancelled #${i + 1}: [${job.type}] ${target}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(`  ! Failed to cancel #${i + 1}: ${msg}`);
+      }
+    }
+
+    const remaining = jobs.length - cancelled.size;
+    console.log(`  ${cancelled.size} cancelled, ${remaining} remaining.`);
+
+    if (remaining === 0) break;
+  }
+
+  return jobs.filter((j) => !cancelled.has(j.id));
+}
+
+/**
+ * Parses user input like "1", "1,3,5", "2-4", "1-3,7" into 0-based indices.
+ * Invalid or out-of-range parts are silently skipped.
+ */
+function parseIndices(input: string, total: number): number[] {
+  const result: number[] = [];
+  const parts = input.split(',').map((s) => s.trim());
+
+  for (const part of parts) {
+    if (part.includes('-')) {
+      const segments = part.split('-');
+      const start = parseInt(segments[0] ?? '', 10);
+      const end = parseInt(segments[1] ?? '', 10);
+      if (Number.isNaN(start) || Number.isNaN(end)) continue;
+      for (let i = Math.max(1, start); i <= Math.min(total, end); i++) {
+        result.push(i - 1);
+      }
     } else {
-      byType.set(job.type, { count: 1, example: getJobTarget(job) });
+      const num = parseInt(part, 10);
+      if (!Number.isNaN(num) && num >= 1 && num <= total) {
+        result.push(num - 1);
+      }
     }
   }
 
-  console.log('\nPending jobs by type:');
-  for (const [type, { count, example }] of byType) {
-    const suffix = example ? ` (e.g. ${example})` : '';
-    console.log(`  ${type}: ${count}${suffix}`);
-  }
+  return [...new Set(result)];
 }

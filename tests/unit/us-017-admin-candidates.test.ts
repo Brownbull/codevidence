@@ -144,14 +144,15 @@ describe('US-017: Rescan Trigger', () => {
 
   it('disables button while queuing', () => {
     expect(src).toContain('rescanMutation.isPending');
-    expect(src).toContain('Queuing...');
+    expect(src).toContain('disabled:opacity-50');
   });
 });
 
 // ─── Inline Score Assignment ────────────────────────────────────────────────
 
 describe('US-017: InlineScoreStepper', () => {
-  const src = readSource('src/app/components/admin/CandidatesTab.tsx');
+  const src = readSource('src/app/components/admin/EvaluationPanel.tsx');
+  const tabSrc = readSource('src/app/components/admin/CandidatesTab.tsx');
 
   it('renders segmented stepper [0][1][2][3][4][5]', () => {
     expect(src).toContain('[0, 1, 2, 3, 4, 5]');
@@ -183,9 +184,9 @@ describe('US-017: InlineScoreStepper', () => {
   });
 
   it('row is expandable to show stepper', () => {
-    expect(src).toContain('expanded');
-    expect(src).toContain('setExpanded');
-    expect(src).toContain('InlineScoreStepper');
+    expect(tabSrc).toContain('expanded');
+    expect(tabSrc).toContain('setExpanded');
+    expect(tabSrc).toContain('InlineScoreStepper');
   });
 });
 
