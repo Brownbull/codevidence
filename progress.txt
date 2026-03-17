@@ -564,3 +564,23 @@
   - Counts appear 0 because candidates were scanned before the count update code was added in earlier phases
   - Testing pattern: source-level structural tests with readFileSync + toContain() plus functional reimplementation tests for pure logic
 ---
+
+## 2026-03-17 - US-021
+- What was implemented:
+  - **OR-within-category search**: Replaced `array-contains` (single tag) with `array-contains-any` (up to 10 tags per chunk). Client-side filter changed from `allTags.every()` (AND) to `activeGroups.every(group => group.some())` (OR within category, AND across categories). Tags chunked into batches of 10 for Firestore's limit, parallel queries merged+deduped.
+  - **aiMaturityMin moved to client-side**: Removed dual Firestore query pattern (scored>=N + null). Now uses single `array-contains-any` query, filters aiMaturityMin client-side. Simpler, avoids Firestore inequality+array constraint conflict.
+  - **InfoIconButton DOM nesting fix**: Changed `<button>` to `<span role="button" tabIndex={0}>` with keyboard handlers (Enter/Space). PortalTooltip ref type widened to `HTMLElement`. Prevents validateDOMNesting error when inside CollapsibleSection's `<button>` header.
+  - Updated us-013-search.test.ts with new OR logic tests (buildCategoryGroups, OR-within AND-across filter)
+  - Updated us-014-ai-filter.test.ts to match new client-side aiMaturityMin approach
+- Files changed:
+  - MODIFIED: src/handlers/search.ts (148 → 148 lines, rewritten search logic)
+  - MODIFIED: src/app/components/profile/InfoBadge.tsx (span role=button, keyboard a11y)
+  - MODIFIED: tests/unit/us-013-search.test.ts (added 15 tests for OR logic + DOM fix)
+  - MODIFIED: tests/unit/us-014-ai-filter.test.ts (updated dual query tests to client-side)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - Firestore `array-contains-any` supports up to 10 values per clause (not 30). Must chunk for >10 selections.
+  - Cannot combine `array-contains-any` with inequality (`>=`) in same Firestore query — move inequality filtering client-side
+  - `<button>` inside `<button>` triggers React validateDOMNesting warning — use `<span role="button" tabIndex={0}>` with keyboard handlers instead
+  - `buildCategoryGroups` extracted as exported utility for testability
+---

@@ -337,7 +337,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Source: F2N audit BUG-1 and BUG-2. The OR-within-category change affects src/app/hooks/useSearchQuery (or wherever the Firestore query is built). Firestore array-contains only supports one value, so OR requires multiple queries merged client-side, or switching to array-contains-any (supports up to 10 values). The DOM nesting fix is in CollapsibleSection.tsx \u2014 change the info icon from <button> to <span role=\"button\"> or restructure the header."
     },
     {

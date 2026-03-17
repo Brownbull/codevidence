@@ -41,24 +41,30 @@ interface InfoIconButtonProps {
   tooltip: string;
 }
 
-/** Standalone info icon button with tooltip — for section headings. */
+/**
+ * Standalone info icon for section headings.
+ * Uses <span role="button"> instead of <button> to avoid validateDOMNesting
+ * errors when placed inside CollapsibleSection's <button> header.
+ */
 export function InfoIconButton({ tooltip }: InfoIconButtonProps) {
   const [show, setShow] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
+  const iconRef = useRef<HTMLSpanElement>(null);
 
   return (
     <span className="relative inline-flex items-center">
-      <button
-        ref={btnRef}
-        type="button"
+      <span
+        ref={iconRef}
+        role="button"
+        tabIndex={0}
         onClick={(e) => { e.stopPropagation(); setShow(!show); }}
         onBlur={() => setShow(false)}
-        className="text-th-text-muted hover:text-th-text-secondary transition-colors leading-none ml-1"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); setShow(!show); } }}
+        className="text-th-text-muted hover:text-th-text-secondary transition-colors leading-none ml-1 cursor-pointer"
         aria-label="Section info"
       >
         <InfoCircleIcon size={14} />
-      </button>
-      {show && <PortalTooltip anchorRef={btnRef} tooltip={tooltip} width={224} />}
+      </span>
+      {show && <PortalTooltip anchorRef={iconRef} tooltip={tooltip} width={224} />}
     </span>
   );
 }
@@ -73,7 +79,7 @@ function InfoCircleIcon({ size }: { size: number }) {
 
 /** Renders a tooltip via portal so it's never clipped by overflow containers. */
 function PortalTooltip({ anchorRef, tooltip, width }: {
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  anchorRef: React.RefObject<HTMLElement | null>;
   tooltip: string;
   width: number;
 }) {

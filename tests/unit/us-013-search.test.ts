@@ -31,8 +31,8 @@ describe('US-013: Search Handler', () => {
     expect(src).toContain('export function sortCandidates');
   });
 
-  it('uses array-contains for rarest tag query', () => {
-    expect(src).toContain("where('skillTags', 'array-contains', rarestTag)");
+  it('uses array-contains-any for OR-within-category query', () => {
+    expect(src).toContain("where('skillTags', 'array-contains-any'");
   });
 
   it('caps results at 200 documents', () => {
@@ -40,9 +40,21 @@ describe('US-013: Search Handler', () => {
     expect(src).toContain('limit(MAX_RESULTS)');
   });
 
-  it('performs client-side AND filter for remaining tags', () => {
-    expect(src).toContain('allTags.every');
+  it('performs client-side OR-within AND-across category filter', () => {
+    // OR within each category group
+    expect(src).toContain('groupTags.some');
+    // AND across category groups
+    expect(src).toContain('activeGroups.every');
     expect(src).toContain('skillTags.includes(tag)');
+  });
+
+  it('chunks tags into batches of 10 for Firestore limit', () => {
+    expect(src).toContain('ARRAY_CONTAINS_ANY_LIMIT = 10');
+    expect(src).toContain('queryWithChunking');
+  });
+
+  it('exports buildCategoryGroups for testability', () => {
+    expect(src).toContain('export function buildCategoryGroups');
   });
 
   it('sorts by skillScore descending', () => {
@@ -345,5 +357,110 @@ describe('US-013: SearchPage Integration', () => {
   it('shows result count', () => {
     expect(src).toContain('candidates.length');
     expect(src).toContain('result');
+  });
+});
+
+// ─── US-021: buildCategoryGroups Functional ────────────────────────────────
+
+describe('US-021: buildCategoryGroups — functional', () => {
+  it('groups tags by category', async () => {
+    const { buildCategoryGroups } = await import('../../src/handlers/search.js');
+    const groups = buildCategoryGroups({
+      languages: ['language:typescript', 'language:python'],
+      frameworks: ['framework:react'],
+      tools: [],
+      aiAgentPatterns: [],
+      aiMaturityMin: null,
+      sortBy: 'skillScore',
+    });
+    expect(groups).toEqual([
+      ['language:typescript', 'language:python'],
+      ['framework:react'],
+      [],
+      [],
+    ]);
+  });
+});
+
+// ─── US-021: OR-within-category client filter logic ────────────────────────
+
+describe('US-021: OR-within AND-across filter logic', () => {
+  function applyFilter(
+    candidate: { skillTags: string[] },
+    activeGroups: string[][],
+  ): boolean {
+    return activeGroups.every((groupTags) =>
+      groupTags.some((tag) => candidate.skillTags.includes(tag))
+    );
+  }
+
+  it('TypeScript OR Python matches candidate with only TypeScript', () => {
+    const result = applyFilter(
+      { skillTags: ['language:typescript', 'framework:react'] },
+      [['language:typescript', 'language:python']],
+    );
+    expect(result).toBe(true);
+  });
+
+  it('TypeScript OR Python matches candidate with only Python', () => {
+    const result = applyFilter(
+      { skillTags: ['language:python', 'framework:django'] },
+      [['language:typescript', 'language:python']],
+    );
+    expect(result).toBe(true);
+  });
+
+  it('cross-category AND requires match from each group', () => {
+    const result = applyFilter(
+      { skillTags: ['language:typescript', 'tool:docker'] },
+      [['language:typescript'], ['framework:react']],
+    );
+    expect(result).toBe(false);
+  });
+
+  it('cross-category AND passes when all groups match', () => {
+    const result = applyFilter(
+      { skillTags: ['language:typescript', 'framework:react', 'tool:docker'] },
+      [['language:typescript', 'language:python'], ['framework:react']],
+    );
+    expect(result).toBe(true);
+  });
+
+  it('all 12 languages OR returns candidate with any language', () => {
+    const allLanguages = [
+      'language:typescript', 'language:python', 'language:go',
+      'language:java', 'language:rust', 'language:csharp',
+      'language:javascript', 'language:ruby', 'language:swift',
+      'language:kotlin', 'language:php', 'language:cpp',
+    ];
+    const result = applyFilter(
+      { skillTags: ['language:go'] },
+      [allLanguages],
+    );
+    expect(result).toBe(true);
+  });
+});
+
+// ─── US-021: InfoIconButton DOM nesting fix ───────────────────────────────
+
+describe('US-021: InfoIconButton avoids nested button', () => {
+  const src = readSource('src/app/components/profile/InfoBadge.tsx');
+
+  it('InfoIconButton uses span role=button instead of button element', () => {
+    // Extract the InfoIconButton function body
+    const fnStart = src.indexOf('export function InfoIconButton');
+    const fnBody = src.slice(fnStart, src.indexOf('function InfoCircleIcon'));
+    // Should NOT contain <button> element in InfoIconButton
+    expect(fnBody).not.toContain('<button');
+    // Should use span with role="button"
+    expect(fnBody).toContain('role="button"');
+    expect(fnBody).toContain('tabIndex={0}');
+  });
+
+  it('InfoIconButton supports keyboard accessibility', () => {
+    const src2 = readSource('src/app/components/profile/InfoBadge.tsx');
+    expect(src2).toContain('onKeyDown');
+    expect(src2).toContain("e.key === 'Enter'");
+    expect(src2).toContain("e.key === ' '");
   });
 });

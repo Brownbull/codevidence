@@ -17,44 +17,37 @@ function readSource(relativePath: string): string {
 
 // ─── Search Handler: Dual Query for aiMaturityMin ───────────────────────────
 
-describe('US-014: Search Handler — aiMaturityMin dual query', () => {
+describe('US-014: Search Handler — aiMaturityMin client-side filter', () => {
   const src = readSource('src/handlers/search.ts');
 
-  it('checks for aiMaturityMin > 0 before dual query', () => {
+  it('checks for aiMaturityMin > 0 in client-side filter', () => {
     expect(src).toContain('params.aiMaturityMin !== null');
     expect(src).toContain('params.aiMaturityMin > 0');
   });
 
-  it('runs two parallel Firestore queries via Promise.all', () => {
-    expect(src).toContain('Promise.all');
+  it('uses array-contains-any for OR-within-category query', () => {
+    expect(src).toContain("where('skillTags', 'array-contains-any'");
   });
 
-  it('queries scored candidates at or above minimum', () => {
-    expect(src).toContain("where('aiMaturityScore', '>=', params.aiMaturityMin)");
+  it('filters scored candidates below threshold client-side', () => {
+    expect(src).toContain('candidate.aiMaturityScore < params.aiMaturityMin');
   });
 
-  it('queries unscored candidates (null) separately', () => {
-    expect(src).toContain("where('aiMaturityScore', '==', null)");
+  it('includes unscored candidates (null) by default', () => {
+    // Only filters out scored below threshold; null passes through
+    expect(src).toContain('candidate.aiMaturityScore !== null');
   });
 
-  it('merges and deduplicates results by ID', () => {
+  it('merges and deduplicates chunked results by ID', () => {
     expect(src).toContain('new Set<string>()');
     expect(src).toContain('seen.has(candidate.id)');
     expect(src).toContain('seen.add(candidate.id)');
   });
 
-  it('uses array-contains on rarest tag in both queries', () => {
-    // Both scored and unscored queries use the same rarest tag filter
-    const matches = src.match(/where\('skillTags', 'array-contains', rarestTag\)/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('caps both queries at MAX_RESULTS', () => {
+  it('caps queries at MAX_RESULTS', () => {
     const limitMatches = src.match(/limit\(MAX_RESULTS\)/g);
     expect(limitMatches).not.toBeNull();
-    // At least 3: single query + scored + unscored
-    expect(limitMatches!.length).toBeGreaterThanOrEqual(3);
+    expect(limitMatches!.length).toBeGreaterThanOrEqual(1);
   });
 });
 
