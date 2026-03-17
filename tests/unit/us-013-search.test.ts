@@ -158,9 +158,10 @@ describe('US-013: CandidateCard Component', () => {
     expect(src).toContain('candidate.aiMaturityScore');
   });
 
-  it('shows top 3 matched skill tags', () => {
+  it('shows top matched skill tags with TechIcon badges', () => {
     expect(src).toContain('matchedTags');
-    expect(src).toContain('slice(0, 3)');
+    expect(src).toContain('getTopSkillTags');
+    expect(src).toContain('TechIcon');
   });
 
   it('shows last_scanned date', () => {

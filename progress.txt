@@ -616,3 +616,19 @@
   - Firebase `getCountFromServer` gives exact doc count without downloading docs — efficient for stats
   - Presets work by calling `setFilter` which updates URL params; FacetPanel reads from URL, so checkboxes auto-sync
 ---
+
+## 2026-03-17 - US-024
+- What was implemented:
+  - **Enriched CandidateCard**: Shows name (bold) + @username, location + company, truncated bio snippet, top 5 skill tags with TechIcon badges, best-fit position hint, score badges
+  - **Smart tag prioritization**: `getTopSkillTags` shows matched filter tags first, then remaining skill tags (excluding ai-agent-pattern and domain), capped at 5
+  - **Best-fit position**: Uses `computeAffinities` from position-affinity-data.ts, shows "Best fit: Role (X%)" if score >= 30%
+  - **Compact layout**: ~120px max height, badges pushed to right with `ml-auto`, bio truncated with `truncate max-w-xs`
+- Files changed:
+  - MODIFIED: src/app/components/search/CandidateCard.tsx (73 → 133 lines, enriched layout)
+  - MODIFIED: tests/unit/us-013-search.test.ts (updated card test for TechIcon)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - TechIcon takes `taxonomyId` prop (not `id`) and has no `size` prop — fixed-size internally
+  - `computeAffinities` may return empty array — guard with `?? null` and length check
+  - Filter ai-agent-pattern and domain tags from skill display — they clutter the card
+---

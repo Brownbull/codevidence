@@ -385,7 +385,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "Source: IA audit recommendation P1. All the data (name, bio, location, company, skills, position affinity) already exists on the Candidate document \u2014 this is purely a UI change in CandidateCard.tsx. The position affinity can be computed client-side using the existing reconstructScoreBreakdown + applyPositionWeights utilities."
     },
     {
