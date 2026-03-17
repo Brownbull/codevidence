@@ -402,7 +402,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Source: IA audit recommendation P1. Changes are in FacetPanel.tsx. The candidateCount sort requires the taxonomy data to have correct counts (depends on US-020). The in-group search is a simple client-side filter on the taxonomy item labels."
     },
     {

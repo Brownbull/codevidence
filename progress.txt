@@ -632,3 +632,20 @@
   - `computeAffinities` may return empty array — guard with `?? null` and length check
   - Filter ai-agent-pattern and domain tags from skill display — they clutter the card
 ---
+
+## 2026-03-17 - US-025
+- What was implemented:
+  - **Smart facet sorting**: Items sorted by candidateCount descending (most popular first)
+  - **Top 8 + toggle**: Shows top 8 items by default, "+N more" button reveals rest
+  - **Zero-count hiding**: Items with candidateCount===0 hidden by default (but shown if selected)
+  - **In-group search**: Frameworks and Tools groups have a search input that filters items by name
+  - **AI Maturity unchanged**: Always shows all 6 levels (no collapse)
+  - **State management**: showAll and searchQuery use useState (session-only, not persisted)
+- Files changed:
+  - MODIFIED: src/app/components/search/FacetPanel.tsx (205 → 237 lines, smart defaults + search)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - FacetSection now manages its own expand/search state independently from the section open/close state
+  - "Select all" operates on visible items only (not hidden ones) for better UX
+  - When search query is active, auto-expand to show all matching results
+---

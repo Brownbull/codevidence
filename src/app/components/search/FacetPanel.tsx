@@ -2,26 +2,29 @@
  * src/app/components/search/FacetPanel.tsx — Taxonomy facet panel.
  *
  * Five collapsible sections (Languages, Frameworks, Tools, AI Agent Patterns,
- * AI Maturity Level). Each uses <fieldset>/<legend> for WCAG 2.1 AA.
- * Checkboxes for isSearchable: true taxonomy items sorted by sortOrder.
- * candidateCount shown as muted badge.
+ * AI Maturity Level). Items sorted by candidateCount descending, top 8 shown
+ * by default with "+N more" toggle. Items with 0 candidates hidden until expanded.
+ * Frameworks and Tools have in-group search input.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { TaxonomyItem, TaxonomyCategory } from '@/types/taxonomy';
 import { useTaxonomy, groupByCategory } from '@/app/hooks/useTaxonomy';
 import { useSearchQuery } from '@/app/hooks/useSearchQuery';
 import { useUiStore } from '@/app/store/ui-store';
 
+const DEFAULT_VISIBLE = 8;
+
 const SECTION_CONFIG: Array<{
   category: TaxonomyCategory;
   label: string;
   urlKey: 'lang' | 'framework' | 'tool' | 'aiPattern';
+  hasSearch: boolean;
 }> = [
-  { category: 'language', label: 'Languages', urlKey: 'lang' },
-  { category: 'framework', label: 'Frameworks', urlKey: 'framework' },
-  { category: 'tool', label: 'Tools', urlKey: 'tool' },
-  { category: 'ai-agent-pattern', label: 'AI Agent Patterns', urlKey: 'aiPattern' },
+  { category: 'language', label: 'Languages', urlKey: 'lang', hasSearch: false },
+  { category: 'framework', label: 'Frameworks', urlKey: 'framework', hasSearch: true },
+  { category: 'tool', label: 'Tools', urlKey: 'tool', hasSearch: true },
+  { category: 'ai-agent-pattern', label: 'AI Agent Patterns', urlKey: 'aiPattern', hasSearch: false },
 ];
 
 const SELECTED_FIELDS: Record<string, 'languages' | 'frameworks' | 'tools' | 'aiAgentPatterns'> = {
@@ -52,7 +55,7 @@ export function FacetPanel() {
 
   return (
     <aside className="w-full md:w-64 md:border-r border-border bg-surface-raised p-4 overflow-y-auto">
-      {SECTION_CONFIG.map(({ category, label, urlKey }) => {
+      {SECTION_CONFIG.map(({ category, label, urlKey, hasSearch }) => {
         const items = grouped[category] ?? [];
         const selectedField = SELECTED_FIELDS[category];
         const selectedIds = selectedField ? (params[selectedField] as string[]) : [];
@@ -60,11 +63,11 @@ export function FacetPanel() {
         return (
           <FacetSection
             key={category}
-            category={category}
             label={label}
             items={items}
             selectedIds={selectedIds}
             isOpen={openSections[category] ?? true}
+            hasSearch={hasSearch}
             onToggleSection={() => toggleSection(category)}
             onToggleItem={(id) => toggleTaxonomyId(urlKey, id)}
             onSetAll={(ids) => setFilter(urlKey, ids)}
@@ -72,7 +75,7 @@ export function FacetPanel() {
         );
       })}
 
-      {/* AI Maturity Level — single minimum selector */}
+      {/* AI Maturity Level — always show all levels */}
       <AiMaturitySection
         items={grouped['ai-maturity-level'] ?? []}
         currentMin={params.aiMaturityMin}
@@ -87,20 +90,45 @@ export function FacetPanel() {
 // ─── Facet Section ───────────────────────────────────────────────────────────
 
 interface FacetSectionProps {
-  category: TaxonomyCategory;
   label: string;
   items: TaxonomyItem[];
   selectedIds: string[];
   isOpen: boolean;
+  hasSearch: boolean;
   onToggleSection: () => void;
   onToggleItem: (taxonomyId: string) => void;
   onSetAll: (taxonomyIds: string[]) => void;
 }
 
 function FacetSection({
-  category, label, items, selectedIds, isOpen, onToggleSection, onToggleItem, onSetAll,
+  label, items, selectedIds, isOpen, hasSearch,
+  onToggleSection, onToggleItem, onSetAll,
 }: FacetSectionProps) {
-  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.id));
+  const [showAll, setShowAll] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Sort by candidateCount descending
+  const sorted = [...items].sort((a, b) => b.candidateCount - a.candidateCount);
+
+  // Filter by search query
+  const searched = searchQuery
+    ? sorted.filter((item) =>
+        item.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : sorted;
+
+  // Hide items with 0 candidates unless expanded or selected
+  const withCandidates = searched.filter(
+    (item) => item.candidateCount > 0 || selectedIds.includes(item.id)
+  );
+  const zeroCountHidden = searched.length - withCandidates.length;
+
+  // Show top N or all
+  const displayItems = showAll || searchQuery ? withCandidates : withCandidates.slice(0, DEFAULT_VISIBLE);
+  const hiddenCount = withCandidates.length - displayItems.length;
+
+  const visibleIds = displayItems.map((i) => i.id);
+  const allSelected = displayItems.length > 0 && displayItems.every((item) => selectedIds.includes(item.id));
 
   return (
     <fieldset className="mb-4 border-0 p-0">
@@ -117,16 +145,25 @@ function FacetSection({
 
       {isOpen && (
         <div className="mt-1 space-y-1">
-          {items.length > 0 && (
+          {hasSearch && (
+            <input
+              type="text"
+              placeholder={`Filter ${label.toLowerCase()}...`}
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setShowAll(true); }}
+              className="w-full px-2 py-1 text-xs border border-border rounded bg-surface text-th-text-primary placeholder:text-th-text-muted focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          )}
+          {displayItems.length > 0 && (
             <button
               type="button"
-              onClick={() => onSetAll(allSelected ? [] : items.map((i) => i.id))}
+              onClick={() => onSetAll(allSelected ? [] : visibleIds)}
               className="text-xs text-th-text-muted hover:text-indigo-600 px-1 mb-0.5"
             >
               {allSelected ? 'Deselect all' : 'Select all'}
             </button>
           )}
-          {items.map((item) => (
+          {displayItems.map((item) => (
             <label
               key={item.id}
               className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-th-hover cursor-pointer text-sm"
@@ -141,8 +178,19 @@ function FacetSection({
               <span className="ml-auto text-xs text-th-text-muted">{item.candidateCount}</span>
             </label>
           ))}
-          {items.length === 0 && (
-            <p className="text-xs text-th-text-muted px-1">No items</p>
+          {(hiddenCount > 0 || zeroCountHidden > 0) && !searchQuery && (
+            <button
+              type="button"
+              onClick={() => setShowAll(!showAll)}
+              className="text-xs text-indigo-600 hover:text-indigo-700 px-1 mt-0.5"
+            >
+              {showAll ? 'Show less' : `+ ${hiddenCount + zeroCountHidden} more`}
+            </button>
+          )}
+          {displayItems.length === 0 && (
+            <p className="text-xs text-th-text-muted px-1">
+              {searchQuery ? 'No matches' : 'No items'}
+            </p>
           )}
         </div>
       )}
