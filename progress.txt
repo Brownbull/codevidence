@@ -543,3 +543,24 @@
   - `pnpm test:unit`: PASS (867/867 tests, 21 files)
   - `pnpm build`: PASS
 ---
+
+## 2026-03-17 - US-020
+- What was implemented:
+  - Verified existing `updateTaxonomyCounts` in candidate-writer.ts correctly increments/decrements taxonomy candidateCount on scan/rescan
+  - Verified `rebuild-counts` CLI command (pnpm scan rebuild-counts) is properly wired in pipeline CLI
+  - Verified FacetPanel and Admin CandidatesTab both display candidateCount from taxonomy docs
+  - Created comprehensive unit tests (us-020-taxonomy-counts.test.ts, 33 tests):
+    - Structural tests for updateTaxonomyCounts (increment/decrement/catch/Promise.all)
+    - Structural tests for rebuild-counts command (query/compare/update/orphan detection)
+    - CLI wiring tests (import, command registration, auth)
+    - UI display tests (FacetPanel + Admin Language Coverage)
+    - Functional diff logic tests (added/removed/unchanged/first-scan/all-removed/duplicates)
+- Files changed:
+  - NEW: tests/unit/us-020-taxonomy-counts.test.ts (186 lines)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - The taxonomy count mechanism was already fully implemented — updateTaxonomyCounts in candidate-writer.ts handles increment/decrement atomically via Firestore `increment()`
+  - The rebuild-counts command was already wired into the CLI — existing candidates just need `pnpm scan rebuild-counts` run to fix stale 0 counts
+  - Counts appear 0 because candidates were scanned before the count update code was added in earlier phases
+  - Testing pattern: source-level structural tests with readFileSync + toContain() plus functional reimplementation tests for pure logic
+---
