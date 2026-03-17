@@ -92,6 +92,24 @@ export function useSearchQuery() {
     });
   }, [setSearchParams]);
 
+  const setFilters = useCallback((
+    filters: Record<string, string[]>
+  ) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [category, taxonomyIds] of Object.entries(filters)) {
+        const prefix = CATEGORY_PREFIX_MAP[category] ?? category;
+        const serialized = serializeArrayParam(taxonomyIds, prefix);
+        if (serialized) {
+          next.set(category, serialized);
+        } else {
+          next.delete(category);
+        }
+      }
+      return next;
+    });
+  }, [setSearchParams]);
+
   const clearAll = useCallback(() => {
     setSearchParams(new URLSearchParams());
   }, [setSearchParams]);
@@ -122,5 +140,5 @@ export function useSearchQuery() {
     params.aiMaturityMin !== null,
   [params]);
 
-  return { params, setFilter, setSort, setAiMaturityMin, clearAll, toggleTaxonomyId, hasAnyFilter };
+  return { params, setFilter, setFilters, setSort, setAiMaturityMin, clearAll, toggleTaxonomyId, hasAnyFilter };
 }

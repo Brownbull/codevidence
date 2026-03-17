@@ -39,12 +39,10 @@ const PRESETS: Preset[] = [
 
 export function WelcomeEmptyState() {
   const { data: stats } = usePoolStats();
-  const { setFilter } = useSearchQuery();
+  const { setFilters } = useSearchQuery();
 
   function applyPreset(preset: Preset) {
-    for (const [category, ids] of Object.entries(preset.filters)) {
-      setFilter(category as 'lang' | 'framework' | 'tool' | 'aiPattern', ids);
-    }
+    setFilters(preset.filters);
   }
 
   return (

@@ -117,15 +117,16 @@ function FacetSection({
       )
     : sorted;
 
-  // Hide items with 0 candidates unless expanded or selected
-  const withCandidates = searched.filter(
-    (item) => item.candidateCount > 0 || selectedIds.includes(item.id)
-  );
-  const zeroCountHidden = searched.length - withCandidates.length;
+  // Hide items with 0 candidates unless expanded, selected, or ALL items have 0
+  const hasAnyWithCandidates = searched.some((item) => item.candidateCount > 0);
+  const filtered = hasAnyWithCandidates
+    ? searched.filter((item) => item.candidateCount > 0 || selectedIds.includes(item.id))
+    : searched; // Show all when no items have candidates (e.g. counts not yet rebuilt)
+  const zeroCountHidden = searched.length - filtered.length;
 
   // Show top N or all
-  const displayItems = showAll || searchQuery ? withCandidates : withCandidates.slice(0, DEFAULT_VISIBLE);
-  const hiddenCount = withCandidates.length - displayItems.length;
+  const displayItems = showAll || searchQuery ? filtered : filtered.slice(0, DEFAULT_VISIBLE);
+  const hiddenCount = filtered.length - displayItems.length;
 
   const visibleIds = displayItems.map((i) => i.id);
   const allSelected = displayItems.length > 0 && displayItems.every((item) => selectedIds.includes(item.id));
