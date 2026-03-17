@@ -417,7 +417,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Source: IA audit recommendations P2. These are small targeted improvements across multiple files: AppShell.tsx (nav link), SearchPage.tsx (results header), PipelineTab.tsx (share button), EvolutionSection.tsx (regression tooltip). Each is independent \u2014 if one is complex, skip it and move on."
     }
   ]

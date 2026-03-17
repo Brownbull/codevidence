@@ -68,6 +68,10 @@ export function SearchPage() {
 
       {candidates && candidates.length > 0 && (
         <div className="space-y-3">
+          <p className="text-sm font-medium text-th-text-secondary">
+            {candidates.length} result{candidates.length !== 1 ? 's' : ''}{' '}
+            {buildFilterSummary(allTags)}
+          </p>
           {candidates.map((candidate) => (
             <CandidateCard
               key={candidate.id}
@@ -75,9 +79,6 @@ export function SearchPage() {
               matchedTags={allTags}
             />
           ))}
-          <p className="text-xs text-th-text-muted text-center mt-4">
-            {candidates.length} result{candidates.length !== 1 ? 's' : ''}
-          </p>
         </div>
       )}
 
@@ -85,4 +86,12 @@ export function SearchPage() {
       {isEmpty && <ZeroResultsState params={params} />}
     </AppShell>
   );
+}
+
+/** Builds a human-readable summary from filter tags, e.g. "for TypeScript + React developers" */
+function buildFilterSummary(tags: string[]): string {
+  if (tags.length === 0) return '';
+  const names = tags.slice(0, 3).map((t) => t.split(':')[1] ?? t);
+  const suffix = tags.length > 3 ? ` +${tags.length - 3} more` : '';
+  return `for ${names.join(' + ')}${suffix} developers`;
 }

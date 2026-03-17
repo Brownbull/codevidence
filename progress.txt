@@ -649,3 +649,20 @@
   - "Select all" operates on visible items only (not hidden ones) for better UX
   - When search query is active, auto-expand to show all matching results
 ---
+
+## 2026-03-17 - US-026
+- What was implemented:
+  - **"How it works" nav link**: Added subtle link in AppShell nav bar that goes to /methodology
+  - **Results summary header**: SearchPage shows "N results for TypeScript + React developers" above result cards, built from filter tags via `buildFilterSummary`
+  - **Share access guide button**: PipelineTab has "Share access guide" button that copies /grant-access URL to clipboard with "Copied!" feedback
+  - **Regression tooltip**: EvolutionSection's "Regression" badges have `title` attribute explaining that regression may include learning/exploratory repos
+- Files changed:
+  - MODIFIED: src/app/components/layout/AppShell.tsx (added methodology link)
+  - MODIFIED: src/app/pages/SearchPage.tsx (results header + buildFilterSummary helper)
+  - MODIFIED: src/app/components/admin/PipelineTab.tsx (ShareAccessGuideButton, 302→324 lines)
+  - MODIFIED: src/app/components/profile/EvolutionSection.tsx (regression title tooltip)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - PipelineTab.tsx was already at 302 lines before this change — consider extracting QUERY_PRESETS data to reduce line count
+  - `title` attribute provides native tooltip without React state — good for simple explanatory tooltips
+---

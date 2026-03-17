@@ -135,7 +135,12 @@ function DimensionCard({ dimKey, dimension }: { dimKey: string; dimension: Evolu
           {meta.label}
           <InfoIconButton tooltip={meta.info} />
         </span>
-        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${trend.color}`}>
+        <span
+          className={`px-1.5 py-0.5 rounded text-xs font-medium ${trend.color}`}
+          title={dimension.trend === 'regression'
+            ? 'Regression may include learning/exploratory repos which lower the average — it does not necessarily indicate declining skill'
+            : undefined}
+        >
           {trend.label}
         </span>
       </div>

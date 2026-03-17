@@ -129,6 +129,9 @@ export function PipelineTab() {
         </div>
       )}
 
+      {/* ── Share Access Guide ── */}
+      <ShareAccessGuideButton />
+
       {/* ── Scan Developer ── */}
       <section>
         <h2 className="text-sm font-semibold text-th-text-primary mb-1">Scan Developer</h2>
@@ -295,5 +298,27 @@ export function PipelineTab() {
         </form>
       </section>
     </div>
+  );
+}
+
+function ShareAccessGuideButton() {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    const url = `${window.location.origin}/grant-access`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="text-xs text-indigo-600 hover:text-indigo-700 transition-colors"
+    >
+      {copied ? 'Copied!' : 'Share access guide'}
+    </button>
   );
 }

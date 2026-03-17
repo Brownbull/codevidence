@@ -42,6 +42,13 @@ export function AppShell({ sidebar, children }: AppShellProps) {
             <span className="hidden sm:inline">Candidate Skill Scanner</span>
             <span className="sm:hidden">CSS</span>
           </Link>
+          <Link
+            to="/methodology"
+            className="text-slate-400 text-xs hover:text-white transition-colors hidden sm:inline"
+            title="How it works"
+          >
+            How it works
+          </Link>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
           {isAdmin && (
