@@ -226,7 +226,7 @@ function ProfileDetails({ candidate }: { candidate: Candidate }) {
       {candidate.followers != null && candidate.followers > 0 && (
         <span className="inline-flex items-center gap-1">
           <PeopleIcon />
-          {candidate.followers.toLocaleString()} followers
+          {candidate.followers.toLocaleString()} {candidate.followers === 1 ? 'follower' : 'followers'}
         </span>
       )}
     </div>

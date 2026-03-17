@@ -152,7 +152,9 @@ function CandidateRow({ candidate }: { candidate: Candidate & { id: string } }) 
         <span><SkillScoreBadge score={candidate.skillScore} /></span>
         <span><AIMaturityBadge score={candidate.aiMaturityScore} /></span>
         <span className="text-th-text-secondary">{lastScannedDate}</span>
-        <span><StalenessTag isStale={candidate.isStale} /></span>
+        <span className="flex items-center gap-1">
+          <ScanStatusBadge depth={candidate.scanDepth} isStale={candidate.isStale} />
+        </span>
         <span className="flex items-center gap-1">
           <ActionButton
             title="Rescan candidate"
@@ -191,6 +193,24 @@ function CandidateRow({ candidate }: { candidate: Candidate & { id: string } }) 
         />
       )}
     </>
+  );
+}
+
+// ─── Scan Status Badge ──────────────────────────────────────────────────────
+
+function ScanStatusBadge({ depth, isStale }: { depth?: string; isStale?: boolean }) {
+  const label = depth === 'layer2' ? 'Complete' : depth === 'layer1' ? 'Layer 1' : 'Pending';
+  const color = depth === 'layer2'
+    ? 'bg-green-100 text-green-700'
+    : depth === 'layer1'
+      ? 'bg-blue-100 text-blue-700'
+      : 'bg-gray-100 text-gray-600';
+
+  return (
+    <span className="flex items-center gap-1">
+      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${color}`}>{label}</span>
+      {isStale && <StalenessTag isStale />}
+    </span>
   );
 }
 

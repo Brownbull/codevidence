@@ -584,3 +584,18 @@
   - `<button>` inside `<button>` triggers React validateDOMNesting warning — use `<span role="button" tabIndex={0}>` with keyboard handlers instead
   - `buildCategoryGroups` extracted as exported utility for testability
 ---
+
+## 2026-03-17 - US-022
+- What was implemented:
+  - **Singular "follower"**: Added ternary `candidate.followers === 1 ? 'follower' : 'followers'` in CandidateProfilePage.tsx
+  - **Admin Status column**: Replaced `StalenessTag` with `ScanStatusBadge` showing scan depth (Complete/Layer 1/Pending) with color-coded badge + staleness indicator
+  - **Admin-only CLI command**: ResultsState.tsx now uses `useAuth()` to check `isAdmin`. Admin users see the CLI command, non-admins see "Contact your admin to expand the candidate pool"
+- Files changed:
+  - MODIFIED: src/app/pages/CandidateProfilePage.tsx (singular follower)
+  - MODIFIED: src/app/components/admin/CandidatesTab.tsx (ScanStatusBadge + scanDepth)
+  - MODIFIED: src/app/components/search/ResultsState.tsx (isAdmin conditional)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - `candidate.scanDepth` field holds 'layer1' | 'layer2' — use it for status display
+  - `useAuth()` hook provides `isAdmin` boolean from Firebase Auth custom claims
+---

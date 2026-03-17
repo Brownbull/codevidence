@@ -352,7 +352,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "Source: F2N audit issues #3, #5, #10. Grammar fix is in CandidateProfilePage.tsx ProfileDetails component. Status column fix is in CandidatesTab.tsx. Thin-results conditional is in SearchPage.tsx \u2014 use the isAdmin flag from AuthContext."
     },
     {
