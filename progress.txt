@@ -599,3 +599,20 @@
   - `candidate.scanDepth` field holds 'layer1' | 'layer2' — use it for status display
   - `useAuth()` hook provides `isAdmin` boolean from Firebase Auth custom claims
 ---
+
+## 2026-03-17 - US-023
+- What was implemented:
+  - **WelcomeEmptyState component**: Replaces bare "Select filters" text with welcome card showing app description, pool stats, and 5 quick-start preset buttons
+  - **Pool stats hook**: `usePoolStats` fetches candidate + repo counts via `getCollectionCount` (10-min cache)
+  - **getCollectionCount**: Added to firestore wrapper using `getCountFromServer` from Firebase SDK
+  - **Quick-start presets**: TypeScript+React, Python+FastAPI, Go, AI-native, Full-stack(TS+Next.js) — each applies URL filter params via `setFilter`
+- Files changed:
+  - NEW: src/app/components/search/WelcomeEmptyState.tsx (99 lines)
+  - NEW: src/app/hooks/usePoolStats.ts (31 lines)
+  - MODIFIED: src/core/db/firestore.ts (added getCollectionCount + getCountFromServer import)
+  - MODIFIED: src/app/pages/SearchPage.tsx (replaced empty state with WelcomeEmptyState)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - Firebase `getCountFromServer` gives exact doc count without downloading docs — efficient for stats
+  - Presets work by calling `setFilter` which updates URL params; FacetPanel reads from URL, so checkboxes auto-sync
+---

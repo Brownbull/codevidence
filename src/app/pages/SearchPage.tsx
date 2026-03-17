@@ -11,6 +11,7 @@ import { ActiveFilterChips } from '@/app/components/search/ActiveFilterChips';
 import { SortControls } from '@/app/components/search/SortControls';
 import { CandidateCard } from '@/app/components/search/CandidateCard';
 import { ThinResultsState, ZeroResultsState } from '@/app/components/search/ResultsState';
+import { WelcomeEmptyState } from '@/app/components/search/WelcomeEmptyState';
 import { useSearchQuery } from '@/app/hooks/useSearchQuery';
 import { useTaxonomy } from '@/app/hooks/useTaxonomy';
 import { useCandidates } from '@/app/hooks/useCandidates';
@@ -55,11 +56,7 @@ export function SearchPage() {
         <SortControls currentSort={params.sortBy} onSort={setSort} />
       </div>
 
-      {!hasAnyFilter && (
-        <p className="text-th-text-secondary font-mono text-sm text-center mt-12">
-          Select filters in the panel to search candidates.
-        </p>
-      )}
+      {!hasAnyFilter && <WelcomeEmptyState />}
 
       {isLoading && hasAnyFilter && (
         <div className="space-y-3">

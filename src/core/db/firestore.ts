@@ -20,6 +20,7 @@ import {
   deleteDoc as sdkDeleteDoc,
   addDoc as sdkAddDoc,
   getDocs,
+  getCountFromServer as sdkGetCountFromServer,
   query,
   serverTimestamp as sdkServerTimestamp,
   runTransaction as sdkRunTransaction,
@@ -193,6 +194,19 @@ export async function queryDocs<T extends DocumentData>(
  * Re-export serverTimestamp for use in business logic without direct SDK imports.
  */
 export const serverTimestamp = sdkServerTimestamp;
+
+/**
+ * Returns the count of documents in a collection matching optional constraints.
+ */
+export async function getCollectionCount(
+  collectionPath: string,
+  ...constraints: QueryConstraint[]
+): Promise<number> {
+  const ref = collectionRef(collectionPath);
+  const q = query(ref, ...constraints);
+  const snap = await sdkGetCountFromServer(q);
+  return snap.data().count;
+}
 
 /**
  * Runs a Firestore transaction. Firestore automatically retries on

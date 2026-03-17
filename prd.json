@@ -368,7 +368,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Source: IA audit recommendation P0. The pool stats can be derived from a simple Firestore count query or a metadata document. Quick-start presets should set URL params that the existing useSearchQuery hook picks up. Keep the welcome card under 200px height \u2014 it should feel like a helpful nudge, not a landing page."
     },
     {
