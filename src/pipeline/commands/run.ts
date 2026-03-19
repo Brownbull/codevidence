@@ -11,6 +11,7 @@ import { processOneJob } from '../worker.js';
 import { handleDiscover } from '../handlers/discover.js';
 import { handleScanRepo } from '../handlers/scan-repo.js';
 import { handleRescanCandidate } from '../handlers/rescan-candidate.js';
+import { handleSelfScan } from '../handlers/self-scan.js';
 import type { ScanJob } from '../../types/scan-job.js';
 import type { JobHandlerRegistry } from '../worker.js';
 
@@ -20,6 +21,7 @@ function getJobTarget(job: ScanJob): string {
   if ('repoFullName' in payload) return payload.repoFullName;
   if ('query' in payload) return payload.query;
   if ('targetId' in payload) return payload.targetId;
+  if ('githubUsername' in payload) return payload.githubUsername;
   return '';
 }
 
@@ -37,6 +39,7 @@ const HANDLERS: JobHandlerRegistry = {
   discover: handleDiscover,
   'scan-repo': handleScanRepo,
   'rescan-candidate': handleRescanCandidate,
+  'self-scan': handleSelfScan,
 };
 
 /**

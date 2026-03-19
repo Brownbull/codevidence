@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/auth/AuthContext';
 import { AppShell } from '@/app/components/layout/AppShell';
 import { ConnectGitHubForm } from '@/app/components/profile/ConnectGitHubForm';
+import { SelfScanSection } from '@/app/components/profile/SelfScanSection';
 import { useUserProfile, useGitHubSecret, useDisconnectGitHub } from '@/app/hooks/useUserProfile';
 
 export function MyProfilePage() {
@@ -103,17 +104,8 @@ export function MyProfilePage() {
           </section>
         )}
 
-        {/* Scan History — placeholder for US-031 */}
-        <section className="bg-surface-raised border border-border rounded-lg p-6">
-          <h2 className="text-base font-medium text-th-text-primary mb-3">
-            Scan History
-          </h2>
-          <p className="text-sm text-th-text-muted" data-testid="scan-history-placeholder">
-            {profile?.selfScanCount
-              ? `${profile.selfScanCount} scan(s) completed`
-              : 'No scans yet. Connect GitHub and scan your repos to get started.'}
-          </p>
-        </section>
+        {/* Self-Scan Section */}
+        {isGitHubConnected && <SelfScanSection />}
       </div>
     </AppShell>
   );

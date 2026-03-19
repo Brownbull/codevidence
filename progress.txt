@@ -741,3 +741,24 @@
   - ConnectGitHubForm goes in src/app/components/profile/ alongside existing candidate profile components
   - useConnectGitHub calls httpsCallable(functions, 'storeGitHubToken') — the Firebase Function handles all server-side validation
 ---
+
+## 2026-03-19 - US-031
+- What was implemented:
+  - `src/app/components/profile/SelfScanSection.tsx` — "Scan My Repos" button with pending check, creates self-scan job (no githubToken in payload), polls for status, shows recent scans
+  - `src/pipeline/handlers/self-scan.ts` — Pipeline handler: resolves token from user secrets, discovers repos, enqueues scan-repo jobs with tokenSourceUid (NOT githubToken), updates user scan stats via Admin SDK
+  - `src/pipeline/token-resolver.ts` — resolveToken(uid): reads + decrypts token from user_profiles secrets. markTokenExpired(uid): writes tokenStatus='expired' on 401.
+  - `src/pipeline/handlers/scan-repo.ts` — Modified to support tokenSourceUid: if present, resolves token via token-resolver instead of using direct githubToken
+  - `src/pipeline/index.ts` — Registered self-scan handler in worker dispatch
+  - `src/pipeline/commands/run.ts` — Registered self-scan handler + added githubUsername to job target display
+  - `src/app/pages/MyProfilePage.tsx` — Replaced scan history placeholder with SelfScanSection component
+  - `tests/unit/us-031-self-scan.test.ts` — 40 tests covering component, handler, token-resolver, worker registration, queue
+- Files changed:
+  - NEW: src/app/components/profile/SelfScanSection.tsx, src/pipeline/handlers/self-scan.ts, src/pipeline/token-resolver.ts, tests/unit/us-031-self-scan.test.ts
+  - MODIFIED: src/pipeline/handlers/scan-repo.ts, src/pipeline/index.ts, src/pipeline/commands/run.ts, src/app/pages/MyProfilePage.tsx, tests/unit/us-030-my-profile.test.ts, prd.json
+- **Learnings for future iterations:**
+  - tokenSourceUid pattern: self-scan jobs carry UID reference, scan-repo resolves token at clone time. Token never in job documents.
+  - DiscoveredRepo type has `primaryLanguage: string | null` — must use the proper type from source-adapter.ts, not inline type with `string`
+  - Admin SDK increment via FieldValue.increment(1) for atomic selfScanCount updates
+  - scan-repo.ts now has dual token path: tokenSourceUid (self-scan) vs githubToken (admin rescan) — both coexist
+  - SelfScanSection uses refetchInterval for polling scan status (15s), not manual setTimeout
+---

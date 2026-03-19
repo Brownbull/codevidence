@@ -511,7 +511,7 @@
         "pnpm typecheck and pnpm test:unit pass; existing scan-repo tests still pass (no regression in admin flow)"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on ALL previous stories (US-027 through US-030). Critical: the tokenSourceUid pattern ensures tokens never appear in scan_jobs documents. The self-scan handler is a thin wrapper around existing rescan-candidate logic — the key difference is token resolution (from user secrets vs job payload). The existing admin rescan flow with githubToken in payload continues to work unchanged. See plan for full token propagation architecture."
     }
   ]

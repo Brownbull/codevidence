@@ -26,6 +26,7 @@ import {
   updateDoc,
   serverTimestamp,
 } from '../../core/db/firestore.js';
+import { resolveToken } from '../token-resolver.js';
 
 const REPOSITORIES_COLLECTION = 'repositories';
 
@@ -37,12 +38,17 @@ const REPOSITORIES_COLLECTION = 'repositories';
  */
 export async function handleScanRepo(job: ScanJob & { id: string }): Promise<void> {
   const payload = job.payload as ScanRepoPayload;
-  const { repoFullName, targetDepth, githubToken } = payload;
+  const { repoFullName, targetDepth, tokenSourceUid } = payload;
+
+  // Resolve token: prefer tokenSourceUid (self-scan), fall back to direct githubToken (admin)
+  const githubToken = tokenSourceUid
+    ? await resolveToken(tokenSourceUid) ?? undefined
+    : payload.githubToken;
 
   console.log(
     `[scan-repo] Processing job ${job.id}: ` +
     `repo=${repoFullName} depth=${targetDepth}` +
-    (githubToken ? ' (with developer token)' : '')
+    (githubToken ? ` (with ${tokenSourceUid ? 'user' : 'admin'} token)` : '')
   );
 
   const repoDoc = await getDoc<Repository>(REPOSITORIES_COLLECTION, repoDocId(repoFullName));

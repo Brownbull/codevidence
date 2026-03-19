@@ -22,6 +22,7 @@ import { startWorker } from './worker.js';
 import { handleDiscover } from './handlers/discover.js';
 import { handleScanRepo } from './handlers/scan-repo.js';
 import { handleRescanCandidate } from './handlers/rescan-candidate.js';
+import { handleSelfScan } from './handlers/self-scan.js';
 import { authenticateWorker } from './auth.js';
 
 const program = new Command();
@@ -91,6 +92,7 @@ program
       discover: handleDiscover,
       'scan-repo': handleScanRepo,
       'rescan-candidate': handleRescanCandidate,
+      'self-scan': handleSelfScan,
     });
     console.log('[scan] Worker started. Press Ctrl-C to stop.');
   });

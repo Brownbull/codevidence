@@ -65,9 +65,9 @@ describe('MyProfilePage', () => {
     expect(src).toContain('/candidates/');
   });
 
-  it('has scan history section (placeholder)', () => {
-    expect(src).toContain('data-testid="scan-history-placeholder"');
-    expect(src).toContain('Scan History');
+  it('renders SelfScanSection when connected', () => {
+    expect(src).toContain('SelfScanSection');
+    expect(src).toContain('<SelfScanSection');
   });
 });
 
