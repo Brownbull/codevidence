@@ -7,7 +7,7 @@
  * All Firestore access goes through src/core/db/firestore.ts.
  */
 
-import type { ScanJob, ScanJobType, DiscoverPayload, ScanRepoPayload, RescanPayload } from '../types/scan-job.js';
+import type { ScanJob, ScanJobType, DiscoverPayload, ScanRepoPayload, RescanPayload, SelfScanPayload } from '../types/scan-job.js';
 import {
   addDoc,
   updateDoc,
@@ -49,6 +49,13 @@ export async function enqueueScanRepoJob(payload: ScanRepoPayload, priority = 0)
  */
 export async function enqueueRescanJob(payload: RescanPayload): Promise<string> {
   return enqueueJob('rescan-candidate', payload, 1);
+}
+
+/**
+ * Enqueues a self-scan ScanJob. Priority 1 (same as rescans — user-initiated).
+ */
+export async function enqueueSelfScanJob(payload: SelfScanPayload): Promise<string> {
+  return enqueueJob('self-scan', payload, 1);
 }
 
 /** Internal helper to create a ScanJob with common defaults. */

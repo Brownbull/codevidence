@@ -72,11 +72,14 @@ describe('firestore.rules', () => {
     expect(adminFlagsBlock).toContain('isAdmin()');
   });
 
-  it('restricts scan_jobs to admin only', () => {
+  it('restricts scan_jobs to admin + self-scan for authenticated users', () => {
     expect(rules).toContain('/scan_jobs/{jobId}');
     const scanJobsBlock = extractBlock(rules, '/scan_jobs/{jobId}');
-    expect(scanJobsBlock).not.toContain('isAuthenticated()');
     expect(scanJobsBlock).toContain('isAdmin()');
+    // Authenticated users can create self-scan jobs and read their own
+    expect(scanJobsBlock).toContain('isAuthenticated()');
+    expect(scanJobsBlock).toContain("'self-scan'");
+    expect(scanJobsBlock).toContain('payload.requestedBy == request.auth.uid');
   });
 });
 

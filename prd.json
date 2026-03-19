@@ -419,6 +419,100 @@
       "priority": 26,
       "passes": true,
       "notes": "Source: IA audit recommendations P2. These are small targeted improvements across multiple files: AppShell.tsx (nav link), SearchPage.tsx (results header), PipelineTab.tsx (share button), EvolutionSection.tsx (regression tooltip). Each is independent \u2014 if one is complex, skip it and move on."
+    },
+    {
+      "id": "US-027",
+      "title": "User profile data model, Firestore rules, and Admin SDK wrapper",
+      "description": "Foundation story for self-service scanning. Create the user_profiles collection with field-level write protection, secrets subcollection for encrypted GitHub tokens, and extend the Firestore wrapper with Admin SDK mode for pipeline use. Add self-scan job type to scan_jobs with strict creation rules that validate against the user's profile.",
+      "acceptanceCriteria": [
+        "src/types/user-profile.ts exports UserProfile (uid, githubUsername, githubConnectedAt, githubProvider, tokenStatus, lastSelfScanAt, selfScanCount, createdAt, updatedAt) and UserGitHubSecret (encryptedToken, tokenPrefix, expiresAt, updatedAt)",
+        "src/types/scan-job.ts extended with 'self-scan' in ScanJobType union, SelfScanPayload (requestedBy, githubUsername), and tokenSourceUid optional field on ScanRepoPayload",
+        "src/handlers/user-profile.ts provides CRUD operations for user_profiles: createUserProfile, getUserProfile, updateGitHubUsername — client-safe operations only",
+        "src/core/db/firestore-admin.ts implements Admin SDK Firestore wrapper with same interface as firestore.ts; src/core/db/firestore.ts delegates to admin module when FIREBASE_ADMIN=true env var is set",
+        "firestore.rules: user_profiles/{uid} readable by owner + admin, client can only write githubUsername + updatedAt fields; secrets subcollection readable by owner only, no client writes; scan_jobs allows authenticated users to create self-scan jobs only when type=='self-scan', status=='pending', payload.requestedBy==auth.uid, payload.githubUsername matches user_profiles, no githubToken in payload",
+        "firestore.indexes.json includes indexes for user_profiles and self-scan job queries",
+        "Unit tests verify user-profile handler CRUD operations and type correctness; integration test against emulator verifies Firestore rules block unauthorized access patterns",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": "FOUNDATION — blocks US-028 through US-031. The Admin SDK wrapper must maintain the 'all Firestore access through firestore.ts' invariant by delegating internally. Field-level write protection is critical: selfScanCount, lastSelfScanAt, githubProvider, tokenStatus are pipeline-only (Admin SDK). The self-scan Firestore rule must also prevent creating a self-scan if a pending/running self-scan already exists for the user (rate limiting). See plan at ~/.claude/plans/cached-leaping-perlis.md for full architecture."
+    },
+    {
+      "id": "US-028",
+      "title": "Token security Firebase Functions (encrypt, validate, store, cleanup)",
+      "description": "Implement Firebase Functions for secure GitHub token lifecycle: storeGitHubToken (callable) validates the token via GitHub API GET /user, confirms the authenticated GitHub user matches the provided username, encrypts with AES-256 using a project-level key from Firebase environment config, and stores in user_profiles/{uid}/secrets/github. onUserDelete (auth trigger) cleans up user_profiles and secrets on account deletion. Store expiresAt for PATs with known expiry.",
+      "acceptanceCriteria": [
+        "functions/src/store-github-token.ts exports a callable Firebase Function that accepts {githubUsername, githubToken} from authenticated users",
+        "Function validates token by calling GitHub API GET /user and rejects if returned username does not match provided githubUsername (case-insensitive)",
+        "Function encrypts token with AES-256 using GITHUB_TOKEN_ENCRYPTION_KEY from Firebase environment config before storing in Firestore",
+        "Function stores in user_profiles/{uid}/secrets/github: encryptedToken, tokenPrefix (first 4 chars + '****'), expiresAt (null for OAuth, parsed for PATs), updatedAt",
+        "Function also updates user_profiles/{uid}: githubUsername, githubConnectedAt, githubProvider ('pat' or 'oauth'), tokenStatus ('valid'), updatedAt — via Admin SDK",
+        "functions/src/on-user-delete.ts exports an auth.user().onDelete trigger that deletes user_profiles/{uid} and all documents in user_profiles/{uid}/secrets/ subcollection",
+        "functions/src/index.ts exports both new functions",
+        "Token prefix is exactly 4 characters (type indicator only, e.g., 'ghp_') — not 8 chars, to minimize token structure leakage",
+        "Unit tests verify: encryption roundtrip, username mismatch rejection, cleanup on delete; pnpm typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "Depends on US-027 (types + user_profiles collection). Token encryption key must be set via 'firebase functions:config:set github.token_key=<base64-key>' — never hardcoded. The storeGitHubToken function is called by both the GitHub OAuth auto-link flow (US-029) and the manual PAT connect flow (US-030). See adversarial review: tokens must NEVER be stored in plaintext in Firestore."
+    },
+    {
+      "id": "US-029",
+      "title": "GitHub OAuth login with auto-link",
+      "description": "Add GitHub as a second Firebase Auth sign-in provider alongside Google. On GitHub login, auto-create user_profiles/{uid} with GitHub username from provider data and store the OAuth token via the storeGitHubToken Firebase Function. Login page shows both 'Sign in with Google' and 'Sign in with GitHub' buttons. AuthContext extended to expose githubUsername, isGitHubConnected, and tokenStatus by reading from user_profiles.",
+      "acceptanceCriteria": [
+        "src/core/auth/firebase-auth.ts exports signInWithGitHub() using GithubAuthProvider with signInWithPopup (same pattern as Google)",
+        "LoginPage.tsx shows both 'Sign in with Google' and 'Sign in with GitHub' buttons with distinct styling (Google: existing, GitHub: dark/octocat-themed)",
+        "On successful GitHub OAuth login, AuthContext auto-creates user_profiles/{uid} if not exists and calls storeGitHubToken Firebase Function with the OAuth credential token",
+        "AuthContext.tsx extended: reads user_profiles/{uid} on auth state change to expose githubUsername (string|null), isGitHubConnected (boolean), tokenStatus ('valid'|'expired'|'revoked'|null)",
+        "GitHub OAuth scopes include 'read:user' and 'repo' (needed for private repo access)",
+        "If user already exists (re-login), profile is NOT recreated but token is refreshed via storeGitHubToken",
+        "Firebase Auth emulator supports GitHub provider in test environment",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "Depends on US-027 (types + data model) and US-028 (storeGitHubToken function). The GitHub OAuth token from signInWithPopup is available via OAuthCredential.accessToken — this must be captured in the signIn callback and sent to the Firebase Function, NOT stored client-side. Firebase Console must have GitHub OAuth app configured (client ID + secret from GitHub Developer Settings)."
+    },
+    {
+      "id": "US-030",
+      "title": "My Profile page with Connect GitHub flow",
+      "description": "New /my-profile route showing GitHub connection status and allowing Google-login users to manually connect their GitHub account by entering username and PAT. The PAT is submitted to the storeGitHubToken Firebase Function for validation, encryption, and storage. Shows token health indicator and link to own candidate profile if scanned.",
+      "acceptanceCriteria": [
+        "src/app/pages/MyProfilePage.tsx renders at /my-profile under PrivateRoute with sections: GitHub Connection, Scan History (placeholder for US-031), My Candidate Profile link",
+        "src/app/components/profile/ConnectGitHubForm.tsx renders for users without GitHub connected: inputs for GitHub username and PAT (password type), submit calls storeGitHubToken Firebase Function",
+        "GitHub username validated client-side with /^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/ before submission; PAT validated as starting with 'github_pat_' or 'ghp_'",
+        "On successful connection: form replaced with connected status showing GitHub username, token prefix (4 chars), and token status indicator (valid/expired/revoked)",
+        "User can disconnect GitHub (clears githubUsername on profile) and reconnect with different account",
+        "If user's githubUsername matches a candidate in the candidates collection, show a 'View My Profile' link to /candidates/{githubUsername}",
+        "src/app/hooks/useUserProfile.ts provides TanStack Query hooks: useUserProfile (query), useConnectGitHub (mutation), useDisconnectGitHub (mutation) with 5-minute staleTime",
+        "AppShell.tsx nav bar includes 'My Profile' link for all authenticated users (between search and admin links)",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "Depends on US-027 (types), US-028 (storeGitHubToken function), US-029 (AuthContext with GitHub state). The ConnectGitHubForm is only shown for users who signed in with Google and haven't linked GitHub yet. GitHub OAuth users see their auto-linked status. The storeGitHubToken function handles all server-side validation — the client only needs to call it and handle success/error."
+    },
+    {
+      "id": "US-031",
+      "title": "Self-scan trigger and pipeline handler",
+      "description": "Add 'Scan My Repos' button on My Profile page that creates a self-scan job. Implement the pipeline self-scan handler that reads the user's encrypted token from Firestore secrets (via Admin SDK), decrypts it, and delegates to existing rescan-candidate logic. Downstream scan-repo jobs use tokenSourceUid reference instead of embedding the token in the job payload. Pipeline updates tokenStatus on 401 and increments selfScanCount.",
+      "acceptanceCriteria": [
+        "src/app/components/profile/SelfScanSection.tsx renders 'Scan My Repos' button (disabled if not GitHub-connected or if pending self-scan exists); shows scan progress: pending/running/completed/failed with auto-refresh",
+        "Button creates a self-scan job in scan_jobs with payload: {requestedBy: uid, githubUsername} — NO githubToken field in payload",
+        "src/pipeline/handlers/self-scan.ts: reads encrypted token from user_profiles/{requestedBy}/secrets/github via Admin SDK, decrypts, calls listUserRepos with token, enqueues scan-repo jobs with tokenSourceUid (NOT githubToken) in payload",
+        "src/pipeline/token-resolver.ts exports resolveToken(tokenSourceUid): reads + decrypts token from user secrets — used by scan-repo handler",
+        "src/pipeline/handlers/scan-repo.ts modified: if payload.tokenSourceUid is set, resolve token via token-resolver instead of using payload.githubToken directly",
+        "src/pipeline/handlers/rescan-candidate.ts modified: when called from self-scan context, passes tokenSourceUid (not githubToken) to downstream enqueueScanRepoJob calls",
+        "Pipeline writes tokenStatus: 'expired' to user_profiles/{uid} on GitHub 401/403; increments selfScanCount and sets lastSelfScanAt on successful scan completion",
+        "src/pipeline/queue.ts exports enqueueSelfScanJob(); src/pipeline/worker.ts registers self-scan handler in dispatch",
+        "Unit tests verify: self-scan handler token resolution, token-resolver encryption roundtrip, scan-repo tokenSourceUid path, 401 expiry handling",
+        "pnpm typecheck and pnpm test:unit pass; existing scan-repo tests still pass (no regression in admin flow)"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": "Depends on ALL previous stories (US-027 through US-030). Critical: the tokenSourceUid pattern ensures tokens never appear in scan_jobs documents. The self-scan handler is a thin wrapper around existing rescan-candidate logic — the key difference is token resolution (from user secrets vs job payload). The existing admin rescan flow with githubToken in payload continues to work unchanged. See plan for full token propagation architecture."
     }
   ]
 }

@@ -666,3 +666,25 @@
   - PipelineTab.tsx was already at 302 lines before this change — consider extracting QUERY_PRESETS data to reduce line count
   - `title` attribute provides native tooltip without React state — good for simple explanatory tooltips
 ---
+
+## 2026-03-19 - US-027
+- What was implemented:
+  - `src/types/user-profile.ts` — UserProfile (with pipeline-only fields), UserProfileClientWritableFields, UserGitHubSecret (encrypted token)
+  - `src/types/scan-job.ts` — Added 'self-scan' to ScanJobType, SelfScanPayload (requestedBy + githubUsername, NO token), tokenSourceUid on ScanRepoPayload
+  - `src/handlers/user-profile.ts` — CRUD: createUserProfile, getUserProfile, updateGitHubUsername, getGitHubSecret, hasPendingSelfScan, secretsPath helper
+  - `src/core/db/firestore-admin.ts` — Admin SDK Firestore wrapper with same interface as client SDK (getDoc, setDoc, updateDoc, deleteDoc, addDoc, queryDocs, serverTimestamp, increment, where, orderBy, limit)
+  - `firestore.rules` — user_profiles/{uid} with field-level write protection (client can only write githubUsername+updatedAt), secrets subcollection (read-only, no client writes), self-scan job creation rules (type, status, requestedBy, githubUsername match, no githubToken)
+  - `firestore.indexes.json` — Added indexes for self-scan job queries (type+requestedBy+status, type+requestedBy+createdAt)
+  - `src/pipeline/queue.ts` — enqueueSelfScanJob function
+  - `tests/unit/us-027-user-profiles.test.ts` — 30+ tests covering types, rules, handler, admin wrapper, queue extension
+  - Updated `tests/unit/us-004-security-rules.test.ts` — scan_jobs now allows authenticated self-scan creation
+- Files changed:
+  - NEW: src/types/user-profile.ts, src/handlers/user-profile.ts, src/core/db/firestore-admin.ts, tests/unit/us-027-user-profiles.test.ts
+  - MODIFIED: src/types/scan-job.ts, src/pipeline/queue.ts, firestore.rules, firestore.indexes.json, tests/unit/us-004-security-rules.test.ts, prd.json
+- **Learnings for future iterations:**
+  - Admin SDK wrapper is a SEPARATE module (firestore-admin.ts), not a mode switch in firestore.ts. Pipeline imports it directly for admin-level ops (reading secrets, writing pipeline-only fields). Main firestore.ts stays as client SDK wrapper unchanged.
+  - firebase-admin getApps() returns App[] where elements can be undefined — need non-null assertion (existingApps[0]!)
+  - Field-level Firestore rules use `request.resource.data.diff(resource.data).affectedKeys().hasOnly(...)` for update restrictions
+  - Self-scan Firestore rules use `get()` to cross-reference user_profiles for username validation
+  - Secrets subcollection uses `allow write: if false` to force all writes through Firebase Functions or Admin SDK
+---

@@ -50,12 +50,64 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ─── user_profiles ──────────────────────────────────────────────────────
+    // Users can read/write their own profile (restricted fields).
+    // Admins can read any profile. Pipeline uses Admin SDK (bypasses rules).
+
+    match /user_profiles/{uid} {
+      // Owner + admin can read
+      allow read: if isAuthenticated()
+        && (request.auth.uid == uid || isAdmin());
+
+      // Owner can create with client-writable fields only
+      allow create: if isAuthenticated()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.keys().hasAll(['uid', 'githubUsername', 'createdAt', 'updatedAt'])
+        && !request.resource.data.keys().hasAny([
+             'githubProvider', 'githubConnectedAt', 'tokenStatus',
+             'lastSelfScanAt', 'selfScanCount'
+           ]);
+
+      // Owner can update only githubUsername + updatedAt
+      allow update: if isAuthenticated()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['githubUsername', 'updatedAt']);
+
+      // Admin can write (for support operations)
+      allow write: if isAdmin();
+
+      // ─── secrets subcollection ────────────────────────────────────────────
+      // Owner can read their own secrets (to display token prefix in UI).
+      // NO client writes — all writes go through Firebase Function or Admin SDK.
+      match /secrets/{secretId} {
+        allow read: if isAuthenticated() && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
     // ─── scan_jobs ───────────────────────────────────────────────────────────
-    // Pipeline creates and updates jobs; admin UI reads and retries jobs.
-    // No authenticated non-admin access.
+    // Admin: full read/write.
+    // Authenticated users: can create self-scan jobs and read their own.
 
     match /scan_jobs/{jobId} {
+      // Admin has full access
       allow read, write: if isAdmin();
+
+      // Authenticated users can create self-scan jobs for themselves
+      allow create: if isAuthenticated()
+        && request.resource.data.type == 'self-scan'
+        && request.resource.data.status == 'pending'
+        && request.resource.data.payload.requestedBy == request.auth.uid
+        && request.resource.data.payload.githubUsername ==
+             get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.githubUsername
+        && !('githubToken' in request.resource.data.payload);
+
+      // Authenticated users can read their own self-scan jobs
+      allow read: if isAuthenticated()
+        && resource.data.type == 'self-scan'
+        && resource.data.payload.requestedBy == request.auth.uid;
     }
 
     // ─── admin_flags ─────────────────────────────────────────────────────────

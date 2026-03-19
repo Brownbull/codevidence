@@ -1,7 +1,7 @@
 import type { Timestamp } from 'firebase/firestore';
 
 export type ScanJobStatus = 'pending' | 'running' | 'completed' | 'failed';
-export type ScanJobType = 'discover' | 'scan-repo' | 'rescan-candidate' | 'rescan-repo';
+export type ScanJobType = 'discover' | 'scan-repo' | 'rescan-candidate' | 'rescan-repo' | 'self-scan';
 
 export interface DiscoverPayload {
   query: string;
@@ -12,8 +12,10 @@ export interface DiscoverPayload {
 export interface ScanRepoPayload {
   repoFullName: string;
   targetDepth: 'layer1' | 'layer2';
-  /** Optional fine-grained PAT for accessing private repositories. */
+  /** Optional fine-grained PAT for accessing private repositories (admin flow). */
   githubToken?: string;
+  /** UID of user whose stored token to resolve (self-scan flow). */
+  tokenSourceUid?: string;
 }
 
 export interface RescanPayload {
@@ -24,6 +26,18 @@ export interface RescanPayload {
 }
 
 /**
+ * SelfScanPayload — payload for user-triggered self-scan jobs.
+ * Token is NOT stored in the payload — pipeline resolves it from
+ * user_profiles/{requestedBy}/secrets/github via Admin SDK.
+ */
+export interface SelfScanPayload {
+  /** Firebase Auth UID of the requesting user. */
+  requestedBy: string;
+  /** GitHub username to scan. Must match user_profiles.githubUsername. */
+  githubUsername: string;
+}
+
+/**
  * ScanJob — Firestore document shape for a job in the scan pipeline queue.
  * Workers poll scan_jobs ordered by priority DESC, createdAt ASC.
  */
@@ -31,7 +45,7 @@ export interface ScanJob {
   id: string;
   type: ScanJobType;
   status: ScanJobStatus;
-  payload: DiscoverPayload | ScanRepoPayload | RescanPayload;
+  payload: DiscoverPayload | ScanRepoPayload | RescanPayload | SelfScanPayload;
   attempts: number;
   maxAttempts: number;
   lastAttemptAt: Timestamp | null;
