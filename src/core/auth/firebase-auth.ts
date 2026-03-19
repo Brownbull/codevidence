@@ -12,6 +12,7 @@ import {
   getAuth,
   connectAuthEmulator,
   GoogleAuthProvider,
+  GithubAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
@@ -19,6 +20,7 @@ import {
   browserLocalPersistence,
   type Auth,
   type User,
+  type OAuthCredential,
 } from 'firebase/auth';
 
 // ─── Env helpers ──────────────────────────────────────────────────────────────
@@ -73,6 +75,43 @@ export function getAuthInstance(): Auth {
 export async function signInWithGoogle(): Promise<void> {
   const provider = new GoogleAuthProvider();
   await signInWithPopup(getAuthInstance(), provider);
+}
+
+/**
+ * GitHub Sign-In result containing the OAuth access token and username.
+ * The token is captured from the OAuthCredential — it must be sent to the
+ * storeGitHubToken Firebase Function immediately, NOT stored client-side.
+ */
+export interface GitHubSignInResult {
+  accessToken: string;
+  githubUsername: string;
+}
+
+/** Initiates GitHub Sign-In via popup. Returns the OAuth credential for token extraction.
+ *  Scopes: read:user (profile) + repo (private repos access). */
+export async function signInWithGitHub(): Promise<GitHubSignInResult | null> {
+  const provider = new GithubAuthProvider();
+  provider.addScope('read:user');
+  provider.addScope('repo');
+
+  const result = await signInWithPopup(getAuthInstance(), provider);
+  const credential = GithubAuthProvider.credentialFromResult(result) as OAuthCredential | null;
+
+  if (!credential?.accessToken) return null;
+
+  // Extract GitHub username from the provider data
+  const githubProvider = result.user.providerData.find(
+    (p) => p.providerId === 'github.com'
+  );
+  const githubUsername = githubProvider?.displayName
+    ?? (result.user as unknown as { reloadUserInfo?: { screenName?: string } })
+        .reloadUserInfo?.screenName
+    ?? '';
+
+  return {
+    accessToken: credential.accessToken,
+    githubUsername,
+  };
 }
 
 /** Signs in with email and password (pre-created accounts only, no registration). */

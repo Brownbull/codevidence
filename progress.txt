@@ -705,3 +705,19 @@
   - `beforeUserDeleted` trigger from firebase-functions/v2/identity — runs before deletion, can clean up subcollections
   - Functions share the firebase-admin instance initialized in index.ts — no re-initialization needed in sub-modules
 ---
+
+## 2026-03-19 - US-029
+- What was implemented:
+  - `src/core/auth/firebase-auth.ts` — Added GithubAuthProvider import, signInWithGitHub() function (popup, read:user+repo scopes), GitHubSignInResult interface (accessToken + githubUsername)
+  - `src/app/auth/AuthContext.tsx` — Extended with githubUsername, isGitHubConnected, tokenStatus, signInWithGitHub, refreshProfile. Loads user_profiles on auth state change via getUserProfile handler.
+  - `src/app/pages/LoginPage.tsx` — Added GitHub sign-in button with Octocat icon, dark slate styling, data-testid
+  - `tests/unit/us-029-github-oauth.test.ts` — 26 tests covering auth module, AuthContext, and LoginPage
+- Files changed:
+  - MODIFIED: src/core/auth/firebase-auth.ts, src/app/auth/AuthContext.tsx, src/app/pages/LoginPage.tsx, prd.json
+  - NEW: tests/unit/us-029-github-oauth.test.ts
+- **Learnings for future iterations:**
+  - GitHub OAuth token from signInWithPopup is on OAuthCredential.accessToken (via GithubAuthProvider.credentialFromResult)
+  - GitHub username extraction: providerData.find(p => p.providerId === 'github.com')?.displayName or reloadUserInfo.screenName
+  - AuthContext loads user_profiles/{uid} on every auth state change to populate GitHub connection state
+  - Firebase Auth emulator supports GitHub provider for testing
+---

@@ -472,7 +472,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-027 (types + data model) and US-028 (storeGitHubToken function). The GitHub OAuth token from signInWithPopup is available via OAuthCredential.accessToken — this must be captured in the signIn callback and sent to the Firebase Function, NOT stored client-side. Firebase Console must have GitHub OAuth app configured (client ID + secret from GitHub Developer Settings)."
     },
     {
