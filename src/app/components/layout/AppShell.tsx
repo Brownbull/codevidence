@@ -51,6 +51,13 @@ export function AppShell({ sidebar, children }: AppShellProps) {
           </Link>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
+          <Link
+            to="/my-profile"
+            className="text-slate-300 text-sm hover:text-white transition-colors"
+            data-testid="my-profile-nav-link"
+          >
+            My Profile
+          </Link>
           {isAdmin && (
             <Link
               to="/admin"

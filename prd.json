@@ -491,7 +491,7 @@
         "pnpm typecheck and pnpm test:unit pass"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-027 (types), US-028 (storeGitHubToken function), US-029 (AuthContext with GitHub state). The ConnectGitHubForm is only shown for users who signed in with Google and haven't linked GitHub yet. GitHub OAuth users see their auto-linked status. The storeGitHubToken function handles all server-side validation — the client only needs to call it and handle success/error."
     },
     {

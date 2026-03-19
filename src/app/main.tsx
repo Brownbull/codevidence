@@ -11,6 +11,7 @@ import { CandidateProfilePage } from '@/app/pages/CandidateProfilePage';
 import { AdminPage } from '@/app/pages/AdminPage';
 import { GrantAccessPage } from '@/app/pages/GrantAccessPage';
 import { ScoreMethodologyPage } from '@/app/pages/ScoreMethodologyPage';
+import { MyProfilePage } from '@/app/pages/MyProfilePage';
 import './styles.css';
 
 const queryClient = new QueryClient({
@@ -37,6 +38,7 @@ function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/candidates/:id" element={<CandidateProfilePage />} />
               <Route path="/methodology" element={<ScoreMethodologyPage />} />
+              <Route path="/my-profile" element={<MyProfilePage />} />
             </Route>
 
             {/* Admin-only */}

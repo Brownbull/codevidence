@@ -721,3 +721,23 @@
   - AuthContext loads user_profiles/{uid} on every auth state change to populate GitHub connection state
   - Firebase Auth emulator supports GitHub provider for testing
 ---
+
+## 2026-03-19 - US-030
+- What was implemented:
+  - `src/app/pages/MyProfilePage.tsx` — User dashboard with GitHub connection status, token health indicator, disconnect button, candidate profile link, scan history placeholder
+  - `src/app/components/profile/ConnectGitHubForm.tsx` — Username + PAT form with client-side validation (regex, token prefix), calls storeGitHubToken Firebase Function via useConnectGitHub hook
+  - `src/app/hooks/useUserProfile.ts` — TanStack Query hooks: useUserProfile, useGitHubSecret, useConnectGitHub (mutation), useDisconnectGitHub (mutation)
+  - `src/core/utils/sanitize.ts` — sanitizeInput(input, maxLength) utility (CLAUDE.md rule)
+  - `src/app/main.tsx` — Added /my-profile route under PrivateRoute
+  - `src/app/components/layout/AppShell.tsx` — Added "My Profile" nav link before Admin link
+  - `tests/unit/us-030-my-profile.test.ts` — 42 tests
+- Files changed:
+  - NEW: src/app/pages/MyProfilePage.tsx, src/app/hooks/useUserProfile.ts, src/core/utils/sanitize.ts, tests/unit/us-030-my-profile.test.ts
+  - MODIFIED: src/app/components/layout/AppShell.tsx, src/app/main.tsx, prd.json
+  - ConnectGitHubForm.tsx was already created in profile/ dir
+- **Learnings for future iterations:**
+  - sanitizeInput was referenced in CLAUDE.md but never implemented — created at src/core/utils/sanitize.ts
+  - GitHub username max length is 39 chars (GitHub limit)
+  - ConnectGitHubForm goes in src/app/components/profile/ alongside existing candidate profile components
+  - useConnectGitHub calls httpsCallable(functions, 'storeGitHubToken') — the Firebase Function handles all server-side validation
+---
