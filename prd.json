@@ -454,7 +454,7 @@
         "Unit tests verify: encryption roundtrip, username mismatch rejection, cleanup on delete; pnpm typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-027 (types + user_profiles collection). Token encryption key must be set via 'firebase functions:config:set github.token_key=<base64-key>' — never hardcoded. The storeGitHubToken function is called by both the GitHub OAuth auto-link flow (US-029) and the manual PAT connect flow (US-030). See adversarial review: tokens must NEVER be stored in plaintext in Firestore."
     },
     {

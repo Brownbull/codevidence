@@ -16,6 +16,11 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 
 admin.initializeApp();
 
+// ─── Self-service scan functions ─────────────────────────────────────────────
+
+export { storeGitHubToken } from './store-github-token.js';
+export { onUserDelete } from './on-user-delete.js';
+
 /**
  * Verifies that the calling user has the `admin: true` custom claim.
  * Returns { isAdmin: true } or throws permission-denied (403).

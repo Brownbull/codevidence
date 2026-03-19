@@ -688,3 +688,20 @@
   - Self-scan Firestore rules use `get()` to cross-reference user_profiles for username validation
   - Secrets subcollection uses `allow write: if false` to force all writes through Firebase Functions or Admin SDK
 ---
+
+## 2026-03-19 - US-028
+- What was implemented:
+  - `functions/src/store-github-token.ts` — Callable Firebase Function: validates GitHub token via GET /user, confirms username match (case-insensitive), encrypts with AES-256-GCM, stores in user_profiles/{uid}/secrets/github, updates profile with connection metadata
+  - `functions/src/on-user-delete.ts` — Auth beforeUserDeleted trigger: cleans up user_profiles/{uid}/secrets/* subcollection + user_profiles/{uid} document
+  - `functions/src/index.ts` — Exports both new functions alongside verifyAdminClaim
+  - `tests/unit/us-028-token-security.test.ts` — 28 tests covering encryption, validation, cleanup, exports
+- Files changed:
+  - NEW: functions/src/store-github-token.ts, functions/src/on-user-delete.ts, tests/unit/us-028-token-security.test.ts
+  - MODIFIED: functions/src/index.ts, prd.json
+- **Learnings for future iterations:**
+  - Functions tsconfig uses CommonJS (`"module": "commonjs"`) — exports use `export const` pattern, imports use `from 'firebase-admin'` (not `from 'firebase-admin/app'`)
+  - AES-256-GCM: IV=12 bytes, authTag=16 bytes, format: base64(iv + authTag + ciphertext)
+  - Token prefix: exactly 4 chars (type indicator: ghp_, gho_, gith) to minimize structure leakage
+  - `beforeUserDeleted` trigger from firebase-functions/v2/identity — runs before deletion, can clean up subcollections
+  - Functions share the firebase-admin instance initialized in index.ts — no re-initialization needed in sub-modules
+---
