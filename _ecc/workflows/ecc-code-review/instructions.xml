@@ -1,0 +1,62 @@
+<workflow id="ecc-code-review" name="Adaptive Code Review">
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
+  <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
+  <critical>Communicate all responses in {communication_language} tailored to {user_skill_level}</critical>
+  <critical>ECC ADAPTIVE CODE REVIEW — Orchestrator selects and spawns agents based on story complexity</critical>
+  <critical>AUTO-PROCEED MODE: Skip generic "Continue?" confirmations. Only pause at Step 4 triage and Step 6 test health decisions.</critical>
+
+  <!--
+  STEP PROCESSING RULES (read before executing any step):
+  1. Load ONE step file at a time — read entirely before executing
+  2. Execute steps in checklist order — no skipping or reordering
+  3. HALT at every <ask> tag — wait for user response before continuing
+  4. Mark each step [x] in the checklist BEFORE loading the next step
+  5. After compaction: re-read THIS file to find your current position
+
+  AGENTS: code-reviewer | security-reviewer | architect(opus) | tdd-guide — selected adaptively
+  TRIVIAL: code-reviewer only | SIMPLE: +tdd-guide | STANDARD: +security-reviewer | COMPLEX: all 4
+
+  PROGRESS CHECKLIST — update [x] as each step completes:
+  - [ ] Step 0: Knowledge Init      → steps/step-00-knowledge.md
+  - [ ] Step 1: Story Discovery     → steps/step-01-story-discovery.md
+  - [ ] Step 2: Parallel Spawn      → steps/step-02-parallel-spawn.md
+  - [ ] Step 3: Synthesis           → steps/step-03-synthesis.md
+  - [ ] Step 4: Triage              → steps/step-04-triage.md
+  - [ ] Step 5: Debt Tracking       → steps/step-05-debt-tracking.md
+  - [ ] Step 6: Test Health         → steps/step-06-test-health.md
+  - [ ] Step 7: Completion          → steps/step-07-completion.md
+  -->
+
+  <step n="0" goal="Load project knowledge" tag="knowledge-init">
+    <action>Load, read completely, and execute steps/step-00-knowledge.md</action>
+  </step>
+
+  <step n="1" goal="Load story and classify complexity" tag="story-discovery">
+    <action>Load, read completely, and execute steps/step-01-story-discovery.md</action>
+  </step>
+
+  <step n="2" goal="Spawn selected ECC review agents in parallel" tag="parallel-spawn">
+    <action>Load, read completely, and execute steps/step-02-parallel-spawn.md</action>
+  </step>
+
+  <step n="3" goal="Synthesize parallel review outputs" tag="synthesis">
+    <action>Load, read completely, and execute steps/step-03-synthesis.md</action>
+  </step>
+
+  <step n="4" goal="Smart triage — classify and act on findings" tag="triage">
+    <action>Load, read completely, and execute steps/step-04-triage.md</action>
+  </step>
+
+  <step n="5" goal="Deferred item audit + tech debt story creation" tag="debt-tracking">
+    <action>Load, read completely, and execute steps/step-05-debt-tracking.md</action>
+  </step>
+
+  <step n="6" goal="Test health interpretation" tag="test-health">
+    <action>Load, read completely, and execute steps/step-06-test-health.md</action>
+  </step>
+
+  <step n="7" goal="Cost tracking, E2E analysis, and story completion" tag="completion">
+    <action>Load, read completely, and execute steps/step-07-completion.md</action>
+  </step>
+
+</workflow>

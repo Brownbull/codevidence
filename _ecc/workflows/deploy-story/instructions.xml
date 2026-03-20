@@ -1,0 +1,53 @@
+<workflow id="deploy-story" name="Deploy Story">
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
+  <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
+  <critical>Communicate all responses in {communication_language} tailored to {user_skill_level}</critical>
+  <critical>This workflow deploys a completed story through the 2-branch PR-based pipeline</critical>
+  <critical>NEVER push directly to develop or main - always use PRs via `gh pr create` + `gh pr merge`</critical>
+  <critical>NEVER use `git merge` to merge into protected branches - use `gh pr merge` instead</critical>
+  <critical>Pre-deployment validation is REQUIRED before production deployment</critical>
+
+  <!--
+  STEP PROCESSING RULES (read before executing any step):
+  1. Load ONE step file at a time - read entirely before executing
+  2. Execute steps in checklist order - no skipping or reordering
+  3. HALT at every <ask> tag - wait for user response before continuing
+  4. Mark each step [x] in the checklist BEFORE loading the next step
+  5. After compaction: re-read THIS file to find your current position
+
+  PIPELINE: feature-branch -> develop (squash PR) -> main (merge PR) -> auto-deploy on merge
+
+  PROGRESS CHECKLIST - update [x] as each step completes:
+  - [ ] Step 0: Preflight               -> steps/step-00-preflight.md
+  - [ ] Step 1: Validation              -> steps/step-01-validation.md
+  - [ ] Step 2: PR to develop           -> steps/step-02-pr-develop.md
+  - [ ] Step 3: PR to main              -> steps/step-03-pr-main.md
+  - [ ] Step 4: Backend Deploy           -> steps/step-04-backend-deploy.md
+  - [ ] Step 5: Cleanup and Complete     -> steps/step-05-cleanup-and-complete.md
+  -->
+
+  <step n="0" goal="Story verification + branch guard" tag="preflight">
+    <action>Load, read completely, and execute steps/step-00-preflight.md</action>
+  </step>
+
+  <step n="1" goal="Pre-deployment validation" tag="validation">
+    <action>Load, read completely, and execute steps/step-01-validation.md</action>
+  </step>
+
+  <step n="2" goal="Create PR to develop (squash merge)" tag="pr-develop">
+    <action>Load, read completely, and execute steps/step-02-pr-develop.md</action>
+  </step>
+
+  <step n="3" goal="Create PR to main (merge commit)" tag="pr-main">
+    <action>Load, read completely, and execute steps/step-03-pr-main.md</action>
+  </step>
+
+  <step n="4" goal="Backend deployment (if needed)" tag="backend-deploy">
+    <action>Load, read completely, and execute steps/step-04-backend-deploy.md</action>
+  </step>
+
+  <step n="5" goal="Branch cleanup + sprint status + summary" tag="cleanup-and-complete">
+    <action>Load, read completely, and execute steps/step-05-cleanup-and-complete.md</action>
+  </step>
+
+</workflow>

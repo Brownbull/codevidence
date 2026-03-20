@@ -1,0 +1,112 @@
+# Story Sizing - Validate and Split Oversized Stories
+name: story-sizing
+description: "Analyze existing stories for context window fit, detect oversized stories, and split them into smaller implementation units. Prevents dev agent context exhaustion."
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+sprint_artifacts: "{config_source}:sprint_artifacts"
+story_dir: "{sprint_artifacts}"
+
+# Workflow components
+installed_path: "{project-root}/_ecc/workflows/story-sizing"
+template: "{project-root}/_bmad/bmm/workflows/4-implementation/create-story/template.md"
+instructions: "{installed_path}/instructions.xml"
+
+# Project Knowledge Integration (replaces Atlas - migrated 2026-02-05)
+project_knowledge:
+  enabled: true
+  files:
+    - "{project-root}/_ecc/knowledge/code-review-patterns.md"
+    - "{project-root}/.claude/rules/testing.md"
+
+# Variables and inputs
+variables:
+  sprint_status: "{sprint_artifacts}/sprint-status.yaml || {output_folder}/sprint-status.yaml"
+  epics_file: "{output_folder}/epics.md"
+  story_path: ""  # User can provide specific story or auto-discover
+
+# Project context
+project_context: "**/project-context.md"
+
+# Smart input file references
+input_file_patterns:
+  sprint_status:
+    description: "Sprint status for story discovery"
+    whole: "{sprint_artifacts}/sprint-status.yaml"
+    load_strategy: "FULL_LOAD"
+  project_knowledge:
+    description: "Project patterns for sizing context"
+    whole: "{project-root}/_ecc/knowledge/code-review-patterns.md"
+    load_strategy: "SELECTIVE_LOAD"
+  stories:
+    description: "Existing story files to analyze"
+    whole: "{sprint_artifacts}/**/*.md"
+    load_strategy: "ON_DEMAND"
+
+standalone: true
+
+# Sizing Features
+sizing_features:
+  story_size_analysis: true
+  split_recommendation: true
+
+# Story Sizing Heuristics
+# Prevents stories that exceed development context window capacity
+sizing_guidelines:
+  small:
+    points: 1
+    max_tasks: 2
+    max_subtasks: 5
+    max_files: 2
+    description: "Single-focus story, completes in one session"
+  medium:
+    points: "2-3"
+    max_tasks: 3
+    max_subtasks: 10
+    max_files: 4
+    description: "Standard story, comfortable for one context window"
+  large:
+    points: 5
+    max_tasks: 4
+    max_subtasks: 15
+    max_files: 8
+    description: "At capacity - consider splitting if complex"
+  too_large:
+    description: "REQUIRES SPLIT before development"
+    threshold: ">4 tasks OR >15 subtasks OR >8 files"
+    action: "Mandatory split into smaller stories"
+
+# Split strategy patterns
+split_strategies:
+  by_layer:
+    description: "Split by architectural layer (UI, API, DB)"
+    example: "Story A: Frontend components, Story B: Backend API"
+  by_feature:
+    description: "Split by feature subset"
+    example: "Story A: Core feature, Story B: Edge cases & error handling"
+  by_phase:
+    description: "Split by implementation phase"
+    example: "Story A: Scaffolding & interfaces, Story B: Implementation"
+  by_file:
+    description: "Split by file groups"
+    example: "Story A: Files 1-4, Story B: Files 5-8"
+
+# What this workflow does:
+# 1. Scans existing stories (ready-for-dev or drafted status)
+# 2. Analyzes task/subtask/file counts against sizing guidelines
+# 3. Flags oversized stories with specific metrics
+# 4. Offers interactive split options with strategy suggestions
+# 5. Creates split stories with proper numbering (e.g., 22 -> 22a, 22b)
+# 6. Updates sprint-status.yaml with new stories
+# 7. Presents summary and next steps
+
+# Lesson learned origin:
+# Story 14c-refactor.22a taught us that stories exceeding these limits
+# cause context window exhaustion mid-development, requiring post-hoc
+# splits that waste cycles. Better to split upfront.

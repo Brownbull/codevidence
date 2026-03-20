@@ -1,10 +1,72 @@
-node_modules/
-dist/
-build/
+# Environment & Secrets
 .env
 .env.local
-*.log
+.env.*.local
+.env.production
+.env.staging
+secrets.json
+credentials.json
+service-account.json
+*-adminsdk-*.json
+firebase-adminsdk*.json
+*.pem
+*.key
+*.private
+private_key*.json
+gcp-key*.json
+keyfile*.json
+
+# Claude Code personal overrides
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-__pycache__/
-*.pyc
-.venv/
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary AI research files
+_ai_temp/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Screenshots & scan artifacts
+screenshots/
+
+# Misc
+*.bak
+*.tmp
+
+# Keys
+.keys/

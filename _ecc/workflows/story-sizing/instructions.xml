@@ -1,0 +1,53 @@
+<workflow id="story-sizing" name="Story Sizing">
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
+  <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
+  <critical>Communicate all responses in {communication_language} and generate all documents in {document_output_language}</critical>
+  <critical>STORY SIZING - Validate and Split Oversized Stories!</critical>
+  <critical>This workflow analyzes existing stories for context window fit and splits oversized ones</critical>
+  <critical>Model-aware sizing: Opus 4.6 handles larger context windows than previous models. Sizing limits updated 2026-02-05.</critical>
+  <critical>Historical lesson: Story 14c-refactor.22a (old model) exhausted context at >3 complex tasks. Opus 4.6 handles 8+ tasks reliably.</critical>
+
+  <!--
+  STEP PROCESSING RULES (read before executing any step):
+  1. Load ONE step file at a time - read entirely before executing
+  2. Execute steps in checklist order - no skipping or reordering
+  3. HALT at every <ask> tag - wait for user response before continuing
+  4. Mark each step [x] in the checklist BEFORE loading the next step
+  5. After compaction: re-read THIS file to find your current position
+
+  AGENT: SM (Scrum Master) persona loaded for sizing expertise
+
+  PROGRESS CHECKLIST - update [x] as each step completes:
+  - [ ] Step 0: Knowledge Init           -> steps/step-00-knowledge.md
+  - [ ] Step 1: Select Stories           -> steps/step-01-select-stories.md
+  - [ ] Step 2: Parse and Size           -> steps/step-02-parse-and-size.md
+  - [ ] Step 3: Split Recommendations    -> steps/step-03-split-recommendations.md
+  - [ ] Step 4: Interactive Split        -> steps/step-04-interactive-split.md
+  - [ ] Step 5: Execute and Complete     -> steps/step-05-execute-and-complete.md
+  -->
+
+  <step n="0" goal="Load SM agent persona and project knowledge" tag="knowledge-init">
+    <action>Load, read completely, and execute steps/step-00-knowledge.md</action>
+  </step>
+
+  <step n="1" goal="Select stories to analyze" tag="select-stories">
+    <action>Load, read completely, and execute steps/step-01-select-stories.md</action>
+  </step>
+
+  <step n="2" goal="Parse story content and apply sizing heuristics" tag="parse-and-size">
+    <action>Load, read completely, and execute steps/step-02-parse-and-size.md</action>
+  </step>
+
+  <step n="3" goal="Present split recommendations" tag="split-recommendations">
+    <action>Load, read completely, and execute steps/step-03-split-recommendations.md</action>
+  </step>
+
+  <step n="4" goal="Interactive split review + manual mode" tag="interactive-split">
+    <action>Load, read completely, and execute steps/step-04-interactive-split.md</action>
+  </step>
+
+  <step n="5" goal="Execute splits and complete" tag="execute-and-complete">
+    <action>Load, read completely, and execute steps/step-05-execute-and-complete.md</action>
+  </step>
+
+</workflow>

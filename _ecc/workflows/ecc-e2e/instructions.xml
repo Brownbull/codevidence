@@ -1,0 +1,67 @@
+<workflow id="ecc-e2e" name="ecc-e2e" version="1.0">
+
+  <orchestrator-protocol>
+    <critical>You are the ECC E2E Orchestrator. E2E testing runs as a standalone concern.</critical>
+    <critical>Pre-flight is MANDATORY. No test code is written until all 4 checks pass or user explicitly skips.</critical>
+    <critical>All tests run ONLY against staging (localhost:5174 with staging backend).</critical>
+  </orchestrator-protocol>
+
+  <!--
+  STEP PROCESSING RULES (read before executing any step):
+  1. Load ONE step file at a time — read entirely before executing
+  2. Execute steps in checklist order — no skipping or reordering
+  3. HALT at every <ask> tag — wait for user response before continuing
+  4. Mark each step [x] in the checklist BEFORE loading the next step
+  5. After compaction: re-read THIS file to find your current position
+
+  AGENTS: e2e-runner(sonnet) | code-reviewer(sonnet)
+
+  PROGRESS CHECKLIST — update [x] as each step completes:
+  - [ ] Step 0: Knowledge Init     → steps/step-00-knowledge.md
+  - [ ] Step 1: E2E Analysis       → steps/step-01-analysis.md
+  - [ ] Step 2: Pre-Flight         → steps/step-02-preflight.md
+  - [ ] Step 3: Multi-User         → steps/step-03-multi-user.md
+  - [ ] Step 4: Write Test         → steps/step-04-write-test.md
+  - [ ] Step 5: Run & Verify       → steps/step-05-run-verify.md
+  - [ ] Step 6: Test Health        → steps/step-06-test-health.md
+  - [ ] Step 7: Quality Review     → steps/step-07-quality-review.md
+  - [ ] Step 8: Completion         → steps/step-08-completion.md
+  -->
+
+  <step n="0" goal="Load E2E knowledge" tag="knowledge-init">
+    <action>Load, read completely, and execute steps/step-00-knowledge.md</action>
+  </step>
+
+  <step n="1" goal="Analyze story for E2E action (SKIP/VERIFY/EXTEND/CREATE)" tag="analysis">
+    <action>Load, read completely, and execute steps/step-01-analysis.md</action>
+  </step>
+
+  <step n="2" goal="Complete pre-flight checklist" tag="pre-flight">
+    <action>Load, read completely, and execute steps/step-02-preflight.md</action>
+  </step>
+
+  <step n="3" goal="Detect and plan multi-user strategy" tag="multi-user">
+    <action>Load, read completely, and execute steps/step-03-multi-user.md</action>
+  </step>
+
+  <step n="4" goal="Spawn e2e-runner to write or extend test" tag="write-test">
+    <action>Load, read completely, and execute steps/step-04-write-test.md</action>
+  </step>
+
+  <step n="5" goal="Run test against staging and handle failures" tag="run-verify">
+    <action>Load, read completely, and execute steps/step-05-run-verify.md</action>
+  </step>
+
+  <step n="6" goal="Test health interpretation (always fires for E2E)" tag="test-health">
+    <action>Load, read completely, and execute steps/step-06-test-health.md</action>
+  </step>
+
+  <step n="7" goal="Quality review via code-reviewer (5-dimension)" tag="quality-review">
+    <action>Load, read completely, and execute steps/step-07-quality-review.md</action>
+  </step>
+
+  <step n="8" goal="Update story + quality escalation + completion" tag="completion">
+    <action>Load, read completely, and execute steps/step-08-completion.md</action>
+  </step>
+
+</workflow>

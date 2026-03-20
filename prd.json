@@ -1,7 +1,7 @@
 {
   "project": "candidate-skill-scanner",
   "branchName": "ralph/build-candidate-skill-scanner",
-  "description": "A Chrome-only SPA + local Node.js scan pipeline that discovers developer talent by analysing public GitHub repositories — replacing self-reported CVs with verifiable, commit-level evidence. Surfaces ranked candidates via structured faceted search with independent Skill Score and AI Maturity Score dimensions.",
+  "description": "A Chrome-only SPA + local Node.js scan pipeline that discovers developer talent by analysing public GitHub repositories \u2014 replacing self-reported CVs with verifiable, commit-level evidence. Surfaces ranked candidates via structured faceted search with independent Skill Score and AI Maturity Score dimensions.",
   "userStories": [
     {
       "id": "US-001",
@@ -16,8 +16,8 @@
         "pnpm dev starts without errors and loads a blank index.html at localhost:3000"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Use setup/tools/claude-code-mastery-project-starter-kit as the base. This is the foundation for all subsequent stories — do not proceed until pnpm install is clean."
+      "passes": true,
+      "notes": "Use setup/tools/claude-code-mastery-project-starter-kit as the base. This is the foundation for all subsequent stories \u2014 do not proceed until pnpm install is clean."
     },
     {
       "id": "US-002",
@@ -32,7 +32,7 @@
         "GitHub Actions CI workflow at .github/workflows/ci.yml runs typecheck + test:unit + build on every push; deploy step gated on main branch"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Three tsconfigs must prevent DOM/Node cross-contamination. tsconfig.pipeline.json must NOT include DOM lib. The postbuild Classpresso hook is required by the starter kit."
     },
     {
@@ -40,16 +40,16 @@
       "title": "Shared TypeScript types and centralized Firestore wrapper",
       "description": "Define all shared TypeScript types in src/types/ (Candidate with aiMaturityScore: number | null, Repository, AiConfigFileSignal, ScanJob with all payload variants, TaxonomyItem, AdminFlag, SearchQueryParams). Create a pipeline-specific scoring output type that explicitly excludes aiMaturityScore fields. Implement the centralized Firestore wrapper at src/core/db/firestore.ts with typed get/set/update/delete/query/collection/serverTimestamp methods, auto-detecting emulator from VITE_USE_EMULATOR env var.",
       "acceptanceCriteria": [
-        "src/types/candidate.ts exports Candidate with aiMaturityScore: number | null — never a numeric sentinel for unscored state",
+        "src/types/candidate.ts exports Candidate with aiMaturityScore: number | null \u2014 never a numeric sentinel for unscored state",
         "src/types/repository.ts exports Repository and AiConfigFileSignal; src/types/scan-job.ts exports ScanJob, ScanJobStatus, ScanJobType, DiscoverPayload, ScanRepoPayload, RescanPayload",
         "src/types/taxonomy.ts exports TaxonomyItem and TaxonomyCategory; src/types/admin.ts exports AdminFlag, AdminFlagType, AdminFlagStatus, SearchQueryParams",
-        "A pipeline scoring output type exists that TypeScript-enforces the absence of aiMaturityScore, aiMaturityScoredAt, aiMaturityScoredBy — preventing pipeline writes from overwriting manual scores",
+        "A pipeline scoring output type exists that TypeScript-enforces the absence of aiMaturityScore, aiMaturityScoredAt, aiMaturityScoredBy \u2014 preventing pipeline writes from overwriting manual scores",
         "src/core/db/firestore.ts exports typed wrapper methods, detects VITE_USE_EMULATOR and routes to emulator, importable from both src/app and src/pipeline",
         "Unit test verifies the wrapper routes to emulator in test environment; pnpm typecheck passes with all types defined"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "The null vs 0 distinction for aiMaturityScore is a hard invariant — null means not evaluated, 0 means evaluated as Level 0. This must be enforced at the type level throughout. All Firestore access must go through the wrapper — never direct SDK calls."
+      "passes": true,
+      "notes": "The null vs 0 distinction for aiMaturityScore is a hard invariant \u2014 null means not evaluated, 0 means evaluated as Level 0. This must be enforced at the type level throughout. All Firestore access must go through the wrapper \u2014 never direct SDK calls."
     },
     {
       "id": "US-004",
@@ -59,13 +59,13 @@
         "firestore.rules enforces the three-tier access model (unauthenticated/authenticated/admin); integration test confirms non-admin token cannot read admin_flags",
         "firestore.indexes.json defines all composite indexes from the architecture spec: candidates (skillTags+skillScore, skillTags+aiMaturityScore, skillTags+lastScanned, aiMaturityScore+skillScore, isStale+lastScanned), repositories (owner+lastScanned, scanStatus+lastPushedAt), scan_jobs (status+createdAt, status+priority+createdAt, status+failedAt), admin_flags (type+status+createdAt, type+status+resultCount), taxonomy (category+isSearchable+sortOrder, isSearchable+candidateCount)",
         "scripts/seeds/taxonomy.json exists with seed items covering Languages (10+), Frameworks (10+), Tools (10+), AI Agent Patterns (6+), AI Maturity Levels (0-5)",
-        "Seed script is idempotent — running twice does not duplicate taxonomy items; each item has isSeeded: true, isSearchable: true, candidateCount: 0, correct sortOrder and displayName",
+        "Seed script is idempotent \u2014 running twice does not duplicate taxonomy items; each item has isSeeded: true, isSearchable: true, candidateCount: 0, correct sortOrder and displayName",
         "pnpm db:query --seed taxonomy (or equivalent) runs the seed script against emulator successfully",
         "Integration test (Vitest + emulator) verifies a valid candidate composite index query returns results correctly"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Seed taxonomy is critical — the Search UI (Epic 5) depends on it for facet panel rendering. The composite indexes must match the query patterns in src/handlers/search.ts exactly."
+      "passes": true,
+      "notes": "Seed taxonomy is critical \u2014 the Search UI (Epic 5) depends on it for facet panel rendering. The composite indexes must match the query patterns in src/handlers/search.ts exactly."
     },
     {
       "id": "US-005",
@@ -74,37 +74,37 @@
       "acceptanceCriteria": [
         "Login page renders a Sign in with Google button; successful Google OAuth redirects to /search; user avatar and display name appear in top nav; sign-out returns to login",
         "PrivateRoute redirects unauthenticated users to /login; AdminRoute redirects non-admin authenticated users to /search; both guards show loading state while auth resolves (no flash of redirect)",
-        "Admin status is read from Firebase ID token custom claim (admin: true) — NOT from Firestore or client-side state",
+        "Admin status is read from Firebase ID token custom claim (admin: true) \u2014 NOT from Firestore or client-side state",
         "verify-admin-claim Firebase Function rejects tokens without admin: true claim with 403; unit test verifies this",
         "pnpm admin:ops grant-admin --uid <firebase-uid> sets custom claim { admin: true } on the specified user via Firebase Admin SDK; script follows starter kit registered CLI pattern in scripts/admin-ops.ts",
         "Firebase Auth emulator is used in test environment; Vitest test confirms AdminRoute blocks non-admin token"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "Admin role grant is CLI-only — no web UI path must exist for role elevation. The AdminRoute guard must enforce server-side claims, not client-side state. All auth tests run against the Firebase Auth emulator."
+      "passes": true,
+      "notes": "Admin role grant is CLI-only \u2014 no web UI path must exist for role elevation. The AdminRoute guard must enforce server-side claims, not client-side state. All auth tests run against the Firebase Auth emulator."
     },
     {
       "id": "US-006",
       "title": "CLI entry point and Firestore-backed job queue",
-      "description": "Implement the Commander.js CLI entry point at src/pipeline/index.ts with scan discover, scan rescan, and scan status sub-commands (all with correct options). Implement the Firestore-backed job queue: ScanJob document creation in scan_jobs, worker polling loop (every 10s), atomic status transitions (pending → running → completed/failed), exponential backoff retry (2^attempts minutes, max 3 attempts), rate-limit-aware pause via rateLimitedUntil field.",
+      "description": "Implement the Commander.js CLI entry point at src/pipeline/index.ts with scan discover, scan rescan, and scan status sub-commands (all with correct options). Implement the Firestore-backed job queue: ScanJob document creation in scan_jobs, worker polling loop (every 10s), atomic status transitions (pending \u2192 running \u2192 completed/failed), exponential backoff retry (2^attempts minutes, max 3 attempts), rate-limit-aware pause via rateLimitedUntil field.",
       "acceptanceCriteria": [
         "pnpm scan --help shows discover, rescan, status sub-commands; each sub-command shows correct options with --help",
         "pnpm scan discover --query 'test' --limit 10 creates a discover ScanJob in scan_jobs with status: pending, correct payload, priority: 0, attempts: 0, maxAttempts: 3",
         "Worker polls for pending jobs ordered by priority DESC, createdAt ASC; picks up one job at a time; sets status to running with lastAttemptAt",
-        "On job success: status → completed with completedAt; on failure with attempts < maxAttempts: status → pending (retry); on failure with attempts >= maxAttempts: status → failed with errorMessage and failedAt",
+        "On job success: status \u2192 completed with completedAt; on failure with attempts < maxAttempts: status \u2192 pending (retry); on failure with attempts >= maxAttempts: status \u2192 failed with errorMessage and failedAt",
         "A rate-limited job sets rateLimitedUntil timestamp and remains pending until that time passes; worker skips it until then",
-        "Failed jobs do not crash the worker — subsequent jobs are processed; unit test verifies full job lifecycle: enqueue → pick up → complete"
+        "Failed jobs do not crash the worker \u2014 subsequent jobs are processed; unit test verifies full job lifecycle: enqueue \u2192 pick up \u2192 complete"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "The worker is single-threaded in MVP — one job at a time. The Firestore-backed queue (no Redis/BullMQ) is intentional at this scale. All pipeline code runs via tsx and targets tsconfig.pipeline.json."
+      "passes": true,
+      "notes": "The worker is single-threaded in MVP \u2014 one job at a time. The Firestore-backed queue (no Redis/BullMQ) is intentional at this scale. All pipeline code runs via tsx and targets tsconfig.pipeline.json."
     },
     {
       "id": "US-007",
       "title": "GitHub API adapter, repo discovery, deduplication, and rate-limit pacing",
       "description": "Implement the GitHub API adapter at src/adapters/github.ts wrapping Octokit behind the source-agnostic interface at src/adapters/source-adapter.ts. Implement the discover job handler: query GitHub Search API, extract repo surface metadata, deduplicate against existing repositories collection, write new Repository docs with scanStatus: surface, enqueue scan-repo jobs with targetDepth: layer1. Enforce rate-limit-aware pacing: read X-RateLimit-Remaining/Reset headers, throttle when <100 remaining, set rateLimitedUntil on 429/403 responses.",
       "acceptanceCriteria": [
-        "src/adapters/source-adapter.ts defines the source-agnostic interface; src/adapters/github.ts implements it via Octokit — all GitHub API calls go through this adapter",
+        "src/adapters/source-adapter.ts defines the source-agnostic interface; src/adapters/github.ts implements it via Octokit \u2014 all GitHub API calls go through this adapter",
         "pnpm scan discover --query 'python fastapi' --limit 50 queries GitHub Search API and returns repos with: fullName, primaryLanguage, starCount, forkCount, lastPushedAt, topics",
         "Repos already in repositories collection (by fullName) are not re-enqueued; a second discover call with the same query returns 0 new repos if all were already stored",
         "New Repository docs written with scanStatus: surface; a scan-repo job enqueued per new repo with targetDepth: layer1; CLI outputs summary of N discovered, M new enqueued",
@@ -112,8 +112,8 @@
         "Integration test (mocked GitHub API) verifies 429 response causes job re-queue with correct rateLimitedUntil; unit test verifies deduplication logic"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "GITHUB_PAT must be read from .env — never hardcoded. The source-adapter interface is required by NFR15 for future GitLab/Bitbucket support. Layer 1 cost is ~2 API calls per repo (metadata + languages endpoint)."
+      "passes": true,
+      "notes": "GITHUB_PAT must be read from .env \u2014 never hardcoded. The source-adapter interface is required by NFR15 for future GitLab/Bitbucket support. Layer 1 cost is ~2 API calls per repo (metadata + languages endpoint)."
     },
     {
       "id": "US-008",
@@ -128,12 +128,12 @@
         "Repository.detectedFrameworks, detectedTools, detectedDependencies updated; scanStatus set to layer1; unit test verifies correct framework extraction from sample package.json and requirements.txt fixtures"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "Layer 1 uses no additional GitHub API calls — all work is on the shallow clone. The system must support up to 50 concurrent ephemeral clones per NFR9 without exhausting local disk."
+      "passes": true,
+      "notes": "Layer 1 uses no additional GitHub API calls \u2014 all work is on the shallow clone. The system must support up to 50 concurrent ephemeral clones per NFR9 without exhausting local disk."
     },
     {
       "id": "US-009",
-      "title": "Layer 2 analysis — commit patterns, ownership, and test coverage",
+      "title": "Layer 2 analysis \u2014 commit patterns, ownership, and test coverage",
       "description": "Implement Layer 2 analysis at src/pipeline/analysis/layer2.ts using a full-depth clone (simple-git without --depth flag, reading up to 200 commits). Extract: commit count, commit span in months, ownership detection (isOwnerRepo = true if repo owner is dominant committer with >50% of commits), test directory detection (tests/, __tests__/, spec/), test file count, estimated test coverage level (none/low/medium/high). Update Repository doc with layer2 fields and scanStatus: layer2.",
       "acceptanceCriteria": [
         "scan-repo job with targetDepth: layer2 performs a full clone (not shallow) to access full commit history",
@@ -144,8 +144,8 @@
         "Clone deleted after analysis; unit test verifies ownership detection logic with mock git log fixture"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "Layer 2 requires a full clone — not shallow. Use git log --format='%H %ae %ad' -n 200 for commit history. The full clone is more expensive on disk — delete it promptly after analysis."
+      "passes": true,
+      "notes": "Layer 2 requires a full clone \u2014 not shallow. Use git log --format='%H %ae %ad' -n 200 for commit history. The full clone is more expensive on disk \u2014 delete it promptly after analysis."
     },
     {
       "id": "US-010",
@@ -160,8 +160,8 @@
         "Repository.aiConfigFiles (AiConfigFileSignal[]), coAuthoredByAI, aiAttributionPatterns written to Firestore; unit test verifies AiConfigFileSignal population from mock git log with CLAUDE.md"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "Use git log --follow --format='%H %ae %ad' -- <filename> to trace each config file's history. The AI signals are the raw data for manual AI Maturity Score assignment — accuracy matters more than completeness at this stage."
+      "passes": true,
+      "notes": "Use git log --follow --format='%H %ae %ad' -- <filename> to trace each config file's history. The AI signals are the raw data for manual AI Maturity Score assignment \u2014 accuracy matters more than completeness at this stage."
     },
     {
       "id": "US-011",
@@ -169,15 +169,15 @@
       "description": "Implement Skill Score computation at src/pipeline/scoring/skill-score.ts using the deterministic formula from the architecture spec. Derive the candidate record from the repo's owner GitHub username. Create or update the Candidate document in Firestore with all pipeline-owned fields. The pipeline scoring output type must TypeScript-enforce the absence of aiMaturityScore fields. Set isStale as a denormalized boolean at write time (lastScanned > 90 days). Update taxonomy candidateCount via the Firebase Function post-scan trigger.",
       "acceptanceCriteria": [
         "computeSkillScore implements the exact formula: primaryLanguage (20) + frameworks capped at 30 (6 each) + tools capped at 15 (5 each) + commitSpan capped at 10 + ownership bonus (10) + test coverage (0/3/8/15) + AI signals capped at 10; clamped 0-100",
-        "aiMaturityScore is NOT set or modified by the pipeline — the scoring output type excludes aiMaturityScore, aiMaturityScoredAt, aiMaturityScoredBy at the TypeScript type level",
+        "aiMaturityScore is NOT set or modified by the pipeline \u2014 the scoring output type excludes aiMaturityScore, aiMaturityScoredAt, aiMaturityScoredBy at the TypeScript type level",
         "Candidate document created or updated: skillScore, skillTags (flat merged taxonomy ID array), detectedLanguages, detectedFrameworks, detectedTools, aiToolingSignals, aiAgentPatterns, repoCount, primaryRepoIds, commitSpanMonths, lastScanned, isStale, scanDepth",
         "isStale is computed at write time: true if Date.now() - lastScanned > 90 * 24 * 60 * 60 * 1000; never computed at query time",
         "Candidate is derived from the repo owner's GitHub username as the Firestore document ID",
         "Unit test verifies computeSkillScore returns the correct score for a known input set; end-to-end: pnpm scan discover + worker processes jobs + candidate appears in Firestore"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "The aiMaturityScore protection is the most critical invariant in the codebase — a pipeline rescan must never overwrite a manually assigned score. TypeScript type exclusion is the enforcement mechanism, not runtime checks."
+      "passes": true,
+      "notes": "The aiMaturityScore protection is the most critical invariant in the codebase \u2014 a pipeline rescan must never overwrite a manually assigned score. TypeScript type exclusion is the enforcement mechanism, not runtime checks."
     },
     {
       "id": "US-012",
@@ -187,28 +187,28 @@
         "App shell renders: top nav (h-12, slate-900 background, Space Grotesk branding), user avatar with display name, sign-out link; main content area (slate-50 background); minimum viewport 1280px",
         "React Router v6 routes configured: /login (public), /search (PrivateRoute), /candidates/:id (PrivateRoute), /admin/* (AdminRoute); / redirects authenticated users to /search, unauthenticated to /login",
         "FacetPanel renders five collapsible sections; each uses <fieldset> and <legend>; checkboxes for isSearchable: true taxonomy items sorted by sortOrder; candidateCount shown as muted badge",
-        "useSearchQuery hook parses URL params into typed SearchQueryParams and writes SearchQueryParams back to URL (bidirectional); filter values live in URL only — Zustand holds UI state only (panel open/closed)",
+        "useSearchQuery hook parses URL params into typed SearchQueryParams and writes SearchQueryParams back to URL (bidirectional); filter values live in URL only \u2014 Zustand holds UI state only (panel open/closed)",
         "Selecting a checkbox updates URL (?lang=python&framework=fastapi) without page reload; refreshing URL with params restores correct checkbox state",
         "JetBrains Mono applied globally to all technical identifier elements; FacetPanel implemented at src/app/components/search/FacetPanel.tsx"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": "URL is the single source of truth for filter values — this is an MVP requirement, not a future enhancement. Zustand must only hold UI state (panel open/closed, hover). Back-navigation must preserve filter state via URL."
+      "passes": true,
+      "notes": "URL is the single source of truth for filter values \u2014 this is an MVP requirement, not a future enhancement. Zustand must only hold UI state (panel open/closed, hover). Back-navigation must preserve filter state via URL."
     },
     {
       "id": "US-013",
       "title": "Firestore search query, results list, sort controls, and score badges",
-      "description": "Implement the search query handler at src/handlers/search.ts: rarest-tag-first Firestore query + client-side AND filter + 200-doc cap + client-side sorting. Implement CandidateCard, SkillScoreBadge (indigo circle ● 87), AIMaturityBadge (violet pip bar ████░░ Lvl 3 or Not evaluated for null), StalenessTag, and ActiveFilterChips components. Add sort controls (Skill Score / AI Maturity / Last Scanned) persisted in URL. Wire useCandidates TanStack Query hook (staleTime 5min, loading skeleton).",
+      "description": "Implement the search query handler at src/handlers/search.ts: rarest-tag-first Firestore query + client-side AND filter + 200-doc cap + client-side sorting. Implement CandidateCard, SkillScoreBadge (indigo circle \u25cf 87), AIMaturityBadge (violet pip bar \u2588\u2588\u2588\u2588\u2591\u2591 Lvl 3 or Not evaluated for null), StalenessTag, and ActiveFilterChips components. Add sort controls (Skill Score / AI Maturity / Last Scanned) persisted in URL. Wire useCandidates TanStack Query hook (staleTime 5min, loading skeleton).",
       "acceptanceCriteria": [
         "src/handlers/search.ts builds Firestore query using rarest-tag-first (lowest candidateCount tag as primary array-contains filter), 200-doc cap, client-side AND for remaining tags",
         "CandidateCard shows: GitHub username, avatar, SkillScoreBadge (indigo circle with score), AIMaturityBadge (violet pip bar with level or Not evaluated for null), top 3 matched skill tags, last_scanned date, StalenessTag if isStale: true",
-        "AIMaturityBadge renders null as dashed pip bar (░░░░░) + Not evaluated label; score 0 as empty circle pips + Level 0 — No AI signals label",
-        "ActiveFilterChips renders above results: one chip per active filter with × remove button; Clear all button removes all filter params from URL",
+        "AIMaturityBadge renders null as dashed pip bar (\u2591\u2591\u2591\u2591\u2591) + Not evaluated label; score 0 as empty circle pips + Level 0 \u2014 No AI signals label",
+        "ActiveFilterChips renders above results: one chip per active filter with \u00d7 remove button; Clear all button removes all filter params from URL",
         "Sort controls (dropdown/button group): Skill Score / AI Maturity / Last Scanned; selection updates URL ?sort=aiMaturityScore and re-executes query with correct orderBy",
         "useCandidates TanStack Query hook: queryKey includes serialized params, staleTime 5min, enabled only when hasAnyFilter(params); loading skeleton shown while fetching"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "The rarest-tag-first optimization is critical for query performance as pool grows. The SkillScoreBadge and AIMaturityBadge visual designs must match the spec exactly: indigo circle for skill, violet pip bar for AI maturity."
     },
     {
@@ -217,35 +217,35 @@
       "description": "Implement the aiMaturityMin filter using two parallel Firestore queries merged client-side (scored >= N + unscored == null) to preserve null-inclusion. Implement ThinResultsState and ZeroResultsState components. Implement src/handlers/admin-flags.ts maybeFlagUnderservedQuery() that writes an underserved-query AdminFlag when results < 10, with 24-hour deduplication cooldown. Surface the suggested CLI command in the thin-results state.",
       "acceptanceCriteria": [
         "When aiMaturityMin > 0 is selected, two parallel Firestore queries are executed: aiMaturityScore >= N (scored candidates at or above minimum) and aiMaturityScore == null (unscored, always included); results merged and sorted client-side",
-        "Unscored candidates (aiMaturityScore: null) always appear in results when aiMaturityMin filter is active — they are never excluded by the filter",
+        "Unscored candidates (aiMaturityScore: null) always appear in results when aiMaturityMin filter is active \u2014 they are never excluded by the filter",
         "ThinResultsState renders when results.length < 10 and > 0: result count, pool coverage limited message, exact scan discover CLI command with current filter params as --query, flagged confirmation message",
         "ZeroResultsState renders when results.length === 0 with the same CLI command surface",
         "maybeFlagUnderservedQuery() writes an admin_flags doc of type underserved-query with queryParams and resultCount when results < 10; does not re-flag same params within 24 hours",
         "ThinResultsState and ZeroResultsState implemented in src/app/components/search/; Vitest test verifies deduplication cooldown logic"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": "Using a sentinel value (aiMaturityScore: -1) is explicitly prohibited — the two-query parallel merge preserves the null/0 invariant. The thin-results state must feel actively managed, not like a dead end."
+      "passes": true,
+      "notes": "Using a sentinel value (aiMaturityScore: -1) is explicitly prohibited \u2014 the two-query parallel merge preserves the null/0 invariant. The thin-results state must feel actively managed, not like a dead end."
     },
     {
       "id": "US-015",
       "title": "Candidate profile page with full evidence sections",
-      "description": "Build the candidate profile page at /candidates/:id. Load Candidate doc and linked Repository docs via TanStack Query. Render four EvidenceSection variants: skills (grouped language/framework/tool chips), repositories (repo list with GitHub links, language, star count, commit span, scanStatus), ai-signals (AI config files with modificationCount, isEvolved, diffComplexity, originSignal; coAuthoredByAI chip; aiAgentPatterns chips), evolution (timeline: file first seen → modifications → last modified → classification). Show SkillScoreBadge, AIMaturityBadge, StalenessTag, last_scanned, commitSpan.",
+      "description": "Build the candidate profile page at /candidates/:id. Load Candidate doc and linked Repository docs via TanStack Query. Render four EvidenceSection variants: skills (grouped language/framework/tool chips), repositories (repo list with GitHub links, language, star count, commit span, scanStatus), ai-signals (AI config files with modificationCount, isEvolved, diffComplexity, originSignal; coAuthoredByAI chip; aiAgentPatterns chips), evolution (timeline: file first seen \u2192 modifications \u2192 last modified \u2192 classification). Show SkillScoreBadge, AIMaturityBadge, StalenessTag, last_scanned, commitSpan.",
       "acceptanceCriteria": [
         "Clicking a CandidateCard navigates to /candidates/:id; page loads Candidate doc by GitHub username; TanStack Query caches under ['candidate', id]; 404 state rendered if candidate not found",
         "Page shows: GitHub username, avatar, GitHub profile link, SkillScoreBadge, AIMaturityBadge (null and 0 rendered distinctly), StalenessTag if isStale: true, last_scanned date, commitSpanMonths",
-        "EvidenceSection (skills) shows grouped chips: Languages, Frameworks, Tools — each chip is the taxonomy displayName",
+        "EvidenceSection (skills) shows grouped chips: Languages, Frameworks, Tools \u2014 each chip is the taxonomy displayName",
         "EvidenceSection (repositories) lists primaryRepoIds resolved to Repository docs: repo name, primary language, star count, commit span, scanStatus badge; each linked to GitHub URL (new tab); empty state if no repos",
         "EvidenceSection (ai-signals) shows detected AI config files with modificationCount, isEvolved indicator, diffComplexity, originSignal; coAuthoredByAI chip; aiAgentPatterns chips; empty state if no signals",
-        "EvidenceSection (evolution) shows timeline-style display per config file: first seen → modification count → last modified → isEvolved classification; back navigation to search preserves URL filter state"
+        "EvidenceSection (evolution) shows timeline-style display per config file: first seen \u2192 modification count \u2192 last modified \u2192 isEvolved classification; back navigation to search preserves URL filter state"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": "Repositories are loaded via a separate TanStack Query (not embedded in the main candidate query) to avoid loading all repos on every search result render. The profile must surface evidence, not assertions — every signal shown must trace back to actual repo data."
+      "passes": true,
+      "notes": "Repositories are loaded via a separate TanStack Query (not embedded in the main candidate query) to avoid loading all repos on every search result render. The profile must surface evidence, not assertions \u2014 every signal shown must trace back to actual repo data."
     },
     {
       "id": "US-016",
-      "title": "Admin UI — shell, pipeline trigger, job queue monitor, and flags tab",
+      "title": "Admin UI \u2014 shell, pipeline trigger, job queue monitor, and flags tab",
       "description": "Build the protected /admin section with four-tab shell (Pipeline / Queue / Flags / Candidates). Pipeline tab: discovery run form (query, source, limit) with React Hook Form + Zod validation, queues discover job on submit with toast confirmation. Queue tab: jobs table with status filter tabs, 30-second auto-refresh via TanStack Query refetchInterval, retry and dismiss actions on failed jobs, AdminQueueRow component. Flags tab: underserved query list sorted by resultCount ASC with inline trigger-discovery action that queues discover job and sets flag actioned; repos-of-interest sub-section.",
       "acceptanceCriteria": [
         "Admin shell renders four tabs (Pipeline / Queue / Flags / Candidates); deep-linking /admin?tab=queue opens Queue tab; non-admin redirected to /search",
@@ -256,8 +256,8 @@
         "Repos-of-interest sub-section on Flags tab shows admin_flags of type repo-of-interest with detected signals and Mark as actioned button"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": "The Admin UI is an operational dashboard for a solo power user — information density is important. The Pipeline and Queue tabs provide the feedback loop Gabe needs to monitor and manage the scan pipeline day-to-day."
+      "passes": true,
+      "notes": "The Admin UI is an operational dashboard for a solo power user \u2014 information density is important. The Pipeline and Queue tabs provide the feedback loop Gabe needs to monitor and manage the scan pipeline day-to-day."
     },
     {
       "id": "US-017",
@@ -272,8 +272,8 @@
         "updateAiMaturityScore writes aiMaturityScore, aiMaturityScoredAt (serverTimestamp), aiMaturityScoredBy (admin UID) to Firestore; toast confirms; TanStack Query cache ['candidate', id] invalidated; row reflects new score immediately"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": "updateAiMaturityScore must only write the three aiMaturity fields — never touch skillScore or other pipeline-owned fields. The inline stepper is the primary ground-truth accumulation mechanism for the AI Maturity Model."
+      "passes": true,
+      "notes": "updateAiMaturityScore must only write the three aiMaturity fields \u2014 never touch skillScore or other pipeline-owned fields. The inline stepper is the primary ground-truth accumulation mechanism for the AI Maturity Model."
     },
     {
       "id": "US-018",
@@ -282,14 +282,14 @@
       "acceptanceCriteria": [
         "SettingsPopover (gear icon in top nav) renders theme selector (Light/Dark/Dim) and font family selector; selecting theme applies Tailwind class to <html> and persists to localStorage; font applies via CSS variable; settings restored on load with no flash of wrong theme",
         "JetBrains Mono remains as monospace for technical identifiers regardless of font family selection",
-        "Pipeline worker detects 401 (PAT expired) and writes an admin_flags document; Admin UI Pipeline tab shows a banner: GitHub API authentication error — PAT may have expired. Check your GITHUB_PAT env var; banner clears after next successful API call",
-        "Playwright E2E tests cover: unauthenticated redirect to /login; Google sign-in → /search redirect; language facet selection → URL update → results appear; second facet → chips update; Clear all → empty state; candidate profile → evidence sections → back navigation preserves filter state; admin tabs; non-admin /admin redirect",
+        "Pipeline worker detects 401 (PAT expired) and writes an admin_flags document; Admin UI Pipeline tab shows a banner: GitHub API authentication error \u2014 PAT may have expired. Check your GITHUB_PAT env var; banner clears after next successful API call",
+        "Playwright E2E tests cover: unauthenticated redirect to /login; Google sign-in \u2192 /search redirect; language facet selection \u2192 URL update \u2192 results appear; second facet \u2192 chips update; Clear all \u2192 empty state; candidate profile \u2192 evidence sections \u2192 back navigation preserves filter state; admin tabs; non-admin /admin redirect",
         "All E2E tests pass on Chromium only; test run completes in under 3 minutes on CI",
         "GitHub Actions CI workflow: on merge to main, runs build then firebase deploy --only hosting; deploy uses Firebase service account secret; failed build/tests block deploy; deployment URL output in CI log"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": "Theme switching without flash requires reading localStorage before first render — implement in a <script> tag in index.html before React mounts. The E2E suite is the quality gate before the Firebase Hosting deploy."
+      "passes": true,
+      "notes": "Theme switching without flash requires reading localStorage before first render \u2014 implement in a <script> tag in index.html before React mounts. The E2E suite is the quality gate before the Firebase Hosting deploy."
     },
     {
       "id": "US-019",
@@ -304,8 +304,215 @@
         "CLAUDE.md is up to date with any project-specific conventions established during the build"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": "The README is the operational handoff document — it must be complete enough for Gabe to resume work after a break without consulting planning docs."
+      "passes": true,
+      "notes": "The README is the operational handoff document \u2014 it must be complete enough for Gabe to resume work after a break without consulting planning docs."
+    },
+    {
+      "id": "US-020",
+      "title": "Fix taxonomy candidateCount and rebuild-counts pipeline command",
+      "description": "All facet counts in the search panel and admin Language Coverage show 0 despite candidates existing. The taxonomy documents in Firestore have stale candidateCount values. Wire the count update into the scan completion flow (candidate-writer.ts) so counts stay current, and ensure the rebuild-counts CLI command works as a manual fix.",
+      "acceptanceCriteria": [
+        "After scanning a candidate, taxonomy documents for their detected languages/frameworks/tools have incremented candidateCount",
+        "The rebuild-counts CLI command (pnpm scan rebuild-counts) recalculates all taxonomy candidateCount values from actual candidate data",
+        "Search facet panel shows non-zero counts for technologies that have candidates",
+        "Admin Candidates tab Language Coverage shows correct per-language counts",
+        "Removing a candidate (or rescan removing a tag) decrements the relevant counts",
+        "Unit tests verify count increment/decrement logic"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": "Source: F2N audit issues #1 and #4. This is the single most impactful fix \u2014 without it the entire search experience looks broken. The rebuild-counts command already exists in src/pipeline/commands/rebuild-counts.ts but may not be wired correctly. Check candidate-writer.ts for where counts should be updated atomically with candidate writes."
+    },
+    {
+      "id": "US-021",
+      "title": "Fix multi-language filter OR logic and validateDOMNesting error",
+      "description": "Two bugs found during functional testing: (1) Selecting multiple languages within the same facet category uses AND logic via rarest-tag-first query, so adding any language with 0 candidates drops results to 0. Within a single category, the behavior should be OR (show candidates matching ANY selected language). (2) Console shows validateDOMNesting error because InfoIconButton (<button>) is nested inside CollapsibleSection header (<button>).",
+      "acceptanceCriteria": [
+        "Selecting TypeScript AND Python in Languages returns candidates who have TypeScript OR Python (union, not intersection)",
+        "Selecting all 12 languages returns all candidates (not 0)",
+        "Cross-category filters remain AND (selecting TypeScript language + React framework = must have both)",
+        "No validateDOMNesting console errors on the candidate profile page",
+        "InfoIconButton in section headers renders as a non-button element (span with onClick) or is moved outside the header button",
+        "Unit tests cover multi-tag OR query logic",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": "Source: F2N audit BUG-1 and BUG-2. The OR-within-category change affects src/app/hooks/useSearchQuery (or wherever the Firestore query is built). Firestore array-contains only supports one value, so OR requires multiple queries merged client-side, or switching to array-contains-any (supports up to 10 values). The DOM nesting fix is in CollapsibleSection.tsx \u2014 change the info icon from <button> to <span role=\"button\"> or restructure the header."
+    },
+    {
+      "id": "US-022",
+      "title": "Fix profile page minor bugs: grammar, missing status column",
+      "description": "Fix small but visible issues on the candidate profile and admin pages: (1) \"1 followers\" should be \"1 follower\" (singular). (2) Admin Candidates tab Status column is empty \u2014 should show scan depth or completion status. (3) Thin-results warning shows raw CLI command (pnpm scan discover...) which confuses non-technical recruiters \u2014 show admin-friendly message for admins, hide CLI for non-admins.",
+      "acceptanceCriteria": [
+        "\"1 follower\" displays correctly (singular) while \"2 followers\" stays plural",
+        "Admin Candidates tab Status column shows scan completion status (e.g. \"layer2\" or \"complete\")",
+        "Thin-results warning for admin users shows the CLI command",
+        "Thin-results warning for non-admin users says \"Contact your admin to expand the candidate pool\" instead of showing CLI",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": "Source: F2N audit issues #3, #5, #10. Grammar fix is in CandidateProfilePage.tsx ProfileDetails component. Status column fix is in CandidatesTab.tsx. Thin-results conditional is in SearchPage.tsx \u2014 use the isAdmin flag from AuthContext."
+    },
+    {
+      "id": "US-023",
+      "title": "Search page onboarding empty state with pool stats and quick searches",
+      "description": "Replace the bare \"Select filters in the panel to search candidates\" message with a welcoming empty state that helps first-time recruiters understand what this tool does and how to start. Show pool statistics (total candidates, total repos scanned) and provide quick-start filter preset buttons.",
+      "acceptanceCriteria": [
+        "Empty state (no filters selected) shows a welcome card with: app description (1-2 sentences), pool stats (X candidates, Y repositories scanned), and 3-5 quick-start preset buttons",
+        "Quick-start presets (e.g. \"TypeScript + React\", \"Python + FastAPI\", \"AI-native devs\") apply the relevant filters when clicked and update the URL",
+        "Pool stats are fetched from Firestore (candidate count + repo count) with appropriate caching",
+        "Empty state disappears and results appear when any filter is selected",
+        "Presets work correctly with the existing facet panel (checkboxes update to match)",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": "Source: IA audit recommendation P0. The pool stats can be derived from a simple Firestore count query or a metadata document. Quick-start presets should set URL params that the existing useSearchQuery hook picks up. Keep the welcome card under 200px height \u2014 it should feel like a helpful nudge, not a landing page."
+    },
+    {
+      "id": "US-024",
+      "title": "Enriched candidate search cards with name, location, bio, and top skills",
+      "description": "The search result card currently shows only username + score + 1 matched tag. Enrich it so recruiters can compare candidates at a glance without clicking into each profile. Add real name, location, company, bio snippet, top 3-5 skill badges with icons, and best-fit position hint.",
+      "acceptanceCriteria": [
+        "Candidate card shows: avatar (already present), real name (bold) + @username, location + company (if available)",
+        "Bio shown as 1-line truncated snippet below the name",
+        "Top 3-5 skill tags shown with TechIcon badges (prioritize: matched filter tags first, then highest-score tags)",
+        "Best-fit position shown as a subtle hint (e.g. \"Best fit: Full Stack (100%)\")",
+        "Card layout remains compact \u2014 no taller than ~120px",
+        "Cards are responsive at desktop widths (no overflow or truncation issues)",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": "Source: IA audit recommendation P1. All the data (name, bio, location, company, skills, position affinity) already exists on the Candidate document \u2014 this is purely a UI change in CandidateCard.tsx. The position affinity can be computed client-side using the existing reconstructScoreBreakdown + applyPositionWeights utilities."
+    },
+    {
+      "id": "US-025",
+      "title": "Collapsible facet groups with smart defaults and in-group filtering",
+      "description": "The search sidebar shows 130+ checkboxes across 5 categories, all expanded. Improve the facet panel UX: collapse each group to show only the top items (sorted by candidateCount descending), add a \"+ N more\" toggle, hide items with 0 candidates by default, and add a search input within large groups (Frameworks, Tools).",
+      "acceptanceCriteria": [
+        "Each facet group shows top 8 items sorted by candidateCount descending, with a \"+ N more\" toggle for the rest",
+        "Items with candidateCount === 0 are hidden by default (shown when \"+ N more\" is expanded or when a filter-within-group search matches)",
+        "Frameworks and Tools groups have a small search/filter input in the header that filters items by name",
+        "AI Maturity Level group always shows all 6 levels (no collapse needed)",
+        "Expanded/collapsed state persists during the session (useState, not localStorage)",
+        "URL filter state still works correctly when items are hidden/filtered",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": "Source: IA audit recommendation P1. Changes are in FacetPanel.tsx. The candidateCount sort requires the taxonomy data to have correct counts (depends on US-020). The in-group search is a simple client-side filter on the taxonomy item labels."
+    },
+    {
+      "id": "US-026",
+      "title": "Navigation improvements: methodology link, results header, grant-access link",
+      "description": "Several navigation and discoverability improvements: (1) Add a \"How it works\" link in the top nav bar that goes to /methodology. (2) Add a results summary header above search results (\"N TypeScript developers found\"). (3) Add a \"Share access guide\" link in the admin page that copies the /grant-access URL. (4) Add context tooltip for \"Regression\" badges in Growth Evolution.",
+      "acceptanceCriteria": [
+        "Top nav bar (AppShell) includes a subtle \"How it works\" or \"?\" link next to the app name that navigates to /methodology",
+        "Search results area shows a header like \"N result(s)\" or \"N TypeScript + Python developers\" above the candidate list (not just at the bottom)",
+        "Admin Pipeline tab has a \"Share access guide\" button that copies the /grant-access URL to clipboard with a \"Copied!\" toast",
+        "Growth Evolution \"Regression\" badges have a tooltip explaining that regression includes learning/exploratory repos which lower averages",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": "Source: IA audit recommendations P2. These are small targeted improvements across multiple files: AppShell.tsx (nav link), SearchPage.tsx (results header), PipelineTab.tsx (share button), EvolutionSection.tsx (regression tooltip). Each is independent \u2014 if one is complex, skip it and move on."
+    },
+    {
+      "id": "US-027",
+      "title": "User profile data model, Firestore rules, and Admin SDK wrapper",
+      "description": "Foundation story for self-service scanning. Create the user_profiles collection with field-level write protection, secrets subcollection for encrypted GitHub tokens, and extend the Firestore wrapper with Admin SDK mode for pipeline use. Add self-scan job type to scan_jobs with strict creation rules that validate against the user's profile.",
+      "acceptanceCriteria": [
+        "src/types/user-profile.ts exports UserProfile (uid, githubUsername, githubConnectedAt, githubProvider, tokenStatus, lastSelfScanAt, selfScanCount, createdAt, updatedAt) and UserGitHubSecret (encryptedToken, tokenPrefix, expiresAt, updatedAt)",
+        "src/types/scan-job.ts extended with 'self-scan' in ScanJobType union, SelfScanPayload (requestedBy, githubUsername), and tokenSourceUid optional field on ScanRepoPayload",
+        "src/handlers/user-profile.ts provides CRUD operations for user_profiles: createUserProfile, getUserProfile, updateGitHubUsername — client-safe operations only",
+        "src/core/db/firestore-admin.ts implements Admin SDK Firestore wrapper with same interface as firestore.ts; src/core/db/firestore.ts delegates to admin module when FIREBASE_ADMIN=true env var is set",
+        "firestore.rules: user_profiles/{uid} readable by owner + admin, client can only write githubUsername + updatedAt fields; secrets subcollection readable by owner only, no client writes; scan_jobs allows authenticated users to create self-scan jobs only when type=='self-scan', status=='pending', payload.requestedBy==auth.uid, payload.githubUsername matches user_profiles, no githubToken in payload",
+        "firestore.indexes.json includes indexes for user_profiles and self-scan job queries",
+        "Unit tests verify user-profile handler CRUD operations and type correctness; integration test against emulator verifies Firestore rules block unauthorized access patterns",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": "FOUNDATION — blocks US-028 through US-031. The Admin SDK wrapper must maintain the 'all Firestore access through firestore.ts' invariant by delegating internally. Field-level write protection is critical: selfScanCount, lastSelfScanAt, githubProvider, tokenStatus are pipeline-only (Admin SDK). The self-scan Firestore rule must also prevent creating a self-scan if a pending/running self-scan already exists for the user (rate limiting). See plan at ~/.claude/plans/cached-leaping-perlis.md for full architecture."
+    },
+    {
+      "id": "US-028",
+      "title": "Token security Firebase Functions (encrypt, validate, store, cleanup)",
+      "description": "Implement Firebase Functions for secure GitHub token lifecycle: storeGitHubToken (callable) validates the token via GitHub API GET /user, confirms the authenticated GitHub user matches the provided username, encrypts with AES-256 using a project-level key from Firebase environment config, and stores in user_profiles/{uid}/secrets/github. onUserDelete (auth trigger) cleans up user_profiles and secrets on account deletion. Store expiresAt for PATs with known expiry.",
+      "acceptanceCriteria": [
+        "functions/src/store-github-token.ts exports a callable Firebase Function that accepts {githubUsername, githubToken} from authenticated users",
+        "Function validates token by calling GitHub API GET /user and rejects if returned username does not match provided githubUsername (case-insensitive)",
+        "Function encrypts token with AES-256 using GITHUB_TOKEN_ENCRYPTION_KEY from Firebase environment config before storing in Firestore",
+        "Function stores in user_profiles/{uid}/secrets/github: encryptedToken, tokenPrefix (first 4 chars + '****'), expiresAt (null for OAuth, parsed for PATs), updatedAt",
+        "Function also updates user_profiles/{uid}: githubUsername, githubConnectedAt, githubProvider ('pat' or 'oauth'), tokenStatus ('valid'), updatedAt — via Admin SDK",
+        "functions/src/on-user-delete.ts exports an auth.user().onDelete trigger that deletes user_profiles/{uid} and all documents in user_profiles/{uid}/secrets/ subcollection",
+        "functions/src/index.ts exports both new functions",
+        "Token prefix is exactly 4 characters (type indicator only, e.g., 'ghp_') — not 8 chars, to minimize token structure leakage",
+        "Unit tests verify: encryption roundtrip, username mismatch rejection, cleanup on delete; pnpm typecheck passes"
+      ],
+      "priority": 28,
+      "passes": true,
+      "notes": "Depends on US-027 (types + user_profiles collection). Token encryption key must be set via 'firebase functions:config:set github.token_key=<base64-key>' — never hardcoded. The storeGitHubToken function is called by both the GitHub OAuth auto-link flow (US-029) and the manual PAT connect flow (US-030). See adversarial review: tokens must NEVER be stored in plaintext in Firestore."
+    },
+    {
+      "id": "US-029",
+      "title": "GitHub OAuth login with auto-link",
+      "description": "Add GitHub as a second Firebase Auth sign-in provider alongside Google. On GitHub login, auto-create user_profiles/{uid} with GitHub username from provider data and store the OAuth token via the storeGitHubToken Firebase Function. Login page shows both 'Sign in with Google' and 'Sign in with GitHub' buttons. AuthContext extended to expose githubUsername, isGitHubConnected, and tokenStatus by reading from user_profiles.",
+      "acceptanceCriteria": [
+        "src/core/auth/firebase-auth.ts exports signInWithGitHub() using GithubAuthProvider with signInWithPopup (same pattern as Google)",
+        "LoginPage.tsx shows both 'Sign in with Google' and 'Sign in with GitHub' buttons with distinct styling (Google: existing, GitHub: dark/octocat-themed)",
+        "On successful GitHub OAuth login, AuthContext auto-creates user_profiles/{uid} if not exists and calls storeGitHubToken Firebase Function with the OAuth credential token",
+        "AuthContext.tsx extended: reads user_profiles/{uid} on auth state change to expose githubUsername (string|null), isGitHubConnected (boolean), tokenStatus ('valid'|'expired'|'revoked'|null)",
+        "GitHub OAuth scopes include 'read:user' and 'repo' (needed for private repo access)",
+        "If user already exists (re-login), profile is NOT recreated but token is refreshed via storeGitHubToken",
+        "Firebase Auth emulator supports GitHub provider in test environment",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": "Depends on US-027 (types + data model) and US-028 (storeGitHubToken function). The GitHub OAuth token from signInWithPopup is available via OAuthCredential.accessToken — this must be captured in the signIn callback and sent to the Firebase Function, NOT stored client-side. Firebase Console must have GitHub OAuth app configured (client ID + secret from GitHub Developer Settings)."
+    },
+    {
+      "id": "US-030",
+      "title": "My Profile page with Connect GitHub flow",
+      "description": "New /my-profile route showing GitHub connection status and allowing Google-login users to manually connect their GitHub account by entering username and PAT. The PAT is submitted to the storeGitHubToken Firebase Function for validation, encryption, and storage. Shows token health indicator and link to own candidate profile if scanned.",
+      "acceptanceCriteria": [
+        "src/app/pages/MyProfilePage.tsx renders at /my-profile under PrivateRoute with sections: GitHub Connection, Scan History (placeholder for US-031), My Candidate Profile link",
+        "src/app/components/profile/ConnectGitHubForm.tsx renders for users without GitHub connected: inputs for GitHub username and PAT (password type), submit calls storeGitHubToken Firebase Function",
+        "GitHub username validated client-side with /^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/ before submission; PAT validated as starting with 'github_pat_' or 'ghp_'",
+        "On successful connection: form replaced with connected status showing GitHub username, token prefix (4 chars), and token status indicator (valid/expired/revoked)",
+        "User can disconnect GitHub (clears githubUsername on profile) and reconnect with different account",
+        "If user's githubUsername matches a candidate in the candidates collection, show a 'View My Profile' link to /candidates/{githubUsername}",
+        "src/app/hooks/useUserProfile.ts provides TanStack Query hooks: useUserProfile (query), useConnectGitHub (mutation), useDisconnectGitHub (mutation) with 5-minute staleTime",
+        "AppShell.tsx nav bar includes 'My Profile' link for all authenticated users (between search and admin links)",
+        "pnpm typecheck and pnpm test:unit pass"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": "Depends on US-027 (types), US-028 (storeGitHubToken function), US-029 (AuthContext with GitHub state). The ConnectGitHubForm is only shown for users who signed in with Google and haven't linked GitHub yet. GitHub OAuth users see their auto-linked status. The storeGitHubToken function handles all server-side validation — the client only needs to call it and handle success/error."
+    },
+    {
+      "id": "US-031",
+      "title": "Self-scan trigger and pipeline handler",
+      "description": "Add 'Scan My Repos' button on My Profile page that creates a self-scan job. Implement the pipeline self-scan handler that reads the user's encrypted token from Firestore secrets (via Admin SDK), decrypts it, and delegates to existing rescan-candidate logic. Downstream scan-repo jobs use tokenSourceUid reference instead of embedding the token in the job payload. Pipeline updates tokenStatus on 401 and increments selfScanCount.",
+      "acceptanceCriteria": [
+        "src/app/components/profile/SelfScanSection.tsx renders 'Scan My Repos' button (disabled if not GitHub-connected or if pending self-scan exists); shows scan progress: pending/running/completed/failed with auto-refresh",
+        "Button creates a self-scan job in scan_jobs with payload: {requestedBy: uid, githubUsername} — NO githubToken field in payload",
+        "src/pipeline/handlers/self-scan.ts: reads encrypted token from user_profiles/{requestedBy}/secrets/github via Admin SDK, decrypts, calls listUserRepos with token, enqueues scan-repo jobs with tokenSourceUid (NOT githubToken) in payload",
+        "src/pipeline/token-resolver.ts exports resolveToken(tokenSourceUid): reads + decrypts token from user secrets — used by scan-repo handler",
+        "src/pipeline/handlers/scan-repo.ts modified: if payload.tokenSourceUid is set, resolve token via token-resolver instead of using payload.githubToken directly",
+        "src/pipeline/handlers/rescan-candidate.ts modified: when called from self-scan context, passes tokenSourceUid (not githubToken) to downstream enqueueScanRepoJob calls",
+        "Pipeline writes tokenStatus: 'expired' to user_profiles/{uid} on GitHub 401/403; increments selfScanCount and sets lastSelfScanAt on successful scan completion",
+        "src/pipeline/queue.ts exports enqueueSelfScanJob(); src/pipeline/worker.ts registers self-scan handler in dispatch",
+        "Unit tests verify: self-scan handler token resolution, token-resolver encryption roundtrip, scan-repo tokenSourceUid path, 401 expiry handling",
+        "pnpm typecheck and pnpm test:unit pass; existing scan-repo tests still pass (no regression in admin flow)"
+      ],
+      "priority": 31,
+      "passes": true,
+      "notes": "Depends on ALL previous stories (US-027 through US-030). Critical: the tokenSourceUid pattern ensures tokens never appear in scan_jobs documents. The self-scan handler is a thin wrapper around existing rescan-candidate logic — the key difference is token resolution (from user secrets vs job payload). The existing admin rescan flow with githubToken in payload continues to work unchanged. See plan for full token propagation architecture."
     }
   ]
 }

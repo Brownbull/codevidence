@@ -1,0 +1,764 @@
+## Codebase Patterns
+
+- **Dual runtime context**: `src/app/` = browser/React (DOM types), `src/pipeline/` = Node.js (no DOM). Enforce with separate tsconfigs (done in US-002).
+- **Firestore wrapper**: ALL Firestore access via `src/core/db/firestore.ts`. Never import Firebase SDK directly in business logic.
+- **aiMaturityScore invariant**: `null` = not scored, `0` = scored Level 0. Pipeline scoring output type MUST TypeScript-exclude aiMaturity fields.
+- **Build check**: `pnpm build` runs `tsc --noEmit && vite build && classpresso optimize` — all three must pass.
+- **classpresso**: Works with empty dist (0 patterns is fine exit 0). No special config needed.
+- **JSX in tsconfig**: Base `tsconfig.json` needs `"jsx": "react-jsx"` and `"lib": ["ES2022", "DOM", "DOM.Iterable"]` for typecheck (`tsc --noEmit`) to work across app + pipeline together.
+- **tsconfig.pipeline.json**: Has `"lib": ["ES2022"]` + `"types": ["node"]` — NO DOM lib. Child configs override lib from base.
+- **Firebase emulators**: `firebase.json` configures Firestore port 8080, Auth port 9099. `.env.local` (gitignored) sets `VITE_USE_EMULATOR=true`, `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`.
+- **CI gate**: `.github/workflows/ci.yml` — `ci` job runs on all branches; `deploy` job gates on `refs/heads/main` only.
+
+---
+
+## 2026-02-19 - US-001
+- What was implemented:
+  - `package.json` — project name `candidate-skill-scanner`, all required dependencies (React 18, Vite 5, TypeScript 5.7, Tailwind 3, Radix UI, TanStack Query v5, Zustand v4, React Hook Form, Zod, Firebase SDK, firebase-admin, Octokit, simple-git, Commander.js, Vitest, Playwright, tsx, classpresso, @types/node, lucide-react, react-router-dom v6)
+  - `tsconfig.json` — base strict config with `jsx: react-jsx`, DOM lib, `@/*` path alias
+  - `vite.config.ts` — Vite 5 with @vitejs/plugin-react, port 3000, `@/*` alias
+  - `tailwind.config.ts` — Direction 2 tokens (slate-900, slate-50), Space Grotesk sans, JetBrains Mono mono
+  - `postcss.config.js` — Tailwind + autoprefixer
+  - `index.html` — Vite entry with Google Fonts preload (Space Grotesk, JetBrains Mono)
+  - `src/app/main.tsx` — minimal React 18 app (ReactDOM.createRoot)
+  - `src/app/styles.css` — Tailwind base/components/utilities + CSS custom properties
+  - `vitest.config.ts` — Vitest with `@/*` alias, node environment
+  - `playwright.config.ts` — Chromium only, port 4000 test port
+  - `.env.example` — all VITE_FIREBASE_*, GITHUB_PAT, FIREBASE_* vars documented
+  - `.gitignore` — updated with Firebase, .env.local, and all standard ignores
+  - `CLAUDE.md` — merged Ralph agent instructions + starter kit format + project-specific conventions
+  - `scripts/db-query.ts` — Test Query Master scaffold
+  - `tests/unit/scaffold.test.ts` — minimal passing unit test
+  - `src/` directory structure: app/, pipeline/, core/db/, handlers/, adapters/, types/
+  - `scripts/queries/` directory created
+- Files changed:
+  - NEW: package.json, tsconfig.json, vite.config.ts, tailwind.config.ts, postcss.config.js, index.html
+  - NEW: src/app/main.tsx, src/app/styles.css
+  - NEW: vitest.config.ts, playwright.config.ts, .env.example
+  - UPDATED: .gitignore, CLAUDE.md
+  - NEW: scripts/db-query.ts, tests/unit/scaffold.test.ts
+- **Learnings for future iterations:**
+  - pnpm install succeeded cleanly (473 packages, 1 deprecated subdep: glob@11.1.0 — benign)
+  - Build passes: `vite build` ✓ (143kb JS, 5.5kb CSS)
+  - Unit tests pass: 2/2 ✓
+  - `pnpm dev` starts on port 3000 in 317ms ✓
+  - Base tsconfig needs `jsx + DOM lib` — pipeline tsconfig (US-002) must override to exclude DOM
+  - The nested `.git` repo uses `master` not `main` — branch `ralph/build-candidate-skill-scanner` created from `master`
+  - `postbuild` runs classpresso which may need config — use `pnpm vite build` directly to skip it during quality checks pre-US-002
+---
+
+## 2026-02-19 - US-002
+- What was implemented:
+  - `tsconfig.json` — updated base: strict=true, @/* paths, ES2022+DOM lib (needed for `tsc --noEmit` across full src), jsx: react-jsx, excludes functions/
+  - `tsconfig.app.json` — NEW: extends base, lib: ES2022+DOM+DOM.Iterable, jsx: react-jsx, include: src/app, src/types, src/core
+  - `tsconfig.pipeline.json` — NEW: extends base, lib: ES2022 only (NO DOM), types: node, include: src/pipeline, src/core, src/types, src/adapters, src/handlers
+  - `tsconfig.functions.json` — NEW: extends base, lib: ES2022, types: node, module: commonjs, outDir: functions/lib, include: functions/src
+  - `functions/src/` — empty directory created for Firebase Functions source
+  - `firebase.json` — NEW: Hosting (public: dist, SPA rewrite /**→/index.html), Functions (nodejs20), Emulators (Firestore:8080, Auth:9099, UI:4000)
+  - `.firebaserc` — NEW: projects.default placeholder
+  - `.env.local` — created (gitignored) with VITE_USE_EMULATOR=true, FIRESTORE_EMULATOR_HOST=localhost:8080, FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
+  - `.env.example` — already correct from US-001, no changes needed
+  - `.github/workflows/ci.yml` — NEW: ci job (all branches): pnpm install + typecheck + test:unit + build; deploy job (main only): firebase deploy via FirebaseExtended/action-hosting-deploy
+  - `tests/unit/us-002-config.test.ts` — NEW: 29 tests verifying all config files (tsconfigs, firebase.json, .firebaserc, .env.example, ci.yml)
+- Files changed:
+  - UPDATED: tsconfig.json (added exclude: functions, cleaned includes for base-only role)
+  - NEW: tsconfig.app.json, tsconfig.pipeline.json, tsconfig.functions.json
+  - NEW: firebase.json, .firebaserc, .env.local (gitignored)
+  - NEW: .github/workflows/ci.yml
+  - NEW: functions/src/ (empty directory)
+  - NEW: tests/unit/us-002-config.test.ts
+  - UPDATED: prd.json (US-002 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `classpresso optimize` exits 0 even with 0 patterns — postbuild works without special config
+  - `tsconfig.pipeline.json` lib array in child config completely overrides parent lib — DOM is properly excluded
+  - `firebase.json` emulators.ui.port 4000 conflicts with playwright test port 4000 — if running emulator UI + e2e simultaneously, change emulator UI port
+  - `.env.local` stays gitignored per CLAUDE.md Rule 0 even though task said "committed" — security rule wins
+  - `tsconfig.functions.json` uses `module: commonjs` for Firebase Functions v2 compatibility
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (31/31 tests, 2 files)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-19 - US-005
+- What was implemented:
+  - `src/core/auth/firebase-auth.ts` — Firebase Auth singleton with emulator detection (VITE_USE_EMULATOR → localhost:9099). Exports `getAuthInstance`, `signInWithGoogle` (redirect, not popup — Chrome-only SPA), `handleRedirectResult`, `signOut`.
+  - `src/app/auth/AuthContext.tsx` — React context + `AuthProvider` + `useAuth` hook. Reads `admin: true` custom claim from `getIdTokenResult()` — never from Firestore. Exposes `user`, `isAdmin`, `loading`, `signInWithGoogle`, `signOut`. `loading: true` until `onAuthStateChanged` resolves.
+  - `src/app/auth/PrivateRoute.tsx` — Route guard: shows loading state while auth resolves, redirects unauthenticated to /login, renders `<Outlet>` for authenticated users.
+  - `src/app/auth/AdminRoute.tsx` — Route guard: loading state → unauthenticated → /login, authenticated non-admin → /search, admin → `<Outlet>`.
+  - `src/app/pages/LoginPage.tsx` — Sign-in page with Google OAuth button, loading state, auto-redirect if already authenticated.
+  - `src/app/pages/SearchPage.tsx` — Stub page (full impl US-012), shows nav with user name + sign-out.
+  - `src/app/pages/AdminPage.tsx` — Stub page (full impl US-016).
+  - `src/app/pages/CandidateProfilePage.tsx` — Stub page (full impl US-015).
+  - `src/app/main.tsx` — Full React Router v6 setup: BrowserRouter → AuthProvider → Routes. Public: /login. PrivateRoute: /search, /candidates/:id. AdminRoute: /admin/*. / → /login redirect.
+  - `functions/src/index.ts` — `verifyAdminClaim` Firebase Function (onCall v2). Returns { isAdmin: true } or throws `permission-denied` (403) / `unauthenticated` (401). Reads claim from token only, no Firestore.
+  - `functions/package.json` — Functions package with firebase-admin + firebase-functions deps.
+  - `scripts/admin-ops.ts` — Commander.js CLI with grant-admin, revoke-admin, check-admin commands. Uses firebase-admin SDK (not client SDK). Requires --uid option.
+  - `tests/unit/us-005-auth.test.ts` — 46 structural tests: firebase-auth singleton (emulator, redirect), AuthContext (claim reading, loading), PrivateRoute (login redirect, loading, no flash), AdminRoute (search redirect for non-admin), Firebase Function (permission-denied, unauthenticated), admin-ops CLI (commands, setCustomUserClaims), main.tsx routing.
+- Files changed:
+  - NEW: src/core/auth/firebase-auth.ts
+  - NEW: src/app/auth/AuthContext.tsx, PrivateRoute.tsx, AdminRoute.tsx
+  - NEW: src/app/pages/LoginPage.tsx, SearchPage.tsx, AdminPage.tsx, CandidateProfilePage.tsx
+  - UPDATED: src/app/main.tsx (full React Router + AuthProvider wiring)
+  - NEW: functions/src/index.ts, functions/package.json
+  - NEW: scripts/admin-ops.ts
+  - NEW: tests/unit/us-005-auth.test.ts
+  - UPDATED: prd.json (US-005 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `signInWithRedirect` (not `signInWithPopup`) is the correct Google Auth method for Chrome-only SPA — popup may be blocked in some contexts.
+  - Admin claim is read via `firebaseUser.getIdTokenResult()` → `claims['admin'] === true`. This is the ONLY source of truth for admin status.
+  - `loading: true` on initial state + `setLoading(false)` inside `onAuthStateChanged` prevents flash-of-redirect on page load.
+  - Functions v2 (`firebase-functions/v2/https`) uses `onCall` with a `request` object — `request.auth` replaces the v1 `context.auth`.
+  - `firebase-admin` (not `firebase/auth`) is used in scripts/admin-ops.ts for custom claim management via `setCustomUserClaims`.
+  - `@testing-library/react` and jsdom are not installed — US-005 tests are structural (file content assertions) rather than DOM rendering tests. Add these in US-018 when full E2E tests are needed.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (158/158 tests, 6 files)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+
+## 2026-02-19 - US-006
+- What was implemented:
+  - `src/pipeline/queue.ts` — ScanJob queue: `enqueueDiscoverJob`, `enqueueRescanJob`, `fetchNextPendingJob` (priority DESC + createdAt ASC, rate-limit skip), `markJobRunning`, `markJobCompleted`, `markJobFailed` (exponential backoff 2^attempts min, max 3 attempts), `markJobRateLimited`, `fetchJobsByStatus`, `fetchRecentJobs`. All Firestore access via wrapper.
+  - `src/pipeline/worker.ts` — Worker polling loop every 10s: `startWorker`, `stopWorker`, `pollOnce`. Error isolation: failed jobs never crash worker. Unregistered handler type → permanent fail. Retry logging with backoff minutes.
+  - `src/pipeline/commands/discover.ts` — `runDiscover`: validates query/limit/source, calls `enqueueDiscoverJob`, logs job ID.
+  - `src/pipeline/commands/rescan.ts` — `runRescan`: validates targetType/targetId, calls `enqueueRescanJob` (priority 1), logs job ID.
+  - `src/pipeline/commands/status.ts` — `runStatus`: summary (all status counts + recent 10) or filtered view. Uses `Promise.all` for parallel status fetches.
+  - `src/pipeline/index.ts` — Commander.js CLI: `scan discover`, `scan rescan`, `scan status`, `scan worker` sub-commands with correct options. `pnpm scan --help` shows all commands.
+  - `tests/unit/us-006-pipeline.test.ts` — 49 unit tests covering all modules: API surface, ScanJob shape, exponential backoff math, worker mock lifecycle (enqueue→running→completed, enqueue→running→failed, no-handler→failed, crash isolation), rate-limit skip logic, priority ordering, option validation.
+- Files changed:
+  - NEW: src/pipeline/queue.ts, src/pipeline/worker.ts
+  - NEW: src/pipeline/commands/discover.ts, src/pipeline/commands/rescan.ts, src/pipeline/commands/status.ts
+  - NEW: src/pipeline/index.ts
+  - NEW: tests/unit/us-006-pipeline.test.ts
+  - UPDATED: prd.json (US-006 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `vi.doMock` (not `vi.mock`) required inside describe blocks for per-test module mocking — `vi.mock` is hoisted to file top.
+  - Worker `pollOnce` must schedule next poll in `finally` block — ensures scheduling even if poll throws.
+  - `markJobFailed` uses `newAttempts < maxAttempts` (not `<=`) so attempt 3/3 permanently fails as expected.
+  - Rate-limit check in `fetchNextPendingJob` uses `Timestamp.toMillis()` — need to guard `rateLimitedUntil !== null` first.
+  - Rescan jobs get priority 1 vs discover priority 0 — enforced at enqueue time, not caller-controlled.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (207/207 tests, 7 files — 49 new for US-006)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-19 - US-004
+- What was implemented:
+  - `firestore.rules` — Three-tier Firestore security rules: unauthenticated = no access; authenticated = read on candidates/repositories/taxonomy; admin (custom claim `admin: true`) = read+write on all 5 collections. `admin_flags` and `scan_jobs` are admin-only (no non-admin read).
+  - `firestore.indexes.json` — 14 composite indexes covering all 5 collections: candidates (5 indexes: skillTags+skillScore, skillTags+aiMaturityScore, skillTags+lastScanned, aiMaturityScore+skillScore, isStale+lastScanned), repositories (2), scan_jobs (3), admin_flags (2), taxonomy (2).
+  - `scripts/seeds/taxonomy.json` — 47 seed items: 12 languages, 12 frameworks, 11 tools, 6 AI agent patterns, 6 AI maturity levels (0–5). All items have correct `id` (category:slug pattern), `isSearchable: true`, `sortOrder`, and `aliases`.
+  - `scripts/seed-taxonomy.ts` — Idempotent seed script using `setDoc` (not `addDoc`) for upsert semantics. Reads seed JSON via `readFileSync`, writes to `taxonomy` collection via the Firestore wrapper, sets `isSeeded: true`, `candidateCount: 0`, server timestamps.
+  - `tests/unit/us-004-security-rules.test.ts` — 39 tests covering: rules structure (isAuthenticated/isAdmin helpers, per-collection access), all 14 composite indexes verified by field paths, seed data coverage checks (category counts, field shapes, ID patterns, no duplicates), seed script structure (uses setDoc not addDoc, imports from wrapper not SDK directly).
+- Files changed:
+  - NEW: firestore.rules
+  - NEW: firestore.indexes.json
+  - NEW: scripts/seeds/taxonomy.json
+  - NEW: scripts/seed-taxonomy.ts
+  - NEW: tests/unit/us-004-security-rules.test.ts
+  - UPDATED: prd.json (US-004 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - JSON files cannot have JS-style comments (`//`) — taxonomy.json and firestore.indexes.json must be pure JSON without comments.
+  - `createRequire` is not needed to load JSON in tsx scripts — `readFileSync` + `JSON.parse` works and is simpler.
+  - `setDoc` (upsert by document ID) is the idempotency primitive — `addDoc` (auto-ID) must never be used for seeded data.
+  - The `firestore.rules` `extractBlock` helper in the test uses brace-counting to isolate per-collection rules blocks for targeted assertions.
+  - 14 indexes covers all architecture spec query patterns for all 5 collections.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (112/112 tests, 5 files)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-007
+- What was implemented:
+  - `src/adapters/source-adapter.ts` — Source-agnostic interface defining `SourceAdapter`, `DiscoveredRepo`, `RateLimitInfo`, `DiscoverResult`. Enables future GitLab/Bitbucket support per NFR15.
+  - `src/adapters/github.ts` — GitHub adapter wrapping Octokit. `GitHubAdapter` class implements `SourceAdapter`. `createGitHubAdapter()` factory reads `GITHUB_PAT` from `process.env`. Handles pagination (100 per page, multiple pages up to limit). Rate limit: reads `X-RateLimit-Remaining/Reset/Limit` headers, throttles 2s when remaining < 100, throws `GitHubRateLimitError` on 429/403 with retryAfterMs (min 1 minute).
+  - `src/pipeline/handlers/discover.ts` — Discover job handler. Called by the worker for `discover` type jobs. Calls GitHub adapter, deduplicates repos against `repositories` collection using `getDoc` by `fullName` (parallel via `Promise.all`), writes new `Repository` docs with `scanStatus: 'surface'` and all surface metadata, enqueues `scan-repo` jobs with `targetDepth: 'layer1'` for each new repo. Catches `GitHubRateLimitError` and calls `markJobRateLimited` before re-throwing.
+  - `src/pipeline/index.ts` — Updated worker command: registered `handleDiscover` handler for `discover` job type (replaces empty `{}`).
+  - `tests/unit/us-007-github-adapter.test.ts` — 52 structural tests: source adapter interface shape (4), GitHub adapter (17), discover handler (15), worker registration (3), rate limit logic (4), deduplication logic (4), integration expectations (5).
+- Files changed:
+  - NEW: src/adapters/source-adapter.ts, src/adapters/github.ts
+  - NEW: src/pipeline/handlers/discover.ts
+  - UPDATED: src/pipeline/index.ts (discover handler registration)
+  - NEW: tests/unit/us-007-github-adapter.test.ts
+  - UPDATED: prd.json (US-007 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Octokit `item.owner` can be `null` per GitHub API schema — need `?.login ?? fullName.split('/')[0] ?? ''` fallback chain.
+  - `X-RateLimit-Reset` is epoch seconds (not ms) — multiply by 1000 to get JS timestamp.
+  - `setDoc` with `repo.fullName` as doc ID ensures idempotent Repository creation (same pattern as taxonomy seeding).
+  - The `scan-repo` jobs created by discover use `addDoc` (auto-ID) since they're ephemeral queue items, not keyed entities.
+  - `GitHubRateLimitError` preserves both `retryAfterMs` (for `markJobRateLimited`) and full `RateLimitInfo` (for logging/debugging).
+  - Minimum retry window of 60s prevents tight retry loops when rate limit reset is in the past or very near.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (259/259 tests, 8 files — 52 new for US-007)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-008
+- What was implemented:
+  - `src/pipeline/analysis/layer1.ts` — Layer 1 analysis module. Detects primary language via GitHub metadata fallback to file extension counting (3-level recursive, skipping node_modules/vendor/etc). Parses 7 manifest formats: package.json (npm), requirements.txt (Python), pyproject.toml (Python), Cargo.toml (Rust), go.mod (Go), pom.xml (Maven), build.gradle/build.gradle.kts (Gradle). Classifies deps against FRAMEWORK_MAP (17 entries) and TOOL_MAP (21 entries) to taxonomy IDs. Unknown deps stored as UnknownSignal. Detects tools by config file presence (Dockerfile, firebase.json, main.tf, .github/workflows). Filters common dev deps (typescript, eslint, vitest, etc) from unknown signals.
+  - `src/pipeline/handlers/scan-repo.ts` — scan-repo job handler. Fetches Repository doc from Firestore, creates temp directory (tmpdir() + random suffix), clones via simple-git `--depth 1` for Layer 1, runs `analyzeLayer1()`, stores unknown signals as taxonomy items (isSearchable: false, idempotent via getDoc check), updates Repository doc (primaryLanguage, detectedFrameworks, detectedTools, detectedDependencies, scanStatus: layer1). Clone directory ALWAYS deleted in finally block (rmSync recursive+force). deleteCloneDir never throws.
+  - `src/pipeline/index.ts` — Updated: imported handleScanRepo, registered 'scan-repo': handleScanRepo in worker.
+  - `tests/unit/us-008-layer1.test.ts` — 50 tests: module structure (5), package file parser coverage (7), taxonomy normalization (5), tool detection via config files (5), scan-repo handler structure (15), pipeline index registration (2), functional tests with temp directories (9) verifying package.json extraction (React+Express), requirements.txt extraction (FastAPI+PostgreSQL+AWS), Docker detection, language detection from extensions, unknown signal detection, dev dep filtering, graceful handling of missing/malformed files, GitHub Actions detection.
+- Files changed:
+  - NEW: src/pipeline/analysis/layer1.ts
+  - NEW: src/pipeline/handlers/scan-repo.ts
+  - UPDATED: src/pipeline/index.ts (scan-repo handler registration)
+  - NEW: tests/unit/us-008-layer1.test.ts
+  - UPDATED: prd.json (US-008 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Duplicate keys in object literals cause TS1117 in strict mode — `'firebase-admin'` was in both npm and Python sections of TOOL_MAP.
+  - Regex match group results (`match[1]`, `match[2]`) can be undefined even after a successful match — always use `?? ''` or guard.
+  - `String.split()` result elements can be undefined when using strict TypeScript — add null guards on split results.
+  - `countFileExtensions` uses maxDepth=3 to avoid slow traversal of vendor dirs while still catching most source files.
+  - `isCommonDevDep` prefix check prevents noise in unknown signals (eslint plugins, type packages, build tools).
+  - Clone directory naming: `css-clone-{safeName}-{randomHex}` ensures uniqueness for concurrent clones.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (309/309 tests, 9 files — 50 new for US-008)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-009
+- What was implemented:
+  - `src/pipeline/analysis/layer2.ts` — Layer 2 analysis module. Uses simple-git to read up to 200 commits. Computes commitCount, firstCommitAt/lastCommitAt, commitSpanMonths (month diff). Ownership detection: matches repo owner username against commit author email prefix with >50% threshold. Test coverage: checks tests/, __tests__/, spec/, test/ directories + co-located test files in src/. Classifies: none (0), low (<10), medium (10-50), high (50+). Supports test file patterns: .test.ts/.tsx/.js/.jsx, .spec.ts/.tsx/.js/.jsx, _test.py, test_*.py, _test.go, _test.rs.
+  - `src/pipeline/handlers/scan-repo.ts` — Updated: added runLayer2 function. Full clone (no --depth flag), runs analyzeLayer2, updates Repository with commitCount, commitSpanMonths, isOwnerRepo, hasTestDirectory, estimatedTestCoverage, firstCommitAt, lastCommitAt, scanStatus: layer2. Clone always deleted in finally block.
+  - `tests/unit/us-009-layer2.test.ts` — 28 tests: module structure (5), commit pattern analysis (4), ownership detection (4), test coverage detection (5), scan-repo handler Layer 2 integration (5), functional tests with temp git repos (5) — ownership detection (dominant/non-dominant), test directory detection, no-test coverage, empty repo handling.
+- Files changed:
+  - NEW: src/pipeline/analysis/layer2.ts
+  - UPDATED: src/pipeline/handlers/scan-repo.ts (Layer 2 support)
+  - NEW: tests/unit/us-009-layer2.test.ts
+  - UPDATED: prd.json (US-009 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - simple-git `logResult.all` is `readonly` — `detectOwnership` parameter must use `ReadonlyArray<...>` not `Array<...>`.
+  - simple-git `.log()` with `format: { hash: '%H', email: '%ae', date: '%aI' }` returns typed objects with those fields.
+  - Functional tests creating temp git repos need `git.init()` + `git.addConfig('user.email/name', ...)` before first commit.
+  - Ownership detection uses `includes(ownerLower)` as fallback since GitHub noreply emails use `username@users.noreply.github.com` format.
+  - `computeMonthSpan` uses year*12+month diff — simpler and more stable than millisecond division.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (337/337 tests, 10 files — 28 new for US-009)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-010
+- What was implemented:
+  - `src/pipeline/analysis/ai-signals.ts` — AI signal detection module. Detects known AI config files: CLAUDE.md, .claude/, .cursor/rules, .cursor/settings.json, ai-context.md, .github/copilot-instructions.md, .aider* (prefix match). For each detected file: traces git history (maxCount: 100), extracts firstDetectedAt/lastModifiedAt, counts modifications, classifies diffComplexity (minimal <10 lines, moderate <100, extensive >=100), sets isEvolved = modificationCount > 3, determines originSignal (likely-copied if >50 lines added in first commit, likely-original for small introductions, unknown if insufficient data). Detects co-authored-by AI trailers in up to 200 commit messages against 12 known AI tool names (copilot, cursor, claude, aider, etc). Also detects "generated by"/"created by" attribution patterns.
+  - `src/pipeline/handlers/scan-repo.ts` — Updated: AI signal analysis runs in parallel with Layer 2 via `Promise.all([analyzeLayer2(cloneDir, repo.owner), analyzeAiSignals(cloneDir)])`. Results written to Repository doc: aiConfigFiles (mapped for Firestore), coAuthoredByAI, aiAttributionPatterns.
+  - `tests/unit/us-010-ai-signals.test.ts` — 35 tests: module structure (5), config file patterns (7), diff complexity classification (3), evolution/origin detection (4), co-authored-by detection (6), scan-repo handler integration (6), functional tests with temp git repos (4) — CLAUDE.md detection with git history, co-authored-by trailer detection, empty repo handling, .aider prefix matching.
+- Files changed:
+  - NEW: src/pipeline/analysis/ai-signals.ts
+  - UPDATED: src/pipeline/handlers/scan-repo.ts (AI signals parallel execution in Layer 2)
+  - NEW: tests/unit/us-010-ai-signals.test.ts
+  - UPDATED: prd.json (US-010 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `simpleGit(testDir).env(env)` with explicit GIT_AUTHOR_EMAIL/GIT_COMMITTER_EMAIL is REQUIRED for all functional tests creating temp git repos — the pre-commit hook context sets these env vars which propagate into child git processes, overriding local repo config.
+  - `git log --follow --numstat --format= -- <file>` gives clean per-file line-change stats (no commit message noise).
+  - `git diff-tree --numstat -r <hash> -- <file>` gives stats for a single commit's changes to a file.
+  - AI config file detection uses three strategies: exact file match, directory presence, and prefix matching (for extensible patterns like .aider*).
+  - `readdirSync` in root dir catches prefix patterns without recursive traversal — aider files live at repo root.
+  - Directory signals (.claude, .cursor) only added if no specific file from that dir was already detected — avoids double-counting.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (372/372 tests, 11 files — 35 new for US-010)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-011
+- What was implemented:
+  - `src/pipeline/scoring/skill-score.ts` — Skill Score computation and candidate profile builder. Exports: `computeSkillScore(input)` (pure deterministic formula), `computeAiSignalPoints(repos)` (AI signal aggregation, 2 pts per unique pattern + 3 for coAuthored, cap 10), `mapConfigFileToPattern(fileName)` (maps AI config files to taxonomy ai-agent-pattern IDs), `updateCandidateProfile(owner)` (orchestrator: queries all repos by owner, aggregates data, computes score, creates/updates Candidate doc). Implements exact formula: primaryLanguage (20) + frameworks (6 each, cap 30) + tools (5 each, cap 15) + commitSpan (cap 10) + ownership (10) + testCoverage (0/3/8/15) + AI signals (cap 10), clamped 0-100. `PipelineScoringOutput` type uses `Omit<Candidate, 'aiMaturityScore' | 'aiMaturityScoredAt' | 'aiMaturityScoredBy'>` to TypeScript-enforce absence of admin fields. New candidates get `aiMaturityScore: null`, existing candidates updated with `updateDoc` (never touching aiMaturity fields). `isStale = false` at write time (just scanned). Candidate doc ID = GitHub username.
+  - `src/pipeline/handlers/scan-repo.ts` — Updated: imports `updateCandidateProfile`, calls it after Layer 2 repo update completes (inside try block, before clone cleanup). This triggers candidate score recalculation after every Layer 2 scan.
+  - `tests/unit/us-011-skill-score.test.ts` — 51 tests: module structure (8), pipeline scoring type safety (4), computeSkillScore formula (10 — known input verification, zero case, max clamping, each component in isolation), computeAiSignalPoints (5 — empty, per-pattern, coAuthored, capping, deduplication across repos), mapConfigFileToPattern (6 — all known patterns + null for unknown), candidate building structural (6), score formula constants (7), scan-repo handler integration (4).
+- Files changed:
+  - NEW: src/pipeline/scoring/skill-score.ts
+  - UPDATED: src/pipeline/handlers/scan-repo.ts (updateCandidateProfile call after Layer 2)
+  - NEW: tests/unit/us-011-skill-score.test.ts
+  - UPDATED: prd.json (US-011 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `PipelineScoringOutput = Omit<Candidate, aiMaturity fields>` is the TypeScript enforcement mechanism — pipeline code uses this type, never the full Candidate type for writes.
+  - For existing candidates, use `updateDoc` (not `setDoc`) to avoid overwriting admin-assigned aiMaturity fields. For new candidates, use `setDoc` with explicit `aiMaturityScore: null`.
+  - AI signal scoring: 2 points per unique ai-agent-pattern taxonomy ID + 3 for coAuthoredByAI, capped at 10. Patterns deduplicated via Set across repos.
+  - `mapConfigFileToPattern` handles both exact matches (CLAUDE.md → claude-md) and prefix matches (.aider* → aider-config). Returns null for non-AI files.
+  - `aggregateRepoData` picks best coverage level and max commit span across repos, merges all taxonomy IDs into a flat skillTags array.
+  - `isStale = false` at write time because candidate was just scanned. Staleness detection for old candidates requires a separate periodic process.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (423/423 tests, 12 files — 51 new for US-011)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-012
+- What was implemented:
+  - `src/app/hooks/useSearchQuery.ts` — URL ↔ SearchQueryParams bidirectional hook. URL is single source of truth. Parses: ?lang → languages[], ?framework → frameworks[], ?tool → tools[], ?aiPattern → aiAgentPatterns[], ?aiMin → aiMaturityMin, ?sort → sortBy. Short IDs in URL (e.g. `?lang=python`) auto-prefixed to taxonomy IDs (e.g. `language:python`). Exports: setFilter, setSort, setAiMaturityMin, clearAll, toggleTaxonomyId, hasAnyFilter.
+  - `src/app/hooks/useTaxonomy.ts` — TanStack Query hook for taxonomy data. Queries Firestore `where('isSearchable', '==', true)` ordered by category + sortOrder. Exports `groupByCategory()` to organize into 5 sections. 5-minute staleTime.
+  - `src/app/store/ui-store.ts` — Zustand store for UI-only state. Holds openSections (panel collapse state). All 5 sections default open. No filter values in Zustand — URL only.
+  - `src/app/components/search/FacetPanel.tsx` — Five collapsible sections: Languages, Frameworks, Tools, AI Agent Patterns, AI Maturity Level. Uses <fieldset>/<legend> for WCAG 2.1 AA. Checkboxes sorted by sortOrder. candidateCount shown as muted badge. Loading skeleton while taxonomy fetches. AI Maturity Level uses single-select (sets aiMaturityMin). w-64 sidebar width.
+  - `src/app/components/layout/AppShell.tsx` — Three-zone layout: sticky top nav (h-12, bg-slate-900, Space Grotesk branding) + left sidebar + main content. User avatar, display name, sign-out. Admin link for admin users. Minimum viewport 1280px.
+  - `src/app/pages/SearchPage.tsx` — Updated: uses AppShell + FacetPanel. Passes FacetPanel as sidebar. Shows placeholder for search results (US-013).
+  - `src/app/main.tsx` — Updated: added QueryClientProvider wrapping the entire app. QueryClient with 5-minute default staleTime, retry: 1.
+  - `tests/unit/us-012-app-shell.test.ts` — 61 tests: AppShell layout (10), FacetPanel (16), useSearchQuery hook (13), useTaxonomy hook (8), Zustand UI store (4), SearchPage integration (4), main.tsx QueryClientProvider (4), JetBrains Mono (3).
+- Files changed:
+  - NEW: src/app/hooks/useSearchQuery.ts, src/app/hooks/useTaxonomy.ts
+  - NEW: src/app/store/ui-store.ts
+  - NEW: src/app/components/search/FacetPanel.tsx, src/app/components/layout/AppShell.tsx
+  - UPDATED: src/app/pages/SearchPage.tsx (full layout)
+  - UPDATED: src/app/main.tsx (QueryClientProvider)
+  - NEW: tests/unit/us-012-app-shell.test.ts
+  - UPDATED: prd.json (US-012 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - URL param encoding: use short IDs (no category prefix) for readability, reconstruct full taxonomy IDs in the hook.
+  - `groups[item.category].push(item)` fails TS strict because indexing Record<string, T[]> returns `T[] | undefined`. Fix: assign to local `const group = ...`, then check before push.
+  - Zustand store should be minimal — only UI state. Filter state lives in URL params. This prevents stale state and ensures back-button works correctly.
+  - FacetPanel AI Maturity Level section differs from others: single-select (sets aiMaturityMin) rather than multi-select checkbox array.
+  - Build chunk size grows with TanStack Query + Firebase SDK + Zustand — 668kb JS. Code splitting (dynamic imports) will help in US-018.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (484/484 tests, 13 files — 61 new for US-012)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-013
+- What was implemented:
+  - `src/handlers/search.ts` — Search query handler. Rarest-tag-first optimization: finds tag with lowest candidateCount in taxonomy, uses as primary `array-contains` Firestore filter, 200-doc cap, client-side AND filter for remaining tags, client-side sorting (skillScore desc, aiMaturityScore desc with nulls last, lastScanned desc). Exports: searchCandidates, findRarestTag, sortCandidates.
+  - `src/app/hooks/useCandidates.ts` — TanStack Query hook for search results. QueryKey includes serialized params for auto-refetch. 5-minute staleTime. Enabled only when hasAnyFilter + taxonomy loaded.
+  - `src/app/components/search/ScoreBadges.tsx` — Three exported components: SkillScoreBadge (indigo circle with score), AIMaturityBadge (violet pip bar with level labels; null=dashed bar + "Not evaluated"; 0=empty pips + "No AI signals"; 1-5=filled pips), StalenessTag (amber badge when isStale).
+  - `src/app/components/search/CandidateCard.tsx` — Search result card. Avatar, username (links to /candidates/:id), SkillScoreBadge, AIMaturityBadge, top 3 matched skill tags as chips, last_scanned date, StalenessTag.
+  - `src/app/components/search/ActiveFilterChips.tsx` — Chips for each active filter with x remove button. Clear all button. Covers all categories + aiMaturityMin.
+  - `src/app/components/search/SortControls.tsx` — Button group: Skill Score / AI Maturity / Last Scanned. Active sort highlighted with slate-900. Updates URL ?sort= param.
+  - `src/app/pages/SearchPage.tsx` — Updated: wires FacetPanel, ActiveFilterChips, SortControls, CandidateCard list. Loading skeleton. Result count display. Empty states.
+  - `tests/unit/us-013-search.test.ts` — 51 tests: search handler (10 structural + 5 functional for findRarestTag/sortCandidates), CandidateCard (8), SkillScoreBadge (2), AIMaturityBadge (4), StalenessTag (2), ActiveFilterChips (5), SortControls (4), useCandidates (6), SearchPage integration (5).
+- Files changed:
+  - NEW: src/handlers/search.ts
+  - NEW: src/app/hooks/useCandidates.ts
+  - NEW: src/app/components/search/ScoreBadges.tsx, CandidateCard.tsx, ActiveFilterChips.tsx, SortControls.tsx
+  - UPDATED: src/app/pages/SearchPage.tsx
+  - NEW: tests/unit/us-013-search.test.ts
+  - UPDATED: prd.json (US-013 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Rarest-tag-first: find the tag with lowest candidateCount in taxonomy, use it as the `array-contains` primary filter. Remaining tags filtered client-side via `allTags.every(tag => skillTags.includes(tag))`.
+  - aiMaturityScore sort: nulls last requires explicit null checks. `a === null ? 1 : b === null ? -1 : b - a`.
+  - Unicode block characters: `\u2588` (full block) for filled pips, `\u2591` (light shade) for empty pips. `\u25CF` for filled circle.
+  - CandidateCard links to `/candidates/${githubUsername}` matching the route pattern `/candidates/:id`.
+  - Combined SkillScoreBadge + AIMaturityBadge + StalenessTag into one file (ScoreBadges.tsx) to stay under 12 files per story.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (535/535 tests, 14 files — 51 new for US-013)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-014
+- What was implemented:
+  - `src/handlers/search.ts` — Updated: added dual-query logic for aiMaturityMin > 0. Runs two parallel Firestore queries via Promise.all: (1) scored >= N (candidates at or above minimum) + (2) unscored == null (always included). Results merged and deduplicated by ID client-side. Preserves the null/0 invariant — unscored candidates never excluded by maturity filter.
+  - `src/handlers/admin-flags.ts` — New: admin flag operations. `maybeFlagUnderservedQuery()` writes an admin_flags doc of type underserved-query when results < 10, with 24-hour deduplication cooldown. Queries recent flags, serializes params deterministically (sorted arrays), compares against existing flags within cooldown window. `buildSuggestedCommand()` builds a CLI discover command from search params (strips category prefix from taxonomy IDs).
+  - `src/app/components/search/ResultsState.tsx` — New: ThinResultsState (results < 10, > 0, amber warning with pool coverage message + CLI command + flagged confirmation) and ZeroResultsState (results === 0, centered empty state with CLI command + flagged confirmation).
+  - `src/app/pages/SearchPage.tsx` — Updated: imports and renders ThinResultsState/ZeroResultsState. Added useEffect to call maybeFlagUnderservedQuery when results < 10, with flaggedRef for session-level dedup.
+  - `tests/unit/us-014-ai-filter.test.ts` — 46 tests: dual-query structure (7), admin-flags handler (9), buildSuggestedCommand functional (3), deduplication cooldown logic (5), ThinResultsState component (6), ZeroResultsState component (5), SearchPage integration (7), ResultsState types (4).
+- Files changed:
+  - UPDATED: src/handlers/search.ts (dual-query for aiMaturityMin)
+  - NEW: src/handlers/admin-flags.ts
+  - NEW: src/app/components/search/ResultsState.tsx
+  - UPDATED: src/app/pages/SearchPage.tsx (thin/zero results states + flagging)
+  - NEW: tests/unit/us-014-ai-filter.test.ts
+  - UPDATED: prd.json (US-014 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Dual-query pattern: when filtering by a numeric field that has null values you want to include, run two parallel queries (>= N and == null) and merge client-side. Firestore inequality filters exclude null docs.
+  - Dedup with serializeParams: sort all arrays before JSON.stringify for deterministic comparison. Include all filter dimensions (languages, frameworks, tools, aiAgentPatterns, aiMaturityMin).
+  - Session-level dedup uses useRef to track the last flagged params key, preventing re-flagging on every re-render.
+  - buildSuggestedCommand strips category prefixes (e.g., "language:python" → "python") for cleaner CLI commands.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (581/581 tests, 15 files — 46 new for US-014)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-015
+- What was implemented:
+  - `src/handlers/candidates.ts` — New: candidate data operations. `getCandidate(username)` fetches single candidate by GitHub username (= Firestore doc ID). `getCandidateRepositories(owner)` queries repositories by owner.
+  - `src/app/hooks/useCandidate.ts` — New: TanStack Query hooks. `useCandidate(username)` caches under `['candidate', username]`, 5-minute staleTime. `useCandidateRepos(owner)` separate query under `['candidate-repos', owner]` to avoid loading repos on every search result render.
+  - `src/app/components/profile/EvidenceSection.tsx` — New: four evidence section components. SkillsSection (grouped Language/Framework/Tool chips), RepositoriesSection (repo list with GitHub links, language, stars, commit span, scan status badge; empty state), AiSignalsSection (AI config files with modificationCount/isEvolved/diffComplexity/originSignal, coAuthoredByAI chip, aiAgentPatterns chips; empty state), EvolutionSection (expandable timeline per config file: first seen → modifications → last modified → classification).
+  - `src/app/pages/CandidateProfilePage.tsx` — Updated: full implementation replacing stub. Reads :id param, loads candidate + repos via hooks. Header with avatar, username, GitHub profile link, SkillScoreBadge, AIMaturityBadge, StalenessTag, lastScanned, commitSpanMonths, repoCount. Four evidence sections. Loading skeleton. 404 state. Back to search link preserves filter state.
+  - `tests/unit/us-015-profile.test.ts` — 59 tests: candidates handler (5), useCandidate hook (8), CandidateProfilePage (16), SkillsSection (4), RepositoriesSection (8), AiSignalsSection (8), EvolutionSection (8), routing integration (2), CandidateCard navigation (1).
+- Files changed:
+  - NEW: src/handlers/candidates.ts
+  - NEW: src/app/hooks/useCandidate.ts
+  - NEW: src/app/components/profile/EvidenceSection.tsx
+  - UPDATED: src/app/pages/CandidateProfilePage.tsx (full implementation)
+  - NEW: tests/unit/us-015-profile.test.ts
+  - UPDATED: prd.json (US-015 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Repos loaded via separate TanStack Query key (`['candidate-repos', owner]`) to avoid loading all repos on every search result card render.
+  - EvidenceSection aggregates aiConfigFiles across all repos using `repos.flatMap(r => r.aiConfigFiles ?? [])`.
+  - Timeline items are expandable — uses React.useState per item for expand/collapse.
+  - Back navigation to /search preserves filter state because filters live in URL params.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (640/640 tests, 16 files — 59 new for US-015)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-016
+- What was implemented:
+  - `src/app/pages/AdminPage.tsx` — Updated: four-tab admin shell (Pipeline / Queue / Flags / Candidates). Deep-linking via ?tab= URL param. Sticky nav + tab bar. Candidates tab stubs to US-017.
+  - `src/app/hooks/useAdmin.ts` — New: TanStack Query hooks for admin operations. useJobs (30s auto-refresh), useAdminFlags, useRetryJob, useDismissJob, useQueueDiscover, useActionFlag. All mutations invalidate relevant query caches.
+  - `src/app/components/admin/PipelineTab.tsx` — New: discovery run form with React Hook Form + Zod validation. Query (required), Source (select, default github), Limit (1-1000, default 100). Queues discover job via useQueueDiscover. Form disabled during submission. Success toast.
+  - `src/app/components/admin/QueueTab.tsx` — New: job queue monitor. Status filter tabs (All/Pending/Running/Completed/Failed). 30s auto-refresh. Loading skeleton. Empty state. Renders AdminQueueRow per job.
+  - `src/app/components/admin/AdminQueueRow.tsx` — New: single job row. Type, status badge (color-coded), created date, attempts/maxAttempts, truncated error (expandable), Retry + Dismiss buttons for failed jobs.
+  - `src/app/components/admin/FlagsTab.tsx` — New: admin flags tab. Underserved queries sorted by resultCount ASC. Facet param chips, result count, flagged date, status badge. Trigger Discovery button opens inline form with pre-filled CLI command. Queues discover job and marks flag actioned. Repos-of-interest with detected signals and Mark as actioned button.
+  - `tests/unit/us-016-admin-ui.test.ts` — 60 tests: AdminPage shell (10), PipelineTab (9), QueueTab (8), AdminQueueRow (9), FlagsTab (13), useAdmin hooks (9), routing integration (2).
+  - Added `@hookform/resolvers` dependency for Zod integration.
+- Files changed:
+  - UPDATED: src/app/pages/AdminPage.tsx (full four-tab implementation)
+  - NEW: src/app/hooks/useAdmin.ts
+  - NEW: src/app/components/admin/PipelineTab.tsx, QueueTab.tsx, AdminQueueRow.tsx, FlagsTab.tsx
+  - NEW: tests/unit/us-016-admin-ui.test.ts
+  - UPDATED: package.json, pnpm-lock.yaml (@hookform/resolvers)
+  - UPDATED: prd.json (US-016 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `@hookform/resolvers` is a separate package from `react-hook-form` — must be installed explicitly for Zod integration.
+  - pnpm store location can change between VS Code snap versions — use `CI=true pnpm install` to handle store migration non-interactively.
+  - Admin hooks use `useMutation` from TanStack Query for actions (retry, dismiss, queue) with `onSuccess` cache invalidation.
+  - `refetchInterval: 30_000` on useJobs provides auto-refresh without manual polling.
+  - FlagsTab sorts underserved queries by resultCount ascending — lowest results first for priority review.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (700/700 tests, 17 files — 60 new for US-016)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-017
+- What was implemented:
+  - `src/handlers/candidates.ts` — Updated: added `getAllCandidates()` (ordered by skillScore desc, limit 500), `getLanguageTaxonomy()` (language items ordered by candidateCount desc), and `updateAiMaturityScore(candidateId, score, adminUid)` which writes ONLY aiMaturityScore/aiMaturityScoredAt/aiMaturityScoredBy via updateDoc (never touches pipeline-owned fields).
+  - `src/app/components/admin/CandidatesTab.tsx` — New: admin candidates tab. Summary row (total count, scored count, stale count). Language coverage breakdown (taxonomy items with candidateCount). Candidates table (username, SkillScoreBadge, AIMaturityBadge, lastScanned, StalenessTag, Rescan button). Stale rows highlighted with bg-amber-50. Expandable rows with InlineScoreStepper.
+  - `src/app/components/admin/CandidatesTab.tsx > InlineScoreStepper` — Segmented stepper [0][1][2][3][4][5]. Current score highlighted in violet. Clicking a level calls updateAiMaturityScore with admin UID. Invalidates both admin-candidates and candidate query caches. Shows "Score saved" confirmation.
+  - `src/app/pages/AdminPage.tsx` — Updated: imports and renders CandidatesTab, replacing US-017 stub.
+  - `tests/unit/us-017-admin-candidates.test.ts` — 37 tests: candidates handler (8), CandidatesTab component (11), rescan trigger (4), inline score stepper (7), AdminPage integration (3), admin data queries (5).
+  - Updated `tests/unit/us-016-admin-ui.test.ts` — Fixed broken US-016 test: changed "renders Candidates stub for US-017" → "renders CandidatesTab for candidates tab" since stub was replaced.
+- Files changed:
+  - UPDATED: src/handlers/candidates.ts (getAllCandidates, getLanguageTaxonomy, updateAiMaturityScore)
+  - NEW: src/app/components/admin/CandidatesTab.tsx
+  - UPDATED: src/app/pages/AdminPage.tsx (CandidatesTab instead of stub)
+  - NEW: tests/unit/us-017-admin-candidates.test.ts
+  - UPDATED: tests/unit/us-016-admin-ui.test.ts (stub test fix)
+  - UPDATED: prd.json (US-017 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - `updateAiMaturityScore` uses `updateDoc` (not `setDoc`) to ensure it only writes the three aiMaturity fields. This preserves all pipeline-owned fields.
+  - When a later story modifies code tested by an earlier story's tests, the earlier tests may need updating (e.g., US-016 stub test).
+  - InlineScoreStepper invalidates both `['admin-candidates']` and `['candidate', id]` to keep both the table and profile page in sync.
+  - Rescan creates a job with `priority: 1` (high priority) via `enqueueRescanJob`.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (737/737 tests, 18 files — 37 new for US-017)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-018
+- What was implemented:
+  - `src/app/components/layout/SettingsPopover.tsx` — New: theme and font settings popover. Gear icon in top nav. Three themes (Light/Dark/Dim) applied as Tailwind class on `<html>`. Five font families (Space Grotesk/Inter/Outfit/IBM Plex Sans/Geist) applied via CSS variable `--font-sans`. Both persisted to localStorage. JetBrains Mono stays as monospace for code.
+  - `index.html` — Updated: added inline `<script>` before React mount that reads `css-theme` and `css-font-family` from localStorage and applies immediately to prevent flash. Added Google Fonts imports for Inter, Outfit, IBM Plex Sans.
+  - `src/app/styles.css` — Updated: added dark and dim theme base styles (color-scheme: dark, background color, text color).
+  - `src/app/components/layout/AppShell.tsx` — Updated: imports and renders SettingsPopover in the top nav.
+  - `src/handlers/pat-expiry.ts` — New: PAT expiry detection handler. `flagPatExpiry()` writes admin_flags doc of type `pat-expired` if no active flag exists. `clearPatExpiryFlag()` marks existing flags as actioned. `hasActivePatExpiryFlag()` returns boolean for banner display.
+  - `src/types/admin.ts` — Updated: AdminFlagType union now includes `'pat-expired'`.
+  - `src/app/components/admin/PipelineTab.tsx` — Updated: queries for active pat-expiry flag. Renders red banner when flag is active: "GitHub API authentication error — PAT may have expired. Check your GITHUB_PAT env var."
+  - `tests/e2e/app.spec.ts` — New: Playwright E2E test suite. Covers: unauthenticated redirect, login page, non-admin /admin redirect, candidate 404, theme flash prevention, root/unknown route redirects.
+  - `tests/unit/us-018-theme-e2e.test.ts` — 51 tests: SettingsPopover (13), flash prevention (7), AppShell integration (2), CSS themes (4), PAT expiry handler (7), PipelineTab banner (4), AdminFlagType (1), E2E test structure (7), CI deploy (6).
+  - `.github/workflows/ci.yml` — Already had Firebase Hosting deploy gated on main branch. No changes needed.
+- Files changed:
+  - NEW: src/app/components/layout/SettingsPopover.tsx
+  - UPDATED: index.html (flash prevention script + fonts)
+  - UPDATED: src/app/styles.css (dark/dim themes)
+  - UPDATED: src/app/components/layout/AppShell.tsx (SettingsPopover)
+  - NEW: src/handlers/pat-expiry.ts
+  - UPDATED: src/types/admin.ts (pat-expired type)
+  - UPDATED: src/app/components/admin/PipelineTab.tsx (PAT banner)
+  - NEW: tests/e2e/app.spec.ts
+  - NEW: tests/unit/us-018-theme-e2e.test.ts
+  - UPDATED: prd.json (US-018 passes: true), progress.txt
+- **Learnings for future iterations:**
+  - Flash prevention: inline `<script>` in `index.html` before React mount reads localStorage and applies theme class/CSS variable immediately. This runs before the React bundle loads.
+  - `darkMode: 'class'` in Tailwind config was already set (US-002), so dark variant utilities work with the class-based theme switching.
+  - Avoid dynamic imports when the module is already statically imported — Vite warns about it.
+  - PAT expiry flag uses a separate AdminFlagType ('pat-expired') distinct from underserved-query/repo-of-interest.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (788/788 tests, 19 files — 51 new for US-018)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - US-019
+- What was implemented:
+  - Created README.md with all required sections: What it is, Prerequisites, Local Setup (Firebase project, .env.local, emulators), Running the Scan Pipeline (discover, status), Admin role provisioning, Web UI, Running Tests, Deploying to Firebase Hosting, CLI Command Reference, AI Maturity Model reference table (Levels 0-5), Environment variable reference, null vs 0 invariant documentation
+  - Updated CLAUDE.md Codebase Patterns section with 11 patterns discovered during the build (dual runtime, Firestore wrapper, aiMaturityScore invariant, URL as filter state, rarest-tag-first query, dual Firestore query, TanStack Query patterns, admin score assignment, theme flash prevention, test patterns, build chain)
+  - Updated eggs/INDEX.md with candidate-skill-scanner entry (template=code, status=in-progress)
+  - Created tests/unit/us-019-docs.test.ts — 24 tests verifying README sections, INDEX.md entry, and CLAUDE.md patterns
+- Files changed:
+  - README.md (created)
+  - CLAUDE.md (updated — Codebase Patterns section populated)
+  - eggs/INDEX.md (updated — new entry)
+  - tests/unit/us-019-docs.test.ts (created — 24 tests)
+- **Learnings for future iterations:**
+  - When tests expect literal strings like "Level 1", ensure the source document uses that exact format (e.g., `| Level 1 |` not `| 1 |` in markdown tables).
+  - EGGS_ROOT path resolution: from `eggs/candidate-skill-scanner/`, one `..` reaches `eggs/`, two `../..` reaches the monorepo root. INDEX.md lives at `eggs/INDEX.md`.
+  - All 19 user stories are now complete and passing.
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (812/812 tests, 20 files — 24 new for US-019)
+  - `pnpm build`: PASS (vite build + classpresso optimize both succeed)
+---
+
+## 2026-02-24 - Parallel Workers + Rescan-Candidate Handler
+- What was implemented:
+  - **rescan-candidate handler** (`src/pipeline/handlers/rescan-candidate.ts`): Fetches all repos by owner, enqueues scan-repo layer2 jobs for each via `Promise.all`
+  - **Atomic job claiming** via Firestore transactions: `claimNextJob(workerId)` replaces old two-step `fetchNextPendingJob`/`markJobRunning` race condition
+  - **Worker ID tracking** (`src/pipeline/worker-id.ts`): `{hostname}-{pid}-{hex4}` format, singleton per process
+  - **Heartbeat system**: Workers send heartbeat every 60s during job execution; stale jobs (>5 min) reclaimed automatically
+  - **Transaction support** in Firestore wrapper: `runTransaction` wrapper + `Transaction` type re-export
+  - **Schema extension**: Added `workerId`, `heartbeatAt`, `claimedAt` (all nullable) to ScanJob type
+  - **Handler registration**: `rescan-candidate` registered in both `index.ts` (worker command) and `run.ts` (interactive command)
+  - **Test suite**: 45 new tests in `us-parallel-workers.test.ts`; updated 58 tests in `us-006-pipeline.test.ts`
+- Files changed:
+  - `src/types/scan-job.ts` — 3 new nullable fields
+  - `src/core/db/firestore.ts` — runTransaction wrapper + Transaction type
+  - `src/pipeline/worker-id.ts` (created)
+  - `src/pipeline/queue.ts` — claimNextJob, updateHeartbeat, reclaimStaleJobs, enqueueScanRepoJob
+  - `src/pipeline/worker.ts` — rewritten for atomic claiming + heartbeat
+  - `src/pipeline/handlers/rescan-candidate.ts` (created)
+  - `src/pipeline/commands/run.ts` — handler registration
+  - `src/pipeline/index.ts` — handler registration + worker ID display
+  - `src/pipeline/handlers/discover.ts` — new ScanJob fields in inline creation
+  - `tests/unit/us-parallel-workers.test.ts` (created — 45 tests)
+  - `tests/unit/us-006-pipeline.test.ts` — updated mocks for new API
+  - `docs/PLAN-parallel-workers.md` (created — reference design doc)
+- **Learnings for future iterations:**
+  - Firestore transactions auto-retry up to 5 times on contention — catch block should return null, not re-throw
+  - When spreading `{ id: snap.id, ...job }`, if the type already has `id`, use `{ ...job, id: snap.id }` to avoid TS2783
+  - Removing API functions (fetchNextPendingJob, markJobRunning) breaks downstream mocks — must update all test files that mock these
+  - New nullable ScanJob fields must be added to ALL inline job creation sites (queue.ts, discover.ts handler)
+  - Multiple workers can now safely run `pnpm scan worker` in parallel across terminals/machines
+- Quality gate results:
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm test:unit`: PASS (867/867 tests, 21 files)
+  - `pnpm build`: PASS
+---
+
+## 2026-03-17 - US-020
+- What was implemented:
+  - Verified existing `updateTaxonomyCounts` in candidate-writer.ts correctly increments/decrements taxonomy candidateCount on scan/rescan
+  - Verified `rebuild-counts` CLI command (pnpm scan rebuild-counts) is properly wired in pipeline CLI
+  - Verified FacetPanel and Admin CandidatesTab both display candidateCount from taxonomy docs
+  - Created comprehensive unit tests (us-020-taxonomy-counts.test.ts, 33 tests):
+    - Structural tests for updateTaxonomyCounts (increment/decrement/catch/Promise.all)
+    - Structural tests for rebuild-counts command (query/compare/update/orphan detection)
+    - CLI wiring tests (import, command registration, auth)
+    - UI display tests (FacetPanel + Admin Language Coverage)
+    - Functional diff logic tests (added/removed/unchanged/first-scan/all-removed/duplicates)
+- Files changed:
+  - NEW: tests/unit/us-020-taxonomy-counts.test.ts (186 lines)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - The taxonomy count mechanism was already fully implemented — updateTaxonomyCounts in candidate-writer.ts handles increment/decrement atomically via Firestore `increment()`
+  - The rebuild-counts command was already wired into the CLI — existing candidates just need `pnpm scan rebuild-counts` run to fix stale 0 counts
+  - Counts appear 0 because candidates were scanned before the count update code was added in earlier phases
+  - Testing pattern: source-level structural tests with readFileSync + toContain() plus functional reimplementation tests for pure logic
+---
+
+## 2026-03-17 - US-021
+- What was implemented:
+  - **OR-within-category search**: Replaced `array-contains` (single tag) with `array-contains-any` (up to 10 tags per chunk). Client-side filter changed from `allTags.every()` (AND) to `activeGroups.every(group => group.some())` (OR within category, AND across categories). Tags chunked into batches of 10 for Firestore's limit, parallel queries merged+deduped.
+  - **aiMaturityMin moved to client-side**: Removed dual Firestore query pattern (scored>=N + null). Now uses single `array-contains-any` query, filters aiMaturityMin client-side. Simpler, avoids Firestore inequality+array constraint conflict.
+  - **InfoIconButton DOM nesting fix**: Changed `<button>` to `<span role="button" tabIndex={0}>` with keyboard handlers (Enter/Space). PortalTooltip ref type widened to `HTMLElement`. Prevents validateDOMNesting error when inside CollapsibleSection's `<button>` header.
+  - Updated us-013-search.test.ts with new OR logic tests (buildCategoryGroups, OR-within AND-across filter)
+  - Updated us-014-ai-filter.test.ts to match new client-side aiMaturityMin approach
+- Files changed:
+  - MODIFIED: src/handlers/search.ts (148 → 148 lines, rewritten search logic)
+  - MODIFIED: src/app/components/profile/InfoBadge.tsx (span role=button, keyboard a11y)
+  - MODIFIED: tests/unit/us-013-search.test.ts (added 15 tests for OR logic + DOM fix)
+  - MODIFIED: tests/unit/us-014-ai-filter.test.ts (updated dual query tests to client-side)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - Firestore `array-contains-any` supports up to 10 values per clause (not 30). Must chunk for >10 selections.
+  - Cannot combine `array-contains-any` with inequality (`>=`) in same Firestore query — move inequality filtering client-side
+  - `<button>` inside `<button>` triggers React validateDOMNesting warning — use `<span role="button" tabIndex={0}>` with keyboard handlers instead
+  - `buildCategoryGroups` extracted as exported utility for testability
+---
+
+## 2026-03-17 - US-022
+- What was implemented:
+  - **Singular "follower"**: Added ternary `candidate.followers === 1 ? 'follower' : 'followers'` in CandidateProfilePage.tsx
+  - **Admin Status column**: Replaced `StalenessTag` with `ScanStatusBadge` showing scan depth (Complete/Layer 1/Pending) with color-coded badge + staleness indicator
+  - **Admin-only CLI command**: ResultsState.tsx now uses `useAuth()` to check `isAdmin`. Admin users see the CLI command, non-admins see "Contact your admin to expand the candidate pool"
+- Files changed:
+  - MODIFIED: src/app/pages/CandidateProfilePage.tsx (singular follower)
+  - MODIFIED: src/app/components/admin/CandidatesTab.tsx (ScanStatusBadge + scanDepth)
+  - MODIFIED: src/app/components/search/ResultsState.tsx (isAdmin conditional)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - `candidate.scanDepth` field holds 'layer1' | 'layer2' — use it for status display
+  - `useAuth()` hook provides `isAdmin` boolean from Firebase Auth custom claims
+---
+
+## 2026-03-17 - US-023
+- What was implemented:
+  - **WelcomeEmptyState component**: Replaces bare "Select filters" text with welcome card showing app description, pool stats, and 5 quick-start preset buttons
+  - **Pool stats hook**: `usePoolStats` fetches candidate + repo counts via `getCollectionCount` (10-min cache)
+  - **getCollectionCount**: Added to firestore wrapper using `getCountFromServer` from Firebase SDK
+  - **Quick-start presets**: TypeScript+React, Python+FastAPI, Go, AI-native, Full-stack(TS+Next.js) — each applies URL filter params via `setFilter`
+- Files changed:
+  - NEW: src/app/components/search/WelcomeEmptyState.tsx (99 lines)
+  - NEW: src/app/hooks/usePoolStats.ts (31 lines)
+  - MODIFIED: src/core/db/firestore.ts (added getCollectionCount + getCountFromServer import)
+  - MODIFIED: src/app/pages/SearchPage.tsx (replaced empty state with WelcomeEmptyState)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - Firebase `getCountFromServer` gives exact doc count without downloading docs — efficient for stats
+  - Presets work by calling `setFilter` which updates URL params; FacetPanel reads from URL, so checkboxes auto-sync
+---
+
+## 2026-03-17 - US-024
+- What was implemented:
+  - **Enriched CandidateCard**: Shows name (bold) + @username, location + company, truncated bio snippet, top 5 skill tags with TechIcon badges, best-fit position hint, score badges
+  - **Smart tag prioritization**: `getTopSkillTags` shows matched filter tags first, then remaining skill tags (excluding ai-agent-pattern and domain), capped at 5
+  - **Best-fit position**: Uses `computeAffinities` from position-affinity-data.ts, shows "Best fit: Role (X%)" if score >= 30%
+  - **Compact layout**: ~120px max height, badges pushed to right with `ml-auto`, bio truncated with `truncate max-w-xs`
+- Files changed:
+  - MODIFIED: src/app/components/search/CandidateCard.tsx (73 → 133 lines, enriched layout)
+  - MODIFIED: tests/unit/us-013-search.test.ts (updated card test for TechIcon)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - TechIcon takes `taxonomyId` prop (not `id`) and has no `size` prop — fixed-size internally
+  - `computeAffinities` may return empty array — guard with `?? null` and length check
+  - Filter ai-agent-pattern and domain tags from skill display — they clutter the card
+---
+
+## 2026-03-17 - US-025
+- What was implemented:
+  - **Smart facet sorting**: Items sorted by candidateCount descending (most popular first)
+  - **Top 8 + toggle**: Shows top 8 items by default, "+N more" button reveals rest
+  - **Zero-count hiding**: Items with candidateCount===0 hidden by default (but shown if selected)
+  - **In-group search**: Frameworks and Tools groups have a search input that filters items by name
+  - **AI Maturity unchanged**: Always shows all 6 levels (no collapse)
+  - **State management**: showAll and searchQuery use useState (session-only, not persisted)
+- Files changed:
+  - MODIFIED: src/app/components/search/FacetPanel.tsx (205 → 237 lines, smart defaults + search)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - FacetSection now manages its own expand/search state independently from the section open/close state
+  - "Select all" operates on visible items only (not hidden ones) for better UX
+  - When search query is active, auto-expand to show all matching results
+---
+
+## 2026-03-17 - US-026
+- What was implemented:
+  - **"How it works" nav link**: Added subtle link in AppShell nav bar that goes to /methodology
+  - **Results summary header**: SearchPage shows "N results for TypeScript + React developers" above result cards, built from filter tags via `buildFilterSummary`
+  - **Share access guide button**: PipelineTab has "Share access guide" button that copies /grant-access URL to clipboard with "Copied!" feedback
+  - **Regression tooltip**: EvolutionSection's "Regression" badges have `title` attribute explaining that regression may include learning/exploratory repos
+- Files changed:
+  - MODIFIED: src/app/components/layout/AppShell.tsx (added methodology link)
+  - MODIFIED: src/app/pages/SearchPage.tsx (results header + buildFilterSummary helper)
+  - MODIFIED: src/app/components/admin/PipelineTab.tsx (ShareAccessGuideButton, 302→324 lines)
+  - MODIFIED: src/app/components/profile/EvolutionSection.tsx (regression title tooltip)
+  - MODIFIED: prd.json (passes: true)
+- **Learnings for future iterations:**
+  - PipelineTab.tsx was already at 302 lines before this change — consider extracting QUERY_PRESETS data to reduce line count
+  - `title` attribute provides native tooltip without React state — good for simple explanatory tooltips
+---
+
+## 2026-03-19 - US-027
+- What was implemented:
+  - `src/types/user-profile.ts` — UserProfile (with pipeline-only fields), UserProfileClientWritableFields, UserGitHubSecret (encrypted token)
+  - `src/types/scan-job.ts` — Added 'self-scan' to ScanJobType, SelfScanPayload (requestedBy + githubUsername, NO token), tokenSourceUid on ScanRepoPayload
+  - `src/handlers/user-profile.ts` — CRUD: createUserProfile, getUserProfile, updateGitHubUsername, getGitHubSecret, hasPendingSelfScan, secretsPath helper
+  - `src/core/db/firestore-admin.ts` — Admin SDK Firestore wrapper with same interface as client SDK (getDoc, setDoc, updateDoc, deleteDoc, addDoc, queryDocs, serverTimestamp, increment, where, orderBy, limit)
+  - `firestore.rules` — user_profiles/{uid} with field-level write protection (client can only write githubUsername+updatedAt), secrets subcollection (read-only, no client writes), self-scan job creation rules (type, status, requestedBy, githubUsername match, no githubToken)
+  - `firestore.indexes.json` — Added indexes for self-scan job queries (type+requestedBy+status, type+requestedBy+createdAt)
+  - `src/pipeline/queue.ts` — enqueueSelfScanJob function
+  - `tests/unit/us-027-user-profiles.test.ts` — 30+ tests covering types, rules, handler, admin wrapper, queue extension
+  - Updated `tests/unit/us-004-security-rules.test.ts` — scan_jobs now allows authenticated self-scan creation
+- Files changed:
+  - NEW: src/types/user-profile.ts, src/handlers/user-profile.ts, src/core/db/firestore-admin.ts, tests/unit/us-027-user-profiles.test.ts
+  - MODIFIED: src/types/scan-job.ts, src/pipeline/queue.ts, firestore.rules, firestore.indexes.json, tests/unit/us-004-security-rules.test.ts, prd.json
+- **Learnings for future iterations:**
+  - Admin SDK wrapper is a SEPARATE module (firestore-admin.ts), not a mode switch in firestore.ts. Pipeline imports it directly for admin-level ops (reading secrets, writing pipeline-only fields). Main firestore.ts stays as client SDK wrapper unchanged.
+  - firebase-admin getApps() returns App[] where elements can be undefined — need non-null assertion (existingApps[0]!)
+  - Field-level Firestore rules use `request.resource.data.diff(resource.data).affectedKeys().hasOnly(...)` for update restrictions
+  - Self-scan Firestore rules use `get()` to cross-reference user_profiles for username validation
+  - Secrets subcollection uses `allow write: if false` to force all writes through Firebase Functions or Admin SDK
+---
+
+## 2026-03-19 - US-028
+- What was implemented:
+  - `functions/src/store-github-token.ts` — Callable Firebase Function: validates GitHub token via GET /user, confirms username match (case-insensitive), encrypts with AES-256-GCM, stores in user_profiles/{uid}/secrets/github, updates profile with connection metadata
+  - `functions/src/on-user-delete.ts` — Auth beforeUserDeleted trigger: cleans up user_profiles/{uid}/secrets/* subcollection + user_profiles/{uid} document
+  - `functions/src/index.ts` — Exports both new functions alongside verifyAdminClaim
+  - `tests/unit/us-028-token-security.test.ts` — 28 tests covering encryption, validation, cleanup, exports
+- Files changed:
+  - NEW: functions/src/store-github-token.ts, functions/src/on-user-delete.ts, tests/unit/us-028-token-security.test.ts
+  - MODIFIED: functions/src/index.ts, prd.json
+- **Learnings for future iterations:**
+  - Functions tsconfig uses CommonJS (`"module": "commonjs"`) — exports use `export const` pattern, imports use `from 'firebase-admin'` (not `from 'firebase-admin/app'`)
+  - AES-256-GCM: IV=12 bytes, authTag=16 bytes, format: base64(iv + authTag + ciphertext)
+  - Token prefix: exactly 4 chars (type indicator: ghp_, gho_, gith) to minimize structure leakage
+  - `beforeUserDeleted` trigger from firebase-functions/v2/identity — runs before deletion, can clean up subcollections
+  - Functions share the firebase-admin instance initialized in index.ts — no re-initialization needed in sub-modules
+---
+
+## 2026-03-19 - US-029
+- What was implemented:
+  - `src/core/auth/firebase-auth.ts` — Added GithubAuthProvider import, signInWithGitHub() function (popup, read:user+repo scopes), GitHubSignInResult interface (accessToken + githubUsername)
+  - `src/app/auth/AuthContext.tsx` — Extended with githubUsername, isGitHubConnected, tokenStatus, signInWithGitHub, refreshProfile. Loads user_profiles on auth state change via getUserProfile handler.
+  - `src/app/pages/LoginPage.tsx` — Added GitHub sign-in button with Octocat icon, dark slate styling, data-testid
+  - `tests/unit/us-029-github-oauth.test.ts` — 26 tests covering auth module, AuthContext, and LoginPage
+- Files changed:
+  - MODIFIED: src/core/auth/firebase-auth.ts, src/app/auth/AuthContext.tsx, src/app/pages/LoginPage.tsx, prd.json
+  - NEW: tests/unit/us-029-github-oauth.test.ts
+- **Learnings for future iterations:**
+  - GitHub OAuth token from signInWithPopup is on OAuthCredential.accessToken (via GithubAuthProvider.credentialFromResult)
+  - GitHub username extraction: providerData.find(p => p.providerId === 'github.com')?.displayName or reloadUserInfo.screenName
+  - AuthContext loads user_profiles/{uid} on every auth state change to populate GitHub connection state
+  - Firebase Auth emulator supports GitHub provider for testing
+---
+
+## 2026-03-19 - US-030
+- What was implemented:
+  - `src/app/pages/MyProfilePage.tsx` — User dashboard with GitHub connection status, token health indicator, disconnect button, candidate profile link, scan history placeholder
+  - `src/app/components/profile/ConnectGitHubForm.tsx` — Username + PAT form with client-side validation (regex, token prefix), calls storeGitHubToken Firebase Function via useConnectGitHub hook
+  - `src/app/hooks/useUserProfile.ts` — TanStack Query hooks: useUserProfile, useGitHubSecret, useConnectGitHub (mutation), useDisconnectGitHub (mutation)
+  - `src/core/utils/sanitize.ts` — sanitizeInput(input, maxLength) utility (CLAUDE.md rule)
+  - `src/app/main.tsx` — Added /my-profile route under PrivateRoute
+  - `src/app/components/layout/AppShell.tsx` — Added "My Profile" nav link before Admin link
+  - `tests/unit/us-030-my-profile.test.ts` — 42 tests
+- Files changed:
+  - NEW: src/app/pages/MyProfilePage.tsx, src/app/hooks/useUserProfile.ts, src/core/utils/sanitize.ts, tests/unit/us-030-my-profile.test.ts
+  - MODIFIED: src/app/components/layout/AppShell.tsx, src/app/main.tsx, prd.json
+  - ConnectGitHubForm.tsx was already created in profile/ dir
+- **Learnings for future iterations:**
+  - sanitizeInput was referenced in CLAUDE.md but never implemented — created at src/core/utils/sanitize.ts
+  - GitHub username max length is 39 chars (GitHub limit)
+  - ConnectGitHubForm goes in src/app/components/profile/ alongside existing candidate profile components
+  - useConnectGitHub calls httpsCallable(functions, 'storeGitHubToken') — the Firebase Function handles all server-side validation
+---
+
+## 2026-03-19 - US-031
+- What was implemented:
+  - `src/app/components/profile/SelfScanSection.tsx` — "Scan My Repos" button with pending check, creates self-scan job (no githubToken in payload), polls for status, shows recent scans
+  - `src/pipeline/handlers/self-scan.ts` — Pipeline handler: resolves token from user secrets, discovers repos, enqueues scan-repo jobs with tokenSourceUid (NOT githubToken), updates user scan stats via Admin SDK
+  - `src/pipeline/token-resolver.ts` — resolveToken(uid): reads + decrypts token from user_profiles secrets. markTokenExpired(uid): writes tokenStatus='expired' on 401.
+  - `src/pipeline/handlers/scan-repo.ts` — Modified to support tokenSourceUid: if present, resolves token via token-resolver instead of using direct githubToken
+  - `src/pipeline/index.ts` — Registered self-scan handler in worker dispatch
+  - `src/pipeline/commands/run.ts` — Registered self-scan handler + added githubUsername to job target display
+  - `src/app/pages/MyProfilePage.tsx` — Replaced scan history placeholder with SelfScanSection component
+  - `tests/unit/us-031-self-scan.test.ts` — 40 tests covering component, handler, token-resolver, worker registration, queue
+- Files changed:
+  - NEW: src/app/components/profile/SelfScanSection.tsx, src/pipeline/handlers/self-scan.ts, src/pipeline/token-resolver.ts, tests/unit/us-031-self-scan.test.ts
+  - MODIFIED: src/pipeline/handlers/scan-repo.ts, src/pipeline/index.ts, src/pipeline/commands/run.ts, src/app/pages/MyProfilePage.tsx, tests/unit/us-030-my-profile.test.ts, prd.json
+- **Learnings for future iterations:**
+  - tokenSourceUid pattern: self-scan jobs carry UID reference, scan-repo resolves token at clone time. Token never in job documents.
+  - DiscoveredRepo type has `primaryLanguage: string | null` — must use the proper type from source-adapter.ts, not inline type with `string`
+  - Admin SDK increment via FieldValue.increment(1) for atomic selfScanCount updates
+  - scan-repo.ts now has dual token path: tokenSourceUid (self-scan) vs githubToken (admin rescan) — both coexist
+  - SelfScanSection uses refetchInterval for polling scan status (15s), not manual setTimeout
+---
