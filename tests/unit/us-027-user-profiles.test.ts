@@ -120,12 +120,11 @@ describe('Firestore security rules - user_profiles', () => {
     expect(rules).toContain('allow write: if false');
   });
 
-  it('allows owner to read their own secrets', () => {
-    // The secrets read rule checks auth.uid == uid
+  it('allows owner and admin to read secrets', () => {
     const secretsSection = rules.slice(
       rules.indexOf('match /secrets/{secretId}')
     );
-    expect(secretsSection).toContain('allow read: if isAuthenticated() && request.auth.uid == uid');
+    expect(secretsSection).toContain('request.auth.uid == uid || isAdmin()');
   });
 });
 

@@ -18,8 +18,8 @@ admin.initializeApp();
 
 // ─── Self-service scan functions ─────────────────────────────────────────────
 
-export { storeGitHubToken } from './store-github-token.js';
-export { onUserDelete } from './on-user-delete.js';
+export { storeGitHubToken } from './store-github-token';
+export { onUserDelete } from './on-user-delete';
 
 /**
  * Verifies that the calling user has the `admin: true` custom claim.

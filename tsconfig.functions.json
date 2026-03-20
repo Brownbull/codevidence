@@ -4,7 +4,11 @@
     "lib": ["ES2022"],
     "types": ["node"],
     "module": "commonjs",
-    "outDir": "functions/lib"
+    "moduleResolution": "node",
+    "outDir": "functions/lib",
+    "declaration": false,
+    "declarationMap": false
   },
-  "include": ["functions/src/**/*"]
+  "include": ["functions/src/**/*"],
+  "exclude": ["node_modules"]
 }

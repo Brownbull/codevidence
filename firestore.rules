@@ -79,10 +79,12 @@ service cloud.firestore {
       allow write: if isAdmin();
 
       // ─── secrets subcollection ────────────────────────────────────────────
-      // Owner can read their own secrets (to display token prefix in UI).
-      // NO client writes — all writes go through Firebase Function or Admin SDK.
+      // Owner + admin can read secrets. Admin needs read access so the
+      // pipeline worker (signed in as admin) can resolve encrypted tokens
+      // for self-scan jobs without requiring a service account.
+      // NO client writes — all writes go through Firebase Function.
       match /secrets/{secretId} {
-        allow read: if isAuthenticated() && request.auth.uid == uid;
+        allow read: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
         allow write: if false;
       }
     }

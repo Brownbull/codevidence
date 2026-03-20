@@ -101,12 +101,12 @@ describe('self-scan pipeline handler', () => {
     expect(src).toContain('401');
   });
 
-  it('updates user scan stats via Admin SDK', () => {
+  it('updates user scan stats', () => {
     expect(src).toContain('updateUserScanStats');
-    expect(src).toContain('adminUpdateDoc');
+    expect(src).toContain('updateDoc');
     expect(src).toContain('lastSelfScanAt');
     expect(src).toContain('selfScanCount');
-    expect(src).toContain('adminIncrement(1)');
+    expect(src).toContain('increment(1)');
   });
 
   it('handles rate limiting', () => {
@@ -114,8 +114,8 @@ describe('self-scan pipeline handler', () => {
     expect(src).toContain('markJobRateLimited');
   });
 
-  it('imports from Admin SDK wrapper (not client SDK)', () => {
-    expect(src).toContain("from '../../core/db/firestore-admin.js'");
+  it('imports from Firestore wrapper', () => {
+    expect(src).toContain("from '../../core/db/firestore.js'");
   });
 });
 
@@ -140,8 +140,8 @@ describe('token-resolver', () => {
     expect(src).toContain('/secrets');
   });
 
-  it('uses Admin SDK for Firestore access', () => {
-    expect(src).toContain("from '../core/db/firestore-admin.js'");
+  it('uses standard Firestore wrapper (worker is admin)', () => {
+    expect(src).toContain("from '../core/db/firestore.js'");
   });
 
   it('decrypts using AES-256-GCM', () => {
@@ -159,7 +159,7 @@ describe('token-resolver', () => {
 
   it('markTokenExpired writes tokenStatus to user profile', () => {
     expect(src).toContain("tokenStatus: 'expired'");
-    expect(src).toContain('adminUpdateDoc');
+    expect(src).toContain('updateDoc');
   });
 });
 

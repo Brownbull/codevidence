@@ -3,18 +3,20 @@
  *
  * Used by the scan-repo handler when processing jobs with tokenSourceUid.
  * Reads the encrypted token from user_profiles/{uid}/secrets/github
- * via the Admin SDK, then decrypts it.
+ * via the standard Firestore wrapper (worker is signed in as admin,
+ * and the Firestore rule allows admin reads on secrets).
  *
  * This module is pipeline-only (Node.js). Never import from browser code.
  */
 
 import { createDecipheriv } from 'node:crypto';
 import {
-  getDoc as adminGetDoc,
-  updateDoc as adminUpdateDoc,
-  serverTimestamp as adminTimestamp,
-} from '../core/db/firestore-admin.js';
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from '../core/db/firestore.js';
 import type { UserGitHubSecret } from '../types/user-profile.js';
+import type { UserProfile } from '../types/user-profile.js';
 
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
@@ -47,7 +49,7 @@ function decryptToken(encryptedBase64: string): string {
 export async function resolveToken(uid: string): Promise<string | null> {
   const secretPath = `user_profiles/${uid}/secrets`;
 
-  const secret = await adminGetDoc<UserGitHubSecret>(secretPath, 'github');
+  const secret = await getDoc<UserGitHubSecret>(secretPath, 'github');
   if (!secret?.encryptedToken) {
     console.warn(`[token-resolver] No GitHub token found for user ${uid}`);
     return null;
@@ -67,10 +69,10 @@ export async function resolveToken(uid: string): Promise<string | null> {
  */
 export async function markTokenExpired(uid: string): Promise<void> {
   try {
-    await adminUpdateDoc('user_profiles', uid, {
+    await updateDoc<UserProfile>('user_profiles', uid, {
       tokenStatus: 'expired',
-      updatedAt: adminTimestamp(),
-    });
+      updatedAt: serverTimestamp(),
+    } as Partial<UserProfile>);
     console.log(`[token-resolver] Marked token as expired for user ${uid}`);
   } catch (err) {
     console.error(`[token-resolver] Failed to mark token expired for user ${uid}:`, err);

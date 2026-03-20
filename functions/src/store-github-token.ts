@@ -1,22 +1,25 @@
 /**
- * functions/src/store-github-token.ts — Callable Firebase Function.
+ * functions/src/store-github-token.ts — Callable Firebase Function (v1).
  *
  * Validates a GitHub token via the GitHub API, encrypts it with AES-256,
  * and stores it in user_profiles/{uid}/secrets/github.
+ *
+ * Uses v1 onCall (not v2) because v2 Cloud Run functions have CORS issues
+ * with browser preflight requests. v1 handles CORS automatically.
  *
  * Called by:
  *   - GitHub OAuth auto-link flow (provider: 'oauth')
  *   - Manual PAT connect flow (provider: 'pat')
  *
  * Security:
- *   - Requires authenticated caller
+ *   - Requires authenticated caller (context.auth)
  *   - Validates token ownership via GitHub API GET /user
  *   - Token is encrypted before Firestore write — never stored in plaintext
- *   - Encryption key from GITHUB_TOKEN_ENCRYPTION_KEY env var
+ *   - Encryption key from GITHUB_TOKEN_ENCRYPTION_KEY secret
  */
 
 import * as admin from 'firebase-admin';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import * as functionsV1 from 'firebase-functions/v1';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 // ─── Encryption helpers ──────────────────────────────────────────────────────
@@ -28,14 +31,14 @@ const AUTH_TAG_LENGTH = 16;
 function getEncryptionKey(): Buffer {
   const keyBase64 = process.env['GITHUB_TOKEN_ENCRYPTION_KEY'];
   if (!keyBase64) {
-    throw new HttpsError(
+    throw new functionsV1.https.HttpsError(
       'internal',
       'Server encryption key not configured.'
     );
   }
   const key = Buffer.from(keyBase64, 'base64');
   if (key.length !== 32) {
-    throw new HttpsError(
+    throw new functionsV1.https.HttpsError(
       'internal',
       'Invalid encryption key length. Expected 32 bytes (base64-encoded).'
     );
@@ -87,12 +90,12 @@ async function validateGitHubToken(
 
   if (!response.ok) {
     if (response.status === 401) {
-      throw new HttpsError(
+      throw new functionsV1.https.HttpsError(
         'unauthenticated',
         'GitHub token is invalid or expired.'
       );
     }
-    throw new HttpsError(
+    throw new functionsV1.https.HttpsError(
       'internal',
       `GitHub API returned ${response.status}.`
     );
@@ -101,7 +104,7 @@ async function validateGitHubToken(
   const user = (await response.json()) as GitHubUser;
 
   if (user.login.toLowerCase() !== expectedUsername.toLowerCase()) {
-    throw new HttpsError(
+    throw new functionsV1.https.HttpsError(
       'permission-denied',
       `Token belongs to "${user.login}", not "${expectedUsername}". You can only connect your own GitHub account.`
     );
@@ -117,7 +120,7 @@ function extractTokenPrefix(token: string): string {
   return token.substring(0, 4);
 }
 
-// ─── Callable Function ──────────────────────────────────────────────────────
+// ─── Callable Function (v1 — auto-handles CORS) ────────────────────────────
 
 interface StoreTokenInput {
   githubUsername: string;
@@ -125,91 +128,91 @@ interface StoreTokenInput {
   provider: 'oauth' | 'pat';
 }
 
-export const storeGitHubToken = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated.');
-  }
+export const storeGitHubToken = functionsV1
+  .runWith({ secrets: ['GITHUB_TOKEN_ENCRYPTION_KEY'] })
+  .https.onCall(async (data: StoreTokenInput, context: functionsV1.https.CallableContext) => {
+    if (!context.auth) {
+      throw new functionsV1.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
 
-  const { githubUsername, githubToken, provider } =
-    request.data as StoreTokenInput;
+    const { githubUsername, githubToken, provider } = data;
 
-  // Input validation
-  if (!githubUsername || typeof githubUsername !== 'string') {
-    throw new HttpsError('invalid-argument', 'githubUsername is required.');
-  }
-  if (!githubToken || typeof githubToken !== 'string') {
-    throw new HttpsError('invalid-argument', 'githubToken is required.');
-  }
-  if (provider !== 'oauth' && provider !== 'pat') {
-    throw new HttpsError('invalid-argument', 'provider must be "oauth" or "pat".');
-  }
+    // Input validation
+    if (!githubUsername || typeof githubUsername !== 'string') {
+      throw new functionsV1.https.HttpsError('invalid-argument', 'githubUsername is required.');
+    }
+    if (!githubToken || typeof githubToken !== 'string') {
+      throw new functionsV1.https.HttpsError('invalid-argument', 'githubToken is required.');
+    }
+    if (provider !== 'oauth' && provider !== 'pat') {
+      throw new functionsV1.https.HttpsError('invalid-argument', 'provider must be "oauth" or "pat".');
+    }
 
-  // Validate token format
-  if (
-    !githubToken.startsWith('ghp_') &&
-    !githubToken.startsWith('gho_') &&
-    !githubToken.startsWith('github_pat_')
-  ) {
-    throw new HttpsError(
-      'invalid-argument',
-      'Token must start with ghp_, gho_, or github_pat_.'
-    );
-  }
+    // Validate token format
+    if (
+      !githubToken.startsWith('ghp_') &&
+      !githubToken.startsWith('gho_') &&
+      !githubToken.startsWith('github_pat_')
+    ) {
+      throw new functionsV1.https.HttpsError(
+        'invalid-argument',
+        'Token must start with ghp_, gho_, or github_pat_.'
+      );
+    }
 
-  // Validate token ownership via GitHub API
-  await validateGitHubToken(githubToken, githubUsername);
+    // Validate token ownership via GitHub API
+    await validateGitHubToken(githubToken, githubUsername);
 
-  const uid = request.auth.uid;
-  const db = admin.firestore();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+    const uid = context.auth.uid;
+    const db = admin.firestore();
+    const now = admin.firestore.FieldValue.serverTimestamp();
 
-  // Encrypt the token
-  const encryptedToken = encryptToken(githubToken);
-  const tokenPrefix = extractTokenPrefix(githubToken);
+    // Encrypt the token
+    const encryptedToken = encryptToken(githubToken);
+    const tokenPrefix = extractTokenPrefix(githubToken);
 
-  // Store encrypted secret
-  await db
-    .collection('user_profiles')
-    .doc(uid)
-    .collection('secrets')
-    .doc('github')
-    .set({
-      encryptedToken,
+    // Store encrypted secret
+    await db
+      .collection('user_profiles')
+      .doc(uid)
+      .collection('secrets')
+      .doc('github')
+      .set({
+        encryptedToken,
+        tokenPrefix,
+        expiresAt: null,
+        updatedAt: now,
+      });
+
+    // Update user profile with connection info
+    const profileRef = db.collection('user_profiles').doc(uid);
+    const profileSnap = await profileRef.get();
+
+    if (!profileSnap.exists) {
+      await profileRef.set({
+        uid,
+        githubUsername,
+        githubConnectedAt: now,
+        githubProvider: provider,
+        tokenStatus: 'valid',
+        lastSelfScanAt: null,
+        selfScanCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+    } else {
+      await profileRef.update({
+        githubUsername,
+        githubConnectedAt: now,
+        githubProvider: provider,
+        tokenStatus: 'valid',
+        updatedAt: now,
+      });
+    }
+
+    return {
+      success: true,
+      githubUsername,
       tokenPrefix,
-      expiresAt: null, // PAT expiry parsing is best-effort; null for now
-      updatedAt: now,
-    });
-
-  // Update user profile with connection info (pipeline-owned fields via Admin SDK)
-  const profileRef = db.collection('user_profiles').doc(uid);
-  const profileSnap = await profileRef.get();
-
-  if (!profileSnap.exists) {
-    // Create profile if it doesn't exist (GitHub OAuth first-login case)
-    await profileRef.set({
-      uid,
-      githubUsername,
-      githubConnectedAt: now,
-      githubProvider: provider,
-      tokenStatus: 'valid',
-      lastSelfScanAt: null,
-      selfScanCount: 0,
-      createdAt: now,
-      updatedAt: now,
-    });
-  } else {
-    await profileRef.update({
-      githubUsername,
-      githubConnectedAt: now,
-      githubProvider: provider,
-      tokenStatus: 'valid',
-      updatedAt: now,
-    });
-  }
-
-  return {
-    success: true,
-    githubUsername,
-    tokenPrefix,
-  };
-});
+    };
+  });

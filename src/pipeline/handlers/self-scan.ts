@@ -14,12 +14,7 @@
 import type { ScanJob, SelfScanPayload } from '../../types/scan-job.js';
 import { repoDocId, type Repository } from '../../types/repository.js';
 import type { DiscoveredRepo } from '../../adapters/source-adapter.js';
-import { queryDocs, where, getDoc, setDoc, serverTimestamp } from '../../core/db/firestore.js';
-import {
-  updateDoc as adminUpdateDoc,
-  serverTimestamp as adminTimestamp,
-  increment as adminIncrement,
-} from '../../core/db/firestore-admin.js';
+import { queryDocs, where, getDoc, setDoc, updateDoc, serverTimestamp, increment } from '../../core/db/firestore.js';
 import { enqueueScanRepoJob } from '../queue.js';
 import { createGitHubAdapter, GitHubRateLimitError } from '../../adapters/github.js';
 import { normalizeGitHubLanguage } from '../analysis/layer1.js';
@@ -110,19 +105,20 @@ export async function handleSelfScan(job: ScanJob & { id: string }): Promise<voi
     `[self-scan] Enqueued ${jobIds.length} scan-repo job(s) for ${canonicalOwner}`
   );
 
-  // Update user profile stats via Admin SDK
+  // Update user profile stats (worker is admin)
   await updateUserScanStats(requestedBy);
 }
 
 /**
- * Updates lastSelfScanAt and increments selfScanCount via Admin SDK.
+ * Updates lastSelfScanAt and increments selfScanCount.
+ * Worker is signed in as admin — Firestore rules allow admin writes on user_profiles.
  */
 async function updateUserScanStats(uid: string): Promise<void> {
   try {
-    await adminUpdateDoc('user_profiles', uid, {
-      lastSelfScanAt: adminTimestamp(),
-      selfScanCount: adminIncrement(1),
-      updatedAt: adminTimestamp(),
+    await updateDoc('user_profiles', uid, {
+      lastSelfScanAt: serverTimestamp(),
+      selfScanCount: increment(1),
+      updatedAt: serverTimestamp(),
     });
   } catch (err) {
     console.error(`[self-scan] Failed to update scan stats for user ${uid}:`, err);

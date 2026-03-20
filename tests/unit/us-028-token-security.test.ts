@@ -20,11 +20,12 @@ describe('store-github-token Firebase Function', () => {
   );
 
   it('exports storeGitHubToken callable function', () => {
-    expect(src).toContain('export const storeGitHubToken = onCall');
+    expect(src).toContain('export const storeGitHubToken');
+    expect(src).toContain('https.onCall');
   });
 
   it('requires authentication', () => {
-    expect(src).toContain('request.auth');
+    expect(src).toContain('context.auth');
     expect(src).toContain('unauthenticated');
   });
 
@@ -138,8 +139,8 @@ describe('on-user-delete Firebase Function', () => {
     expect(src).toContain('export const onUserDelete');
   });
 
-  it('uses beforeUserDeleted trigger', () => {
-    expect(src).toContain('beforeUserDeleted');
+  it('uses auth.user().onDelete trigger', () => {
+    expect(src).toContain('auth.user().onDelete');
   });
 
   it('deletes secrets subcollection documents', () => {

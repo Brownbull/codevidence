@@ -9,10 +9,10 @@
  */
 
 import * as admin from 'firebase-admin';
-import { beforeUserDeleted } from 'firebase-functions/v2/identity';
+import { auth } from 'firebase-functions/v1';
 
-export const onUserDelete = beforeUserDeleted(async (event) => {
-  const uid = event.data.uid;
+export const onUserDelete = auth.user().onDelete(async (user: auth.UserRecord) => {
+  const uid = user.uid;
   const db = admin.firestore();
 
   // Delete all documents in secrets subcollection
